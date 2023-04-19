@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+# This script is used to run magefiles in the magefiles directory without having to install mage.
+
+IFS=$'\n\t'
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+MAGE_DIR="${ROOT_DIR}/magefiles"
+
+cd "${MAGE_DIR}"
+
+exec go run main.go -w "${ROOT_DIR}" "$@"
