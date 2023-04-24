@@ -30,9 +30,10 @@ type StepActionExecutor struct {
 func NewStepActionExecutor(step *gha.Step, action *gha.Action, path string, fallbackEnvs ...gha.Environment) *StepActionExecutor {
 	// TODO: implement docker and run step executors as well. Currently only action is implemented.
 	return &StepActionExecutor{
-		step:   step,
-		action: action,
-		path:   path,
+		step:         step,
+		action:       action,
+		path:         path,
+		fallbackEnvs: fallbackEnvs,
 	}
 }
 

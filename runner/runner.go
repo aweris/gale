@@ -2,8 +2,9 @@ package runner
 
 import (
 	"context"
-	"dagger.io/dagger"
 	"embed"
+
+	"dagger.io/dagger"
 )
 
 // runnerScripts contains the scripts used to initialize the runner. These scripts are used for keeping provisioning
@@ -75,7 +76,7 @@ func installTools(client *dagger.Client, container *dagger.Container) *dagger.Co
 
 	var (
 		// toolset json for ubuntu 22.04
-		toolsetJson = toolsetRepo.File("images/linux/toolsets/toolset-2204.json")
+		toolsetJSON = toolsetRepo.File("images/linux/toolsets/toolset-2204.json")
 
 		// directory containing helper scripts
 		helperScriptsDir = toolsetRepo.Directory("images/linux/scripts/helpers")
@@ -85,7 +86,7 @@ func installTools(client *dagger.Client, container *dagger.Container) *dagger.Co
 	)
 
 	// /imagegeneration/installers/toolset.json is defined in install helper script statically
-	container = container.WithFile("/imagegeneration/installers/toolset.json", toolsetJson)
+	container = container.WithFile("/imagegeneration/installers/toolset.json", toolsetJSON)
 
 	// HELPER_SCRIPTS is used by installer scripts to find and source helper scripts
 	container = container.WithDirectory("/tmp/runner/toolset/helpers", helperScriptsDir)

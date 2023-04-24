@@ -189,7 +189,6 @@ func LoadActionFromSource(ctx context.Context, client *dagger.Client, src string
 
 // getActionDirectory returns the directory of the action from given source.
 func getActionDirectory(client *dagger.Client, src string) (*dagger.Directory, error) {
-
 	// if path is relative, use the host to resolve the path
 	if strings.HasPrefix(src, "./") {
 		return client.Host().Directory(src), nil
