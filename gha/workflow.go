@@ -54,7 +54,7 @@ type Workflow struct {
 
 	// Environment is the environment variables used in the workflow
 	Environment Environment `yaml:"env"`
-	
+
 	// Jobs is the list of jobs in the workflow.
 	Jobs Jobs `yaml:"jobs"`
 }
