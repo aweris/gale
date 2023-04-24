@@ -4,6 +4,11 @@ on:
   pull_request_target:
     types: [ opened, edited, reopened, synchronize, closed ]
 
+permissions:
+  issues: write
+  pull-requests: write
+  statuses: write
+
 jobs:
   check-for-stacked-prs:
     runs-on: ubuntu-latest
