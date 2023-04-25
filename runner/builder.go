@@ -106,7 +106,8 @@ func (b *Builder) createUser(uid int, user string, groups ...string) *Builder {
 		actionsDir = "/home/actions"
 	)
 
-	var commands []string
+	// allocate just enough space for the commands we need
+	commands := make([]string, 0, 8)
 
 	// Create new user
 	commands = append(commands, "useradd --create-home --home-dir "+homeDir+" --uid "+strconv.Itoa(uid)+" "+user)
