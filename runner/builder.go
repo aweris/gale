@@ -3,14 +3,15 @@ package runner
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
 	"dagger.io/dagger"
-)
 
-// defaultFrom is the default Docker image address container is created from.
-const defaultFrom = "docker.io/library/ubuntu:22.04"
+	"github.com/aweris/gale/config"
+)
 
 // ModifyFn is a function that modifies a Dagger container.
 type ModifyFn func(container *dagger.Container) *dagger.Container
@@ -19,6 +20,9 @@ type ModifyFn func(container *dagger.Container) *dagger.Container
 type Builder struct {
 	// client is the Dagger client used to create the container.
 	client *dagger.Client
+
+	// label is the label of the container.
+	label string
 
 	// Docker image address container is created from
 	from string
@@ -29,7 +33,12 @@ type Builder struct {
 
 // NewBuilder creates a new Builder.
 func NewBuilder(client *dagger.Client) *Builder {
-	builder := &Builder{client: client}
+	// create a new builder instance with default values
+	builder := &Builder{
+		client: client,
+		from:   config.DefaultRunnerImage,
+		label:  config.DefaultRunnerLabel,
+	}
 
 	// Add default steps to the builder
 	builder.installDependencies()
@@ -38,6 +47,12 @@ func NewBuilder(client *dagger.Client) *Builder {
 	builder.installTools()
 
 	return builder
+}
+
+// WithRunnerLabel sets the label for the runner container.
+func (b *Builder) WithRunnerLabel(label string) *Builder {
+	b.label = label
+	return b
 }
 
 // From sets the Docker image address container is created from.
@@ -160,14 +175,9 @@ func (b *Builder) installTools() *Builder {
 	)
 }
 
-// Build builds the runner.
-func (b *Builder) Build(ctx context.Context) *Runner {
+// Build builds and exports the runner in the data home directory with the given label and returns the runner instance.
+func (b *Builder) Build(ctx context.Context) (*Runner, error) {
 	container := b.client.Container()
-
-	// Set the default from image if not set.
-	if b.from == "" {
-		b.from = defaultFrom
-	}
 
 	// Create the container from the given image.
 	// TODO: allow loading the container from a tarball or using a Dockerfile.
@@ -181,5 +191,18 @@ func (b *Builder) Build(ctx context.Context) *Runner {
 	// Set the user to the runner user. User is created in default steps added in NewBuilder.
 	container.WithUser("runner")
 
-	return &Runner{Container: container}
+	dh := config.DataHome()
+
+	if err := os.MkdirAll(filepath.Join(dh, b.label), 0755); err != nil {
+		return nil, err
+	}
+
+	// Export the container to a tarball in the data home directory($XDG_DATA_HOME/gale/<runner-label>/image.tar).
+	// This tarball will be used avoid rebuilding the runner image every time and reduce relying on cache.
+	_, err := container.Export(ctx, filepath.Join(dh, b.label, config.DefaultRunnerImageTar))
+	if err != nil {
+		return nil, err
+	}
+
+	return &Runner{Container: container}, nil
 }

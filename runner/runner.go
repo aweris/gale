@@ -2,6 +2,9 @@ package runner
 
 import (
 	"context"
+	"fmt"
+	"github.com/aweris/gale/config"
+	"path/filepath"
 
 	"dagger.io/dagger"
 )
@@ -14,16 +17,21 @@ type Runner struct {
 
 // NewRunner creates a new Runner.
 func NewRunner(ctx context.Context, client *dagger.Client) (*Runner, error) {
-	runner := NewBuilder(client).From("docker.io/library/ubuntu:22.04").Build(ctx)
+	// check if there is a pre-built runner image
+	path, _ := config.SearchDataFile(filepath.Join(config.DefaultRunnerLabel, config.DefaultRunnerImageTar))
+	if path != "" {
+		dir := filepath.Dir(path)
+		base := filepath.Base(path)
 
-	// run as non-root user runner like the original runner image
-	runner.Container = runner.Container.WithUser("runner")
+		fmt.Printf("Found pre-built image for %s, importing...\n", config.DefaultRunnerLabel)
 
-	// provision the container before returning in order to fail early if there are any issues
-	_, err := runner.Container.ExitCode(ctx)
-	if err != nil {
-		return nil, err
+		container := client.Container().Import(client.Host().Directory(dir).File(base))
+
+		return &Runner{Container: container}, nil
 	}
 
-	return runner, nil
+	fmt.Printf("No pre-built image found for %s, building a new one...\n", config.DefaultRunnerLabel)
+
+	// Build the runner with the defaults and return it, if there is no pre-built image
+	return NewBuilder(client).Build(ctx)
 }
