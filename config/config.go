@@ -1,8 +1,9 @@
 package config
 
 import (
-	"github.com/adrg/xdg"
 	"path/filepath"
+
+	"github.com/adrg/xdg"
 )
 
 // DataHome returns the path to the data directory.

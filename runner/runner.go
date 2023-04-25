@@ -3,10 +3,11 @@ package runner
 import (
 	"context"
 	"fmt"
-	"github.com/aweris/gale/config"
 	"path/filepath"
 
 	"dagger.io/dagger"
+
+	"github.com/aweris/gale/config"
 )
 
 // Runner represents a GitHub Action runner powered by Dagger.
