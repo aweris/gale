@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/aweris/gale/cmd/build"
 	"github.com/aweris/gale/cmd/run"
 )
 
@@ -21,6 +22,8 @@ func Execute() {
 	rootCmd := NewCommand()
 
 	rootCmd.AddCommand(run.NewCommand())
+	rootCmd.AddCommand(build.NewCommand())
+
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Printf("Error executing command: %v", err)
 		os.Exit(1)
