@@ -2,7 +2,7 @@ package run
 
 import (
 	"context"
-	"os"
+	"fmt"
 
 	"dagger.io/dagger"
 
@@ -10,6 +10,7 @@ import (
 
 	"github.com/aweris/gale/executor"
 	"github.com/aweris/gale/gha"
+	"github.com/aweris/gale/journal"
 )
 
 // NewCommand creates a new run command.
@@ -30,11 +31,26 @@ func runWorkflow() error {
 	// Create a context to pass to Dagger.
 	ctx := context.Background()
 
+	journalW, journalR := journal.Pipe()
+
+	// Just print the same log to stdout for now. We'll replace this with something interesting later.
+	go func() {
+		for {
+			entry, ok := journalR.ReadEntry()
+			if !ok {
+				break
+			}
+
+			fmt.Println(entry)
+		}
+	}()
+
 	// Connect to Dagger
-	client, clientErr := dagger.Connect(ctx, dagger.WithLogOutput(os.Stdout))
+	client, clientErr := dagger.Connect(ctx, dagger.WithLogOutput(journalW))
 	if clientErr != nil {
 		return clientErr
 	}
+	defer client.Close()
 
 	// Load the workflows from the .github/workflows directory.
 	workflows, loadErr := gha.LoadWorkflows(ctx, client)
