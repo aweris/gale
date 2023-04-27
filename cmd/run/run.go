@@ -2,7 +2,6 @@ package run
 
 import (
 	"context"
-	"fmt"
 
 	"dagger.io/dagger"
 
@@ -11,6 +10,7 @@ import (
 	"github.com/aweris/gale/executor"
 	"github.com/aweris/gale/gha"
 	"github.com/aweris/gale/journal"
+	"github.com/aweris/gale/logger"
 )
 
 // NewCommand creates a new run command.
@@ -33,17 +33,7 @@ func runWorkflow() error {
 
 	journalW, journalR := journal.Pipe()
 
-	// Just print the same log to stdout for now. We'll replace this with something interesting later.
-	go func() {
-		for {
-			entry, ok := journalR.ReadEntry()
-			if !ok {
-				break
-			}
-
-			fmt.Println(entry)
-		}
-	}()
+	log := logger.NewLogger(logger.WithVerbose(false), logger.WithJournalR(journalR))
 
 	// Connect to Dagger
 	client, clientErr := dagger.Connect(ctx, dagger.WithLogOutput(journalW))
@@ -63,7 +53,7 @@ func runWorkflow() error {
 	job := workflow.Jobs["clone"]
 
 	// Create a job executor and run the job.
-	je, jeErr := executor.NewJobExecutor(ctx, client, workflow, job, gha.NewDummyContext())
+	je, jeErr := executor.NewJobExecutor(ctx, client, workflow, job, gha.NewDummyContext(), log)
 	if jeErr != nil {
 		panic(jeErr)
 	}

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/aweris/gale/gha"
+	"github.com/aweris/gale/logger"
 	runnerpkg "github.com/aweris/gale/runner"
 )
 
@@ -21,18 +22,22 @@ type StepActionExecutor struct {
 	// path is the path to the action in the container.
 	path string
 
+	// log is the logger used by the executor.
+	log logger.Logger
+
 	// fallbackEnvs is the list of environment variables that should use the fallback value when removing the step
 	// environment variables.
 	fallbackEnvs []gha.Environment
 }
 
 // NewStepActionExecutor creates a new step action executor a
-func NewStepActionExecutor(step *gha.Step, action *gha.Action, path string, fallbackEnvs ...gha.Environment) *StepActionExecutor {
+func NewStepActionExecutor(step *gha.Step, action *gha.Action, path string, log logger.Logger, fallbackEnvs ...gha.Environment) *StepActionExecutor {
 	// TODO: implement docker and run step executors as well. Currently only action is implemented.
 	return &StepActionExecutor{
 		step:         step,
 		action:       action,
 		path:         path,
+		log:          log,
 		fallbackEnvs: fallbackEnvs,
 	}
 }
@@ -49,7 +54,7 @@ func (s *StepActionExecutor) pre(ctx context.Context, runner *runnerpkg.Runner) 
 		return nil
 	}
 
-	fmt.Printf("Pre Run %s\n", step.Uses)
+	s.log.Info(fmt.Sprintf("Pre Run %s", step.Uses))
 
 	// Set up inputs and environment variables for step
 	runner.WithEnvironment(step.Environment)
@@ -57,12 +62,10 @@ func (s *StepActionExecutor) pre(ctx context.Context, runner *runnerpkg.Runner) 
 
 	// Execute main step
 	// TODO: add error handling. Need to check step continue-on-error, fail, always conditions as well
-	out, outErr := runner.ExecAndCaptureOutput(ctx, "node", fmt.Sprintf("%s/%s", path, action.Runs.Pre))
+	_, outErr := runner.ExecAndCaptureOutput(ctx, "node", fmt.Sprintf("%s/%s", path, action.Runs.Pre))
 	if outErr != nil {
 		return outErr
 	}
-
-	fmt.Printf("Pre step output: %s\n", out)
 
 	// Clean up inputs and environment variables for next step
 	runner.WithoutInputs(step.With)
@@ -78,7 +81,7 @@ func (s *StepActionExecutor) main(ctx context.Context, runner *runnerpkg.Runner)
 		action = s.action
 	)
 
-	fmt.Printf("Run %s\n", step.Uses)
+	s.log.Info(fmt.Sprintf("Run %s", step.Uses))
 
 	// Set up inputs and environment variables for step
 	runner.WithEnvironment(step.Environment)
@@ -86,12 +89,10 @@ func (s *StepActionExecutor) main(ctx context.Context, runner *runnerpkg.Runner)
 
 	// Execute main step
 	// TODO: add error handling. Need to check step continue-on-error, fail, always conditions as well
-	out, outErr := runner.ExecAndCaptureOutput(ctx, "node", fmt.Sprintf("%s/%s", path, action.Runs.Main))
+	_, outErr := runner.ExecAndCaptureOutput(ctx, "node", fmt.Sprintf("%s/%s", path, action.Runs.Main))
 	if outErr != nil {
 		return outErr
 	}
-
-	fmt.Printf("Pre step output: %s\n", out)
 
 	// Clean up inputs and environment variables for next step
 	runner.WithoutInputs(step.With)
@@ -112,7 +113,7 @@ func (s *StepActionExecutor) post(ctx context.Context, runner *runnerpkg.Runner)
 		return nil
 	}
 
-	fmt.Printf("Post Run %s\n", step.Uses)
+	s.log.Info(fmt.Sprintf("Post Run %s", step.Uses))
 
 	// Set up inputs and environment variables for step
 	runner.WithEnvironment(step.Environment)
@@ -120,12 +121,10 @@ func (s *StepActionExecutor) post(ctx context.Context, runner *runnerpkg.Runner)
 
 	// Execute main step
 	// TODO: add error handling. Need to check step continue-on-error, fail, always conditions as well
-	out, outErr := runner.ExecAndCaptureOutput(ctx, "node", fmt.Sprintf("%s/%s", path, action.Runs.Post))
+	_, outErr := runner.ExecAndCaptureOutput(ctx, "node", fmt.Sprintf("%s/%s", path, action.Runs.Post))
 	if outErr != nil {
 		return outErr
 	}
-
-	fmt.Printf("Pre step output: %s\n", out)
 
 	// Clean up inputs and environment variables for next step
 	runner.WithoutInputs(step.With)

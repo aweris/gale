@@ -2,13 +2,13 @@ package build
 
 import (
 	"context"
-	"fmt"
 
 	"dagger.io/dagger"
 
 	"github.com/spf13/cobra"
 
 	"github.com/aweris/gale/journal"
+	"github.com/aweris/gale/logger"
 	"github.com/aweris/gale/runner"
 )
 
@@ -32,17 +32,7 @@ func build() error {
 
 	journalW, journalR := journal.Pipe()
 
-	// Just print the same log to stdout for now. We'll replace this with something interesting later.
-	go func() {
-		for {
-			entry, ok := journalR.ReadEntry()
-			if !ok {
-				break
-			}
-
-			fmt.Println(entry)
-		}
-	}()
+	_ = logger.NewLogger(logger.WithJournalR(journalR))
 
 	// Connect to Dagger
 	client, clientErr := dagger.Connect(ctx, dagger.WithLogOutput(journalW))
