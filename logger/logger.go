@@ -118,7 +118,7 @@ func handleJournalR(logger *logger) {
 			switch command.Name {
 			case "group":
 				logger.Info(indentation + command.Value)
-				indentation = indentation + "\t"
+				indentation += "\t"
 			case "endgroup":
 				indentation = strings.TrimSuffix(indentation, "\t")
 			case "notice":

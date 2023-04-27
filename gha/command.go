@@ -5,8 +5,8 @@ import (
 )
 
 var (
-	commandRe  = regexp.MustCompile("^::([\\w-]+)(?:\\s+((?:[\\w-]+=[^,]+,)*[\\w-]+=[^,]+))??::(.*?)$")
-	keyValueRe = regexp.MustCompile("([\\w-]+)=([^,]+)")
+	commandRe  = regexp.MustCompile(`^::([\w-]+)(?:\s+((?:[\w-]+=[^,]+,)*[\w-]+=[^,]+))??::(.*?)$`)
+	keyValueRe = regexp.MustCompile(`([\w-]+)=([^,]+)`)
 )
 
 // TODO: add possible command names as constants
