@@ -33,7 +33,7 @@ func runWorkflow() error {
 
 	journalW, journalR := journal.Pipe()
 
-	_ = logger.NewLogger(logger.WithVerbose(false), logger.WithJournalR(journalR))
+	log := logger.NewLogger(logger.WithVerbose(false), logger.WithJournalR(journalR))
 
 	// Connect to Dagger
 	client, clientErr := dagger.Connect(ctx, dagger.WithLogOutput(journalW))
@@ -53,7 +53,7 @@ func runWorkflow() error {
 	job := workflow.Jobs["clone"]
 
 	// Create a job executor and run the job.
-	je, jeErr := executor.NewJobExecutor(ctx, client, workflow, job, gha.NewDummyContext())
+	je, jeErr := executor.NewJobExecutor(ctx, client, workflow, job, gha.NewDummyContext(), log)
 	if jeErr != nil {
 		panic(jeErr)
 	}

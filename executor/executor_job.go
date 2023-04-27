@@ -7,6 +7,7 @@ import (
 	"dagger.io/dagger"
 
 	"github.com/aweris/gale/gha"
+	"github.com/aweris/gale/logger"
 	runnerpkg "github.com/aweris/gale/runner"
 )
 
@@ -16,11 +17,12 @@ type JobExecutor struct {
 	workflow      *gha.Workflow
 	job           *gha.Job
 	context       *gha.RunContext
+	log           logger.Logger
 	stepExecutors []StepExecutor
 }
 
 // NewJobExecutor creates a new job executor.
-func NewJobExecutor(ctx context.Context, client *dagger.Client, workflow *gha.Workflow, job *gha.Job, context *gha.RunContext) (*JobExecutor, error) {
+func NewJobExecutor(ctx context.Context, client *dagger.Client, workflow *gha.Workflow, job *gha.Job, context *gha.RunContext, log logger.Logger) (*JobExecutor, error) {
 	// Create runner
 	runner, err := runnerpkg.NewRunner(ctx, client)
 	if err != nil {
@@ -33,6 +35,7 @@ func NewJobExecutor(ctx context.Context, client *dagger.Client, workflow *gha.Wo
 		workflow:      workflow,
 		job:           job,
 		context:       context,
+		log:           log,
 		stepExecutors: []StepExecutor{},
 	}, nil
 }
@@ -64,7 +67,7 @@ func (j *JobExecutor) Execute(ctx context.Context) error {
 }
 
 func (j *JobExecutor) setup(ctx context.Context) error {
-	fmt.Println("Set up job")
+	j.log.Info("Set up job")
 
 	// TODO: this is a hack, we should find better way to do this
 	j.runner.WithExec("mkdir", "-p", j.context.Github.Workspace)
@@ -81,9 +84,9 @@ func (j *JobExecutor) setup(ctx context.Context) error {
 
 		path := j.runner.WithTempDirectory(action.Directory)
 
-		j.stepExecutors = append(j.stepExecutors, NewStepActionExecutor(step, action, path, j.context.ToEnv(), j.workflow.Environment, j.job.Environment))
+		j.stepExecutors = append(j.stepExecutors, NewStepActionExecutor(step, action, path, j.log, j.context.ToEnv(), j.workflow.Environment, j.job.Environment))
 
-		fmt.Printf("Download action repository '%s'\n", step.Uses)
+		j.log.Info(fmt.Sprintf("Download action repository '%s'", step.Uses))
 	}
 
 	return nil
