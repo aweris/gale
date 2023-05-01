@@ -6,10 +6,6 @@ import (
 	"os"
 	"strings"
 
-	"dagger.io/dagger"
-
-	"github.com/google/uuid"
-
 	"github.com/aweris/gale/gha"
 )
 
@@ -83,14 +79,11 @@ func (r *Runner) WithoutInputs(inputs map[string]string) {
 	}
 }
 
-// WithTempDirectory adds the given directory as /home/runner/_temp/<UUID> and returns the path to the directory.
-func (r *Runner) WithTempDirectory(dir *dagger.Directory) string {
+// WithCustomAction fetches github action code from given source and mount as a directory in a runner container.
+func (r *Runner) WithCustomAction(source string) {
 	ctx := context.Background()
-	path := fmt.Sprintf("/home/runner/_temp/%s", uuid.New())
 
-	r.handle(ctx, WithDirectoryEvent{path: path, dir: dir})
-
-	return path
+	r.handle(ctx, WithActionEvent{source: source})
 }
 
 // WithExec is simple wrapper around dagger.Container.WithExec. This is useful for simplifying the syntax when

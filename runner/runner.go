@@ -3,6 +3,7 @@ package runner
 import (
 	"context"
 	"fmt"
+	"github.com/aweris/gale/gha"
 	"path/filepath"
 
 	"dagger.io/dagger"
@@ -12,8 +13,11 @@ import (
 
 // Runner represents a GitHub Action runner powered by Dagger.
 type Runner struct {
-	// Container is the Dagger container that the runner is running in.
+	Client    *dagger.Client
 	Container *dagger.Container
+
+	ActionsBySource     map[string]*gha.Action
+	ActionPathsBySource map[string]string
 
 	events []Event
 }
@@ -30,7 +34,12 @@ func NewRunner(ctx context.Context, client *dagger.Client) (*Runner, error) {
 
 		container := client.Container().Import(client.Host().Directory(dir).File(base))
 
-		return &Runner{Container: container}, nil
+		return &Runner{
+			Client:              client,
+			Container:           container,
+			ActionsBySource:     make(map[string]*gha.Action),
+			ActionPathsBySource: make(map[string]string),
+		}, nil
 	}
 
 	fmt.Printf("No pre-built image found for %s, building a new one...\n", config.DefaultRunnerLabel)

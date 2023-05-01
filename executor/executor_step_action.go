@@ -16,12 +16,6 @@ type StepActionExecutor struct {
 	// step is the information about the step.
 	step *gha.Step
 
-	// action is the information about the action used by the step.
-	action *gha.Action
-
-	// path is the path to the action in the container.
-	path string
-
 	// log is the logger used by the executor.
 	log logger.Logger
 
@@ -31,12 +25,10 @@ type StepActionExecutor struct {
 }
 
 // NewStepActionExecutor creates a new step action executor a
-func NewStepActionExecutor(step *gha.Step, action *gha.Action, path string, log logger.Logger, fallbackEnvs ...gha.Environment) *StepActionExecutor {
+func NewStepActionExecutor(step *gha.Step, log logger.Logger, fallbackEnvs ...gha.Environment) *StepActionExecutor {
 	// TODO: implement docker and run step executors as well. Currently only action is implemented.
 	return &StepActionExecutor{
 		step:         step,
-		action:       action,
-		path:         path,
 		log:          log,
 		fallbackEnvs: fallbackEnvs,
 	}
@@ -44,9 +36,9 @@ func NewStepActionExecutor(step *gha.Step, action *gha.Action, path string, log 
 
 func (s *StepActionExecutor) pre(ctx context.Context, runner *runnerpkg.Runner) error {
 	var (
-		path   = s.path
 		step   = s.step
-		action = s.action
+		path   = runner.ActionPathsBySource[step.Uses]
+		action = runner.ActionsBySource[step.Uses]
 	)
 
 	// TODO: check pre-if as well
@@ -76,9 +68,9 @@ func (s *StepActionExecutor) pre(ctx context.Context, runner *runnerpkg.Runner) 
 
 func (s *StepActionExecutor) main(ctx context.Context, runner *runnerpkg.Runner) error {
 	var (
-		path   = s.path
 		step   = s.step
-		action = s.action
+		path   = runner.ActionPathsBySource[step.Uses]
+		action = runner.ActionsBySource[step.Uses]
 	)
 
 	s.log.Info(fmt.Sprintf("Run %s", step.Uses))
@@ -103,9 +95,9 @@ func (s *StepActionExecutor) main(ctx context.Context, runner *runnerpkg.Runner)
 
 func (s *StepActionExecutor) post(ctx context.Context, runner *runnerpkg.Runner) error {
 	var (
-		path   = s.path
 		step   = s.step
-		action = s.action
+		path   = runner.ActionPathsBySource[step.Uses]
+		action = runner.ActionsBySource[step.Uses]
 	)
 
 	// TODO: check post-if as well

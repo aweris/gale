@@ -77,14 +77,9 @@ func (j *JobExecutor) setup(ctx context.Context) error {
 	j.runner.WithEnvironment(j.job.Environment)
 
 	for _, step := range j.job.Steps {
-		action, err := gha.LoadActionFromSource(ctx, j.client, step.Uses)
-		if err != nil {
-			return err
-		}
+		j.runner.WithCustomAction(step.Uses)
 
-		path := j.runner.WithTempDirectory(action.Directory)
-
-		j.stepExecutors = append(j.stepExecutors, NewStepActionExecutor(step, action, path, j.log, j.context.ToEnv(), j.workflow.Environment, j.job.Environment))
+		j.stepExecutors = append(j.stepExecutors, NewStepActionExecutor(step, j.log, j.context.ToEnv(), j.workflow.Environment, j.job.Environment))
 
 		j.log.Info(fmt.Sprintf("Download action repository '%s'", step.Uses))
 	}
