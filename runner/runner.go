@@ -60,16 +60,15 @@ func (r *runner) Run(ctx context.Context) {
 	r.handle(ctx, SetupJobEvent{})
 
 	// Run stages
-
 	for _, step := range r.job.Steps {
-		r.ExecStepAction(ctx, "pre", step)
+		r.handle(ctx, ExecStepActionEvent{stage: "pre", step: step})
 	}
 
 	for _, step := range r.job.Steps {
-		r.ExecStepAction(ctx, "main", step)
+		r.handle(ctx, ExecStepActionEvent{stage: "main", step: step})
 	}
 
 	for _, step := range r.job.Steps {
-		r.ExecStepAction(ctx, "post", step)
+		r.handle(ctx, ExecStepActionEvent{stage: "post", step: step})
 	}
 }
