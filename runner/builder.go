@@ -176,8 +176,7 @@ func (b *Builder) installTools() *Builder {
 	)
 }
 
-// Build builds and exports the runner in the data home directory with the given label and returns the runner instance.
-func (b *Builder) Build(ctx context.Context) (Runner, error) {
+func (b *Builder) build(ctx context.Context) (*dagger.Container, error) {
 	container := b.client.Container()
 
 	// Create the container from the given image.
@@ -201,6 +200,16 @@ func (b *Builder) Build(ctx context.Context) (Runner, error) {
 	// Export the container to a tarball in the data home directory($XDG_DATA_HOME/gale/<runner-label>/image.tar).
 	// This tarball will be used avoid rebuilding the runner image every time and reduce relying on cache.
 	_, err := container.Export(ctx, filepath.Join(dh, b.label, config.DefaultRunnerImageTar))
+	if err != nil {
+		return nil, err
+	}
+
+	return container, err
+}
+
+// Build builds and exports the runner in the data home directory with the given label and returns the runner instance.
+func (b *Builder) Build(ctx context.Context) (Runner, error) {
+	container, err := b.build(ctx)
 	if err != nil {
 		return nil, err
 	}

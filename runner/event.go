@@ -3,6 +3,7 @@ package runner
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 
 	"dagger.io/dagger"
 	"github.com/google/uuid"
@@ -200,6 +201,44 @@ func (e ExecStepActionEvent) handle(ctx context.Context, runner *runner) error {
 	// Clean up inputs and environment variables for next step
 	runner.WithoutInputs(step.With)
 	runner.WithoutEnvironment(step.Environment, runner.context.ToEnv(), runner.workflow.Environment, runner.job.Environment)
+
+	return nil
+}
+
+// Runner Events
+
+var (
+	_ Event = new(BuildContainerEvent)
+	_ Event = new(LoadContainerEvent)
+)
+
+// BuildContainerEvent builds a default runner container. This event will be called right before executing job if runner
+// not exist yet.
+type BuildContainerEvent struct {
+	// Intentionally left blank
+}
+
+func (e BuildContainerEvent) handle(ctx context.Context, runner *runner) error {
+	container, err := NewBuilder(runner.client).build(ctx)
+	if err != nil {
+		return err
+	}
+
+	runner.container = container
+
+	return nil
+}
+
+// LoadContainerEvent load container from given host path
+type LoadContainerEvent struct {
+	path string
+}
+
+func (e LoadContainerEvent) handle(ctx context.Context, runner *runner) error {
+	dir := filepath.Dir(e.path)
+	base := filepath.Base(e.path)
+
+	runner.container = runner.client.Container().Import(runner.client.Host().Directory(dir).File(base))
 
 	return nil
 }

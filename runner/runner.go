@@ -2,12 +2,10 @@ package runner
 
 import (
 	"context"
-	"fmt"
+	"dagger.io/dagger"
+	"github.com/aweris/gale/config"
 	"path/filepath"
 
-	"dagger.io/dagger"
-
-	"github.com/aweris/gale/config"
 	"github.com/aweris/gale/gha"
 	"github.com/aweris/gale/logger"
 )
@@ -35,38 +33,33 @@ type runner struct {
 }
 
 // NewRunner creates a new Runner.
-func NewRunner(ctx context.Context, client *dagger.Client, log logger.Logger, runContext *gha.RunContext, workflow *gha.Workflow, job *gha.Job) (Runner, error) {
-	// check if there is a pre-built runner image
-	path, _ := config.SearchDataFile(filepath.Join(config.DefaultRunnerLabel, config.DefaultRunnerImageTar))
-	if path != "" {
-		dir := filepath.Dir(path)
-		base := filepath.Base(path)
-
-		fmt.Printf("Found pre-built image for %s, importing...\n", config.DefaultRunnerLabel)
-
-		container := client.Container().Import(client.Host().Directory(dir).File(base))
-
-		return &runner{
-			client:              client,
-			container:           container,
-			context:             runContext,
-			workflow:            workflow,
-			job:                 job,
-			actionsBySource:     make(map[string]*gha.Action),
-			actionPathsBySource: make(map[string]string),
-			log:                 log,
-		}, nil
+func NewRunner(client *dagger.Client, log logger.Logger, runContext *gha.RunContext, workflow *gha.Workflow, job *gha.Job) Runner {
+	return &runner{
+		client:              client,
+		context:             runContext,
+		workflow:            workflow,
+		job:                 job,
+		actionsBySource:     make(map[string]*gha.Action),
+		actionPathsBySource: make(map[string]string),
+		log:                 log,
 	}
-
-	fmt.Printf("No pre-built image found for %s, building a new one...\n", config.DefaultRunnerLabel)
-
-	// Build the runner with the defaults and return it, if there is no pre-built image
-	return NewBuilder(client).Build(ctx)
 }
 
 // Run runs the job
 func (r *runner) Run(ctx context.Context) {
+	path, _ := config.SearchDataFile(filepath.Join(config.DefaultRunnerLabel, config.DefaultRunnerImageTar))
+
+	// Load or build container
+	if path != "" {
+		r.handle(ctx, LoadContainerEvent{path: path})
+	} else {
+		r.handle(ctx, BuildContainerEvent{})
+	}
+
+	// Setup Job
 	r.handle(ctx, SetupJobEvent{})
+
+	// Run stages
 
 	for _, step := range r.job.Steps {
 		r.ExecStepAction(ctx, "pre", step)
