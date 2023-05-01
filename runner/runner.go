@@ -5,6 +5,7 @@ import (
 	"dagger.io/dagger"
 	"github.com/aweris/gale/config"
 	"path/filepath"
+	"sync/atomic"
 
 	"github.com/aweris/gale/gha"
 	"github.com/aweris/gale/logger"
@@ -28,8 +29,9 @@ type runner struct {
 	actionsBySource     map[string]*gha.Action
 	actionPathsBySource map[string]string
 
-	log    logger.Logger
-	events []Event
+	log     logger.Logger
+	events  []*EventRecord
+	counter *atomic.Uint64
 }
 
 // NewRunner creates a new Runner.
@@ -42,6 +44,7 @@ func NewRunner(client *dagger.Client, log logger.Logger, runContext *gha.RunCont
 		actionsBySource:     make(map[string]*gha.Action),
 		actionPathsBySource: make(map[string]string),
 		log:                 log,
+		counter:             &atomic.Uint64{},
 	}
 }
 

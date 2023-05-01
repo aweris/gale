@@ -10,16 +10,19 @@ import (
 )
 
 // WithEnvironment adds the given environment variables to the container.
-func (r *runner) WithEnvironment(env gha.Environment) {
+func (r *runner) WithEnvironment(env gha.Environment) []*EventRecord {
 	ctx := context.Background()
+	var events []*EventRecord
 
 	for k, v := range env {
 		if val, _ := r.container.EnvVariable(ctx, k); val != "" {
-			r.handle(ctx, ReplaceEnvEvent{name: k, oldValue: val, newValue: v})
+			events = append(events, r.handle(ctx, ReplaceEnvEvent{name: k, oldValue: val, newValue: v}))
 		} else {
-			r.handle(ctx, AddEnvEvent{name: k, value: v})
+			events = append(events, r.handle(ctx, AddEnvEvent{name: k, value: v}))
 		}
 	}
+
+	return events
 }
 
 // WithoutEnvironment removes given environment variables from the container. If a fallback environment is given,
@@ -36,7 +39,7 @@ func (r *runner) WithEnvironment(env gha.Environment) {
 //	runner.WithoutEnvironment(gha.Environment{"FOO": "bar"}, gha.Environment{"FOO": "qux"})
 //
 // The above example will result in the environment variable FOO being set to "qux" instead of being removed.
-func (r *runner) WithoutEnvironment(env gha.Environment, fallback ...gha.Environment) {
+func (r *runner) WithoutEnvironment(env gha.Environment, fallback ...gha.Environment) []*EventRecord {
 	ctx := context.Background()
 	merged := gha.Environment{}
 
@@ -46,18 +49,24 @@ func (r *runner) WithoutEnvironment(env gha.Environment, fallback ...gha.Environ
 		merged = merged.Merge(environment)
 	}
 
+	var events []*EventRecord
+
 	for k, v := range env {
 		if _, ok := merged[k]; ok {
-			r.handle(ctx, ReplaceEnvEvent{name: k, oldValue: v, newValue: merged[k]})
+			events = append(events, r.handle(ctx, ReplaceEnvEvent{name: k, oldValue: v, newValue: merged[k]}))
 		} else {
-			r.handle(ctx, RemoveEnvEvent{name: k})
+			events = append(events, r.handle(ctx, RemoveEnvEvent{name: k}))
 		}
 	}
+
+	return events
 }
 
 // WithInputs transform given input name as INPUT_<NAME> and add it to the container as environment variable.
-func (r *runner) WithInputs(inputs map[string]string) {
+func (r *runner) WithInputs(inputs map[string]string) []*EventRecord {
 	ctx := context.Background()
+
+	var events []*EventRecord
 
 	for k, v := range inputs {
 		// TODO: This is a hack to get around the fact that we can't set the GITHUB_TOKEN as an input. Remove this
@@ -66,30 +75,36 @@ func (r *runner) WithInputs(inputs map[string]string) {
 			v = os.Getenv("GITHUB_TOKEN")
 		}
 
-		r.handle(ctx, AddEnvEvent{name: fmt.Sprintf("INPUT_%s", strings.ToUpper(k)), value: v})
+		events = append(events, r.handle(ctx, AddEnvEvent{name: fmt.Sprintf("INPUT_%s", strings.ToUpper(k)), value: v}))
 	}
+
+	return events
 }
 
 // WithoutInputs removes the given inputs from the container.
-func (r *runner) WithoutInputs(inputs map[string]string) {
+func (r *runner) WithoutInputs(inputs map[string]string) []*EventRecord {
 	ctx := context.Background()
 
+	var events []*EventRecord
+
 	for k := range inputs {
-		r.handle(ctx, RemoveEnvEvent{name: fmt.Sprintf("INPUT_%s", strings.ToUpper(k))})
+		events = append(events, r.handle(ctx, RemoveEnvEvent{name: fmt.Sprintf("INPUT_%s", strings.ToUpper(k))}))
 	}
+
+	return events
 }
 
 // WithCustomAction fetches github action code from given source and mount as a directory in a runner container.
-func (r *runner) WithCustomAction(source string) {
+func (r *runner) WithCustomAction(source string) *EventRecord {
 	ctx := context.Background()
 
-	r.handle(ctx, WithActionEvent{source: source})
+	return r.handle(ctx, WithActionEvent{source: source})
 }
 
 // WithExec is simple wrapper around dagger.container.WithExec. This is useful for simplifying the syntax when
 // using this method.
-func (r *runner) WithExec(cmd string, args ...string) {
+func (r *runner) WithExec(cmd string, args ...string) *EventRecord {
 	ctx := context.Background()
 
-	r.handle(ctx, WithExecEvent{args: append([]string{cmd}, args...)})
+	return r.handle(ctx, WithExecEvent{args: append([]string{cmd}, args...)})
 }

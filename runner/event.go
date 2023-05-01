@@ -11,18 +11,63 @@ import (
 	"github.com/aweris/gale/gha"
 )
 
+type EventStatus string
+
+const (
+	EventStatusInProgress = "in_progress"
+	EventStatusSucceeded  = "succeeded"
+	EventStatusSkipped    = "skipped"
+	EventStatusFailed     = "failed"
+)
+
 // Event represents a significant change or action that occurs within the runner.
 type Event interface {
-	handle(context.Context, *runner) error
+	handle(context.Context, *runner) EventResult
 }
 
-func (r *runner) handle(ctx context.Context, event Event) {
-	r.events = append(r.events, event)
+type EventResult struct {
+	status   EventStatus
+	err      error
+	stdout   string
+	children []*EventRecord
+}
 
-	if err := event.handle(ctx, r); err != nil {
-		// TODO: handle errors
-		fmt.Printf("Event failed %v", err)
+type EventRecord struct {
+	Event
+	EventResult
+
+	ID int
+}
+
+func (r *runner) handle(ctx context.Context, event Event) *EventRecord {
+	record := &EventRecord{
+		ID:    int(r.counter.Add(1)),
+		Event: event,
+		EventResult: EventResult{
+			status: EventStatusInProgress,
+		},
 	}
+
+	r.events = append(r.events, record)
+
+	record.EventResult = event.handle(ctx, r)
+
+	return record
+}
+
+// newSuccessEvent creates a new success event without any stdout.
+func newSuccessEvent() EventResult {
+	return EventResult{status: EventStatusSucceeded}
+}
+
+// newSkippedEvent creates a new skipped event without any stdout.
+func newSkippedEvent() EventResult {
+	return EventResult{status: EventStatusSkipped}
+}
+
+// newErrorEvent creates a new error event without any stdout.
+func newErrorEvent(err error) EventResult {
+	return EventResult{status: EventStatusFailed, err: err}
 }
 
 // Environment Events
@@ -39,9 +84,9 @@ type AddEnvEvent struct {
 	value string
 }
 
-func (e AddEnvEvent) handle(_ context.Context, runner *runner) error {
+func (e AddEnvEvent) handle(_ context.Context, runner *runner) EventResult {
 	runner.container = runner.container.WithEnvVariable(e.name, e.value)
-	return nil
+	return newSuccessEvent()
 }
 
 // ReplaceEnvEvent replaces existing env value with the new one. Event assumes existing env and value validated
@@ -52,9 +97,9 @@ type ReplaceEnvEvent struct {
 	newValue string
 }
 
-func (e ReplaceEnvEvent) handle(_ context.Context, runner *runner) error {
+func (e ReplaceEnvEvent) handle(_ context.Context, runner *runner) EventResult {
 	runner.container = runner.container.WithEnvVariable(e.name, e.newValue)
-	return nil
+	return newSuccessEvent()
 }
 
 // RemoveEnvEvent removes an env value from runner container
@@ -62,9 +107,9 @@ type RemoveEnvEvent struct {
 	name string
 }
 
-func (e RemoveEnvEvent) handle(_ context.Context, runner *runner) error {
+func (e RemoveEnvEvent) handle(_ context.Context, runner *runner) EventResult {
 	runner.container = runner.container.WithoutEnvVariable(e.name)
-	return nil
+	return newSuccessEvent()
 }
 
 // Directory Events
@@ -77,9 +122,9 @@ type WithDirectoryEvent struct {
 	dir  *dagger.Directory
 }
 
-func (e WithDirectoryEvent) handle(_ context.Context, runner *runner) error {
+func (e WithDirectoryEvent) handle(_ context.Context, runner *runner) EventResult {
 	runner.container = runner.container.WithDirectory(e.path, e.dir)
-	return nil
+	return newSuccessEvent()
 }
 
 // Exec Events
@@ -91,9 +136,9 @@ type WithExecEvent struct {
 	args []string
 }
 
-func (e WithExecEvent) handle(_ context.Context, runner *runner) error {
+func (e WithExecEvent) handle(_ context.Context, runner *runner) EventResult {
 	runner.container = runner.container.WithExec(e.args)
-	return nil
+	return newSuccessEvent()
 }
 
 // Job Events
@@ -107,7 +152,7 @@ type SetupJobEvent struct {
 	// Intentionally left blank. It's not take any parameters
 }
 
-func (e SetupJobEvent) handle(ctx context.Context, runner *runner) error {
+func (e SetupJobEvent) handle(ctx context.Context, runner *runner) EventResult {
 	runner.log.Info("Set up job")
 
 	// TODO: this is a hack, we should find better way to do this
@@ -123,7 +168,7 @@ func (e SetupJobEvent) handle(ctx context.Context, runner *runner) error {
 		runner.log.Info(fmt.Sprintf("Download action repository '%s'", step.Uses))
 	}
 
-	return nil
+	return newSuccessEvent()
 }
 
 // Action Events
@@ -138,10 +183,10 @@ type WithActionEvent struct {
 	source string
 }
 
-func (e WithActionEvent) handle(ctx context.Context, runner *runner) error {
+func (e WithActionEvent) handle(ctx context.Context, runner *runner) EventResult {
 	action, err := gha.LoadActionFromSource(ctx, runner.client, e.source)
 	if err != nil {
-		return err
+		return newErrorEvent(err)
 	}
 
 	path := fmt.Sprintf("/home/runner/_temp/%s", uuid.New())
@@ -151,7 +196,7 @@ func (e WithActionEvent) handle(ctx context.Context, runner *runner) error {
 
 	runner.container = runner.container.WithDirectory(path, action.Directory)
 
-	return nil
+	return newSuccessEvent()
 }
 
 // ExecStepActionEvent executes step on runner
@@ -160,7 +205,7 @@ type ExecStepActionEvent struct {
 	step  *gha.Step
 }
 
-func (e ExecStepActionEvent) handle(ctx context.Context, runner *runner) error {
+func (e ExecStepActionEvent) handle(ctx context.Context, runner *runner) EventResult {
 	var (
 		runs   = ""
 		step   = e.step
@@ -176,33 +221,38 @@ func (e ExecStepActionEvent) handle(ctx context.Context, runner *runner) error {
 	case "post":
 		runs = action.Runs.Post
 	default:
-		return fmt.Errorf("unknow stage %s for ExecActionEvent", e.stage)
+		return newErrorEvent(fmt.Errorf("unknow stage %s for ExecActionEvent", e.stage))
 	}
 
 	if runs == "" {
-		return nil
+		return newSkippedEvent()
 	}
 
 	// TODO: check if conditions
 
-	runner.log.Info(fmt.Sprintf("Pre Run %s", step.Uses))
+	runner.log.Info(fmt.Sprintf("%s Run %s", e.stage, step.Uses))
+
+	var children []*EventRecord
 
 	// Set up inputs and environment variables for step
-	runner.WithEnvironment(step.Environment)
-	runner.WithInputs(step.With)
+	children = append(children, runner.WithEnvironment(step.Environment)...)
+	children = append(children, runner.WithInputs(step.With)...)
 
 	// Execute main step
 	// TODO: add error handling. Need to check step continue-on-error, fail, always conditions as well
-	_, outErr := runner.ExecAndCaptureOutput(ctx, "node", fmt.Sprintf("%s/%s", path, runs))
-	if outErr != nil {
-		return outErr
-	}
+	out, outErr := runner.ExecAndCaptureOutput(ctx, "node", fmt.Sprintf("%s/%s", path, runs))
 
 	// Clean up inputs and environment variables for next step
-	runner.WithoutInputs(step.With)
-	runner.WithoutEnvironment(step.Environment, runner.context.ToEnv(), runner.workflow.Environment, runner.job.Environment)
 
-	return nil
+	children = append(children, runner.WithoutInputs(step.With)...)
+	children = append(children, runner.WithoutEnvironment(step.Environment, runner.context.ToEnv(), runner.workflow.Environment, runner.job.Environment)...)
+
+	return EventResult{
+		status:   EventStatusSucceeded,
+		err:      outErr,
+		stdout:   out,
+		children: children,
+	}
 }
 
 // Runner Events
@@ -218,15 +268,15 @@ type BuildContainerEvent struct {
 	// Intentionally left blank
 }
 
-func (e BuildContainerEvent) handle(ctx context.Context, runner *runner) error {
+func (e BuildContainerEvent) handle(ctx context.Context, runner *runner) EventResult {
 	container, err := NewBuilder(runner.client).build(ctx)
 	if err != nil {
-		return err
+		return newErrorEvent(err)
 	}
 
 	runner.container = container
 
-	return nil
+	return newSuccessEvent()
 }
 
 // LoadContainerEvent load container from given host path
@@ -234,11 +284,11 @@ type LoadContainerEvent struct {
 	path string
 }
 
-func (e LoadContainerEvent) handle(ctx context.Context, runner *runner) error {
+func (e LoadContainerEvent) handle(ctx context.Context, runner *runner) EventResult {
 	dir := filepath.Dir(e.path)
 	base := filepath.Base(e.path)
 
 	runner.container = runner.client.Container().Import(runner.client.Host().Directory(dir).File(base))
 
-	return nil
+	return newSuccessEvent()
 }
