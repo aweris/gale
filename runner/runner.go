@@ -14,6 +14,8 @@ import (
 type Runner struct {
 	// Container is the Dagger container that the runner is running in.
 	Container *dagger.Container
+
+	events []Event
 }
 
 // NewRunner creates a new Runner.
