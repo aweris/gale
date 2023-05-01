@@ -3,12 +3,13 @@ package runner
 import (
 	"context"
 	"fmt"
-	"github.com/aweris/gale/gha"
 	"path/filepath"
 
 	"dagger.io/dagger"
 
 	"github.com/aweris/gale/config"
+	"github.com/aweris/gale/gha"
+	"github.com/aweris/gale/logger"
 )
 
 // Runner represents a GitHub Action runner powered by Dagger.
@@ -16,14 +17,19 @@ type Runner struct {
 	Client    *dagger.Client
 	Container *dagger.Container
 
+	context  *gha.RunContext
+	workflow *gha.Workflow
+	job      *gha.Job
+
 	ActionsBySource     map[string]*gha.Action
 	ActionPathsBySource map[string]string
 
+	log    logger.Logger
 	events []Event
 }
 
 // NewRunner creates a new Runner.
-func NewRunner(ctx context.Context, client *dagger.Client) (*Runner, error) {
+func NewRunner(ctx context.Context, client *dagger.Client, log logger.Logger, runContext *gha.RunContext, workflow *gha.Workflow, job *gha.Job) (*Runner, error) {
 	// check if there is a pre-built runner image
 	path, _ := config.SearchDataFile(filepath.Join(config.DefaultRunnerLabel, config.DefaultRunnerImageTar))
 	if path != "" {
@@ -37,8 +43,12 @@ func NewRunner(ctx context.Context, client *dagger.Client) (*Runner, error) {
 		return &Runner{
 			Client:              client,
 			Container:           container,
+			context:             runContext,
+			workflow:            workflow,
+			job:                 job,
 			ActionsBySource:     make(map[string]*gha.Action),
 			ActionPathsBySource: make(map[string]string),
+			log:                 log,
 		}, nil
 	}
 

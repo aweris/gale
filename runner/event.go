@@ -97,7 +97,10 @@ func (e WithExecEvent) handle(_ context.Context, runner *Runner) error {
 
 // Action Events
 
-var _ Event = new(WithActionEvent)
+var (
+	_ Event = new(WithActionEvent)
+	_ Event = new(ExecStepActionEvent)
+)
 
 // WithActionEvent fetches github action code from given source and mount as a directory in a runner container.
 type WithActionEvent struct {
@@ -116,6 +119,57 @@ func (e WithActionEvent) handle(ctx context.Context, runner *Runner) error {
 	runner.ActionPathsBySource[e.source] = path
 
 	runner.Container = runner.Container.WithDirectory(path, action.Directory)
+
+	return nil
+}
+
+// ExecStepActionEvent executes step on runner
+type ExecStepActionEvent struct {
+	stage string
+	step  *gha.Step
+}
+
+func (e ExecStepActionEvent) handle(ctx context.Context, runner *Runner) error {
+	var (
+		runs   = ""
+		step   = e.step
+		path   = runner.ActionPathsBySource[step.Uses]
+		action = runner.ActionsBySource[step.Uses]
+	)
+
+	switch e.stage {
+	case "pre":
+		runs = action.Runs.Pre
+	case "main":
+		runs = action.Runs.Main
+	case "post":
+		runs = action.Runs.Post
+	default:
+		return fmt.Errorf("unknow stage %s for ExecActionEvent", e.stage)
+	}
+
+	if runs == "" {
+		return nil
+	}
+
+	// TODO: check if conditions
+
+	runner.log.Info(fmt.Sprintf("Pre Run %s", step.Uses))
+
+	// Set up inputs and environment variables for step
+	runner.WithEnvironment(step.Environment)
+	runner.WithInputs(step.With)
+
+	// Execute main step
+	// TODO: add error handling. Need to check step continue-on-error, fail, always conditions as well
+	_, outErr := runner.ExecAndCaptureOutput(ctx, "node", fmt.Sprintf("%s/%s", path, runs))
+	if outErr != nil {
+		return outErr
+	}
+
+	// Clean up inputs and environment variables for next step
+	runner.WithoutInputs(step.With)
+	runner.WithoutEnvironment(step.Environment, runner.context.ToEnv(), runner.workflow.Environment, runner.job.Environment)
 
 	return nil
 }
