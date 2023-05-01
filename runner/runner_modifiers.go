@@ -14,7 +14,7 @@ func (r *runner) WithEnvironment(env gha.Environment) {
 	ctx := context.Background()
 
 	for k, v := range env {
-		if val, _ := r.Container.EnvVariable(ctx, k); val != "" {
+		if val, _ := r.container.EnvVariable(ctx, k); val != "" {
 			r.handle(ctx, ReplaceEnvEvent{name: k, oldValue: val, newValue: v})
 		} else {
 			r.handle(ctx, AddEnvEvent{name: k, value: v})
@@ -86,7 +86,7 @@ func (r *runner) WithCustomAction(source string) {
 	r.handle(ctx, WithActionEvent{source: source})
 }
 
-// WithExec is simple wrapper around dagger.Container.WithExec. This is useful for simplifying the syntax when
+// WithExec is simple wrapper around dagger.container.WithExec. This is useful for simplifying the syntax when
 // using this method.
 func (r *runner) WithExec(cmd string, args ...string) {
 	ctx := context.Background()

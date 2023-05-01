@@ -20,15 +20,15 @@ type Runner interface {
 
 // runner represents a GitHub Action runner powered by Dagger.
 type runner struct {
-	Client    *dagger.Client
-	Container *dagger.Container
+	client    *dagger.Client
+	container *dagger.Container
 
 	context  *gha.RunContext
 	workflow *gha.Workflow
 	job      *gha.Job
 
-	ActionsBySource     map[string]*gha.Action
-	ActionPathsBySource map[string]string
+	actionsBySource     map[string]*gha.Action
+	actionPathsBySource map[string]string
 
 	log    logger.Logger
 	events []Event
@@ -47,13 +47,13 @@ func NewRunner(ctx context.Context, client *dagger.Client, log logger.Logger, ru
 		container := client.Container().Import(client.Host().Directory(dir).File(base))
 
 		return &runner{
-			Client:              client,
-			Container:           container,
+			client:              client,
+			container:           container,
 			context:             runContext,
 			workflow:            workflow,
 			job:                 job,
-			ActionsBySource:     make(map[string]*gha.Action),
-			ActionPathsBySource: make(map[string]string),
+			actionsBySource:     make(map[string]*gha.Action),
+			actionPathsBySource: make(map[string]string),
 			log:                 log,
 		}, nil
 	}

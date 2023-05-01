@@ -39,7 +39,7 @@ type AddEnvEvent struct {
 }
 
 func (e AddEnvEvent) handle(_ context.Context, runner *runner) error {
-	runner.Container = runner.Container.WithEnvVariable(e.name, e.value)
+	runner.container = runner.container.WithEnvVariable(e.name, e.value)
 	return nil
 }
 
@@ -52,7 +52,7 @@ type ReplaceEnvEvent struct {
 }
 
 func (e ReplaceEnvEvent) handle(_ context.Context, runner *runner) error {
-	runner.Container = runner.Container.WithEnvVariable(e.name, e.newValue)
+	runner.container = runner.container.WithEnvVariable(e.name, e.newValue)
 	return nil
 }
 
@@ -62,7 +62,7 @@ type RemoveEnvEvent struct {
 }
 
 func (e RemoveEnvEvent) handle(_ context.Context, runner *runner) error {
-	runner.Container = runner.Container.WithoutEnvVariable(e.name)
+	runner.container = runner.container.WithoutEnvVariable(e.name)
 	return nil
 }
 
@@ -77,7 +77,7 @@ type WithDirectoryEvent struct {
 }
 
 func (e WithDirectoryEvent) handle(_ context.Context, runner *runner) error {
-	runner.Container = runner.Container.WithDirectory(e.path, e.dir)
+	runner.container = runner.container.WithDirectory(e.path, e.dir)
 	return nil
 }
 
@@ -91,7 +91,7 @@ type WithExecEvent struct {
 }
 
 func (e WithExecEvent) handle(_ context.Context, runner *runner) error {
-	runner.Container = runner.Container.WithExec(e.args)
+	runner.container = runner.container.WithExec(e.args)
 	return nil
 }
 
@@ -138,17 +138,17 @@ type WithActionEvent struct {
 }
 
 func (e WithActionEvent) handle(ctx context.Context, runner *runner) error {
-	action, err := gha.LoadActionFromSource(ctx, runner.Client, e.source)
+	action, err := gha.LoadActionFromSource(ctx, runner.client, e.source)
 	if err != nil {
 		return err
 	}
 
 	path := fmt.Sprintf("/home/runner/_temp/%s", uuid.New())
 
-	runner.ActionsBySource[e.source] = action
-	runner.ActionPathsBySource[e.source] = path
+	runner.actionsBySource[e.source] = action
+	runner.actionPathsBySource[e.source] = path
 
-	runner.Container = runner.Container.WithDirectory(path, action.Directory)
+	runner.container = runner.container.WithDirectory(path, action.Directory)
 
 	return nil
 }
@@ -163,8 +163,8 @@ func (e ExecStepActionEvent) handle(ctx context.Context, runner *runner) error {
 	var (
 		runs   = ""
 		step   = e.step
-		path   = runner.ActionPathsBySource[step.Uses]
-		action = runner.ActionsBySource[step.Uses]
+		path   = runner.actionPathsBySource[step.Uses]
+		action = runner.actionsBySource[step.Uses]
 	)
 
 	switch e.stage {
