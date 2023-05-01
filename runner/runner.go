@@ -12,8 +12,14 @@ import (
 	"github.com/aweris/gale/logger"
 )
 
-// Runner represents a GitHub Action runner powered by Dagger.
-type Runner struct {
+var _ Runner = new(runner)
+
+type Runner interface {
+	Run(ctx context.Context)
+}
+
+// runner represents a GitHub Action runner powered by Dagger.
+type runner struct {
 	Client    *dagger.Client
 	Container *dagger.Container
 
@@ -29,7 +35,7 @@ type Runner struct {
 }
 
 // NewRunner creates a new Runner.
-func NewRunner(ctx context.Context, client *dagger.Client, log logger.Logger, runContext *gha.RunContext, workflow *gha.Workflow, job *gha.Job) (*Runner, error) {
+func NewRunner(ctx context.Context, client *dagger.Client, log logger.Logger, runContext *gha.RunContext, workflow *gha.Workflow, job *gha.Job) (Runner, error) {
 	// check if there is a pre-built runner image
 	path, _ := config.SearchDataFile(filepath.Join(config.DefaultRunnerLabel, config.DefaultRunnerImageTar))
 	if path != "" {
@@ -40,7 +46,7 @@ func NewRunner(ctx context.Context, client *dagger.Client, log logger.Logger, ru
 
 		container := client.Container().Import(client.Host().Directory(dir).File(base))
 
-		return &Runner{
+		return &runner{
 			Client:              client,
 			Container:           container,
 			context:             runContext,
@@ -59,7 +65,7 @@ func NewRunner(ctx context.Context, client *dagger.Client, log logger.Logger, ru
 }
 
 // Run runs the job
-func (r *Runner) Run(ctx context.Context) {
+func (r *runner) Run(ctx context.Context) {
 	r.handle(ctx, SetupJobEvent{})
 
 	for _, step := range r.job.Steps {

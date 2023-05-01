@@ -177,7 +177,7 @@ func (b *Builder) installTools() *Builder {
 }
 
 // Build builds and exports the runner in the data home directory with the given label and returns the runner instance.
-func (b *Builder) Build(ctx context.Context) (*Runner, error) {
+func (b *Builder) Build(ctx context.Context) (Runner, error) {
 	container := b.client.Container()
 
 	// Create the container from the given image.
@@ -205,5 +205,5 @@ func (b *Builder) Build(ctx context.Context) (*Runner, error) {
 		return nil, err
 	}
 
-	return &Runner{Container: container}, nil
+	return &runner{Container: container}, nil
 }

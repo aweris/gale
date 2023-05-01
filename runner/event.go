@@ -12,10 +12,10 @@ import (
 
 // Event represents a significant change or action that occurs within the runner.
 type Event interface {
-	handle(context.Context, *Runner) error
+	handle(context.Context, *runner) error
 }
 
-func (r *Runner) handle(ctx context.Context, event Event) {
+func (r *runner) handle(ctx context.Context, event Event) {
 	r.events = append(r.events, event)
 
 	if err := event.handle(ctx, r); err != nil {
@@ -38,7 +38,7 @@ type AddEnvEvent struct {
 	value string
 }
 
-func (e AddEnvEvent) handle(_ context.Context, runner *Runner) error {
+func (e AddEnvEvent) handle(_ context.Context, runner *runner) error {
 	runner.Container = runner.Container.WithEnvVariable(e.name, e.value)
 	return nil
 }
@@ -51,7 +51,7 @@ type ReplaceEnvEvent struct {
 	newValue string
 }
 
-func (e ReplaceEnvEvent) handle(_ context.Context, runner *Runner) error {
+func (e ReplaceEnvEvent) handle(_ context.Context, runner *runner) error {
 	runner.Container = runner.Container.WithEnvVariable(e.name, e.newValue)
 	return nil
 }
@@ -61,7 +61,7 @@ type RemoveEnvEvent struct {
 	name string
 }
 
-func (e RemoveEnvEvent) handle(_ context.Context, runner *Runner) error {
+func (e RemoveEnvEvent) handle(_ context.Context, runner *runner) error {
 	runner.Container = runner.Container.WithoutEnvVariable(e.name)
 	return nil
 }
@@ -76,7 +76,7 @@ type WithDirectoryEvent struct {
 	dir  *dagger.Directory
 }
 
-func (e WithDirectoryEvent) handle(_ context.Context, runner *Runner) error {
+func (e WithDirectoryEvent) handle(_ context.Context, runner *runner) error {
 	runner.Container = runner.Container.WithDirectory(e.path, e.dir)
 	return nil
 }
@@ -90,7 +90,7 @@ type WithExecEvent struct {
 	args []string
 }
 
-func (e WithExecEvent) handle(_ context.Context, runner *Runner) error {
+func (e WithExecEvent) handle(_ context.Context, runner *runner) error {
 	runner.Container = runner.Container.WithExec(e.args)
 	return nil
 }
@@ -106,7 +106,7 @@ type SetupJobEvent struct {
 	// Intentionally left blank. It's not take any parameters
 }
 
-func (e SetupJobEvent) handle(ctx context.Context, runner *Runner) error {
+func (e SetupJobEvent) handle(ctx context.Context, runner *runner) error {
 	runner.log.Info("Set up job")
 
 	// TODO: this is a hack, we should find better way to do this
@@ -137,7 +137,7 @@ type WithActionEvent struct {
 	source string
 }
 
-func (e WithActionEvent) handle(ctx context.Context, runner *Runner) error {
+func (e WithActionEvent) handle(ctx context.Context, runner *runner) error {
 	action, err := gha.LoadActionFromSource(ctx, runner.Client, e.source)
 	if err != nil {
 		return err
@@ -159,7 +159,7 @@ type ExecStepActionEvent struct {
 	step  *gha.Step
 }
 
-func (e ExecStepActionEvent) handle(ctx context.Context, runner *Runner) error {
+func (e ExecStepActionEvent) handle(ctx context.Context, runner *runner) error {
 	var (
 		runs   = ""
 		step   = e.step

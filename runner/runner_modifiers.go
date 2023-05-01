@@ -10,7 +10,7 @@ import (
 )
 
 // WithEnvironment adds the given environment variables to the container.
-func (r *Runner) WithEnvironment(env gha.Environment) {
+func (r *runner) WithEnvironment(env gha.Environment) {
 	ctx := context.Background()
 
 	for k, v := range env {
@@ -36,7 +36,7 @@ func (r *Runner) WithEnvironment(env gha.Environment) {
 //	runner.WithoutEnvironment(gha.Environment{"FOO": "bar"}, gha.Environment{"FOO": "qux"})
 //
 // The above example will result in the environment variable FOO being set to "qux" instead of being removed.
-func (r *Runner) WithoutEnvironment(env gha.Environment, fallback ...gha.Environment) {
+func (r *runner) WithoutEnvironment(env gha.Environment, fallback ...gha.Environment) {
 	ctx := context.Background()
 	merged := gha.Environment{}
 
@@ -56,7 +56,7 @@ func (r *Runner) WithoutEnvironment(env gha.Environment, fallback ...gha.Environ
 }
 
 // WithInputs transform given input name as INPUT_<NAME> and add it to the container as environment variable.
-func (r *Runner) WithInputs(inputs map[string]string) {
+func (r *runner) WithInputs(inputs map[string]string) {
 	ctx := context.Background()
 
 	for k, v := range inputs {
@@ -71,7 +71,7 @@ func (r *Runner) WithInputs(inputs map[string]string) {
 }
 
 // WithoutInputs removes the given inputs from the container.
-func (r *Runner) WithoutInputs(inputs map[string]string) {
+func (r *runner) WithoutInputs(inputs map[string]string) {
 	ctx := context.Background()
 
 	for k := range inputs {
@@ -80,7 +80,7 @@ func (r *Runner) WithoutInputs(inputs map[string]string) {
 }
 
 // WithCustomAction fetches github action code from given source and mount as a directory in a runner container.
-func (r *Runner) WithCustomAction(source string) {
+func (r *runner) WithCustomAction(source string) {
 	ctx := context.Background()
 
 	r.handle(ctx, WithActionEvent{source: source})
@@ -88,7 +88,7 @@ func (r *Runner) WithCustomAction(source string) {
 
 // WithExec is simple wrapper around dagger.Container.WithExec. This is useful for simplifying the syntax when
 // using this method.
-func (r *Runner) WithExec(cmd string, args ...string) {
+func (r *runner) WithExec(cmd string, args ...string) {
 	ctx := context.Background()
 
 	r.handle(ctx, WithExecEvent{args: append([]string{cmd}, args...)})
