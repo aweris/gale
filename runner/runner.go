@@ -57,3 +57,20 @@ func NewRunner(ctx context.Context, client *dagger.Client, log logger.Logger, ru
 	// Build the runner with the defaults and return it, if there is no pre-built image
 	return NewBuilder(client).Build(ctx)
 }
+
+// Run runs the job
+func (r *Runner) Run(ctx context.Context) {
+	r.handle(ctx, SetupJobEvent{})
+
+	for _, step := range r.job.Steps {
+		r.ExecStepAction(ctx, "pre", step)
+	}
+
+	for _, step := range r.job.Steps {
+		r.ExecStepAction(ctx, "main", step)
+	}
+
+	for _, step := range r.job.Steps {
+		r.ExecStepAction(ctx, "post", step)
+	}
+}

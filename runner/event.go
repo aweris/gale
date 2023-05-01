@@ -95,6 +95,36 @@ func (e WithExecEvent) handle(_ context.Context, runner *Runner) error {
 	return nil
 }
 
+// Job Events
+
+var (
+	_ Event = new(SetupJobEvent)
+)
+
+// SetupJobEvent runs `setup job` step for the runner job.
+type SetupJobEvent struct {
+	// Intentionally left blank. It's not take any parameters
+}
+
+func (e SetupJobEvent) handle(ctx context.Context, runner *Runner) error {
+	runner.log.Info("Set up job")
+
+	// TODO: this is a hack, we should find better way to do this
+	runner.WithExec("mkdir", "-p", runner.context.Github.Workspace)
+
+	runner.WithEnvironment(runner.context.ToEnv())
+	runner.WithEnvironment(runner.workflow.Environment)
+	runner.WithEnvironment(runner.job.Environment)
+
+	for _, step := range runner.job.Steps {
+		runner.WithCustomAction(step.Uses)
+
+		runner.log.Info(fmt.Sprintf("Download action repository '%s'", step.Uses))
+	}
+
+	return nil
+}
+
 // Action Events
 
 var (

@@ -7,10 +7,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/aweris/gale/executor"
 	"github.com/aweris/gale/gha"
 	"github.com/aweris/gale/journal"
 	"github.com/aweris/gale/logger"
+	runnerpkg "github.com/aweris/gale/runner"
 )
 
 // NewCommand creates a new run command.
@@ -52,16 +52,13 @@ func runWorkflow() error {
 	workflow := workflows["Clone"]
 	job := workflow.Jobs["clone"]
 
-	// Create a job executor and run the job.
-	je, jeErr := executor.NewJobExecutor(ctx, client, workflow, job, gha.NewDummyContext(), log)
-	if jeErr != nil {
-		panic(jeErr)
+	// Create runner
+	runner, err := runnerpkg.NewRunner(ctx, client, log, gha.NewDummyContext(), workflow, job)
+	if err != nil {
+		return err
 	}
 
-	execErr := je.Execute(ctx)
-	if execErr != nil {
-		return execErr
-	}
+	runner.Run(ctx)
 
 	return nil
 }
