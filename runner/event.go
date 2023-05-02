@@ -4,8 +4,9 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"reflect"
+	"time"
 
-	"dagger.io/dagger"
 	"github.com/google/uuid"
 
 	"github.com/aweris/gale/gha"
@@ -26,26 +27,30 @@ type Event interface {
 }
 
 type EventResult struct {
-	status   EventStatus
-	err      error
-	stdout   string
-	children []*EventRecord
+	Status   EventStatus
+	Err      error
+	Stdout   string
+	Children []*EventRecord
 }
 
 type EventRecord struct {
 	Event
 	EventResult
 
-	ID int
+	ID        int
+	EventName string
+	Timestamp time.Time
 }
 
 func (r *runner) handle(ctx context.Context, event Event) *EventRecord {
 	record := &EventRecord{
-		ID:    int(r.counter.Add(1)),
-		Event: event,
+		ID:        int(r.counter.Add(1)),
+		EventName: reflect.TypeOf(event).Name(),
+		Event:     event,
 		EventResult: EventResult{
-			status: EventStatusInProgress,
+			Status: EventStatusInProgress,
 		},
+		Timestamp: time.Now(),
 	}
 
 	r.events = append(r.events, record)
@@ -55,19 +60,19 @@ func (r *runner) handle(ctx context.Context, event Event) *EventRecord {
 	return record
 }
 
-// newSuccessEvent creates a new success event without any stdout.
+// newSuccessEvent creates a new success event without any Stdout.
 func newSuccessEvent() EventResult {
-	return EventResult{status: EventStatusSucceeded}
+	return EventResult{Status: EventStatusSucceeded}
 }
 
-// newSkippedEvent creates a new skipped event without any stdout.
+// newSkippedEvent creates a new skipped event without any Stdout.
 func newSkippedEvent() EventResult {
-	return EventResult{status: EventStatusSkipped}
+	return EventResult{Status: EventStatusSkipped}
 }
 
-// newErrorEvent creates a new error event without any stdout.
+// newErrorEvent creates a new error event without any Stdout.
 func newErrorEvent(err error) EventResult {
-	return EventResult{status: EventStatusFailed, err: err}
+	return EventResult{Status: EventStatusFailed, Err: err}
 }
 
 // Environment Events
@@ -80,35 +85,35 @@ var (
 
 // AddEnvEvent introduces new env variable to runner container.
 type AddEnvEvent struct {
-	name  string
-	value string
+	Name  string
+	Value string
 }
 
 func (e AddEnvEvent) handle(_ context.Context, runner *runner) EventResult {
-	runner.container = runner.container.WithEnvVariable(e.name, e.value)
+	runner.container = runner.container.WithEnvVariable(e.Name, e.Value)
 	return newSuccessEvent()
 }
 
-// ReplaceEnvEvent replaces existing env value with the new one. Event assumes existing env and value validated
+// ReplaceEnvEvent replaces existing env Value with the new one. Event assumes existing env and Value validated
 // during event creation. It's not validate again
 type ReplaceEnvEvent struct {
-	name     string
-	oldValue string
-	newValue string
+	Name     string
+	OldValue string
+	NewValue string
 }
 
 func (e ReplaceEnvEvent) handle(_ context.Context, runner *runner) EventResult {
-	runner.container = runner.container.WithEnvVariable(e.name, e.newValue)
+	runner.container = runner.container.WithEnvVariable(e.Name, e.NewValue)
 	return newSuccessEvent()
 }
 
-// RemoveEnvEvent removes an env value from runner container
+// RemoveEnvEvent removes an env Value from runner container
 type RemoveEnvEvent struct {
-	name string
+	Name string
 }
 
 func (e RemoveEnvEvent) handle(_ context.Context, runner *runner) EventResult {
-	runner.container = runner.container.WithoutEnvVariable(e.name)
+	runner.container = runner.container.WithoutEnvVariable(e.Name)
 	return newSuccessEvent()
 }
 
@@ -116,13 +121,13 @@ func (e RemoveEnvEvent) handle(_ context.Context, runner *runner) EventResult {
 
 var _ Event = new(WithExecEvent)
 
-// WithExecEvent adds WithExec to runner container with given args.
+// WithExecEvent adds WithExec to runner container with given Args.
 type WithExecEvent struct {
-	args []string
+	Args []string
 }
 
 func (e WithExecEvent) handle(_ context.Context, runner *runner) EventResult {
-	runner.container = runner.container.WithExec(e.args)
+	runner.container = runner.container.WithExec(e.Args)
 	return newSuccessEvent()
 }
 
@@ -132,28 +137,30 @@ var (
 	_ Event = new(SetupJobEvent)
 )
 
-// SetupJobEvent runs `setup job` step for the runner job.
+// SetupJobEvent runs `setup job` Step for the runner job.
 type SetupJobEvent struct {
 	// Intentionally left blank. It's not take any parameters
 }
 
-func (e SetupJobEvent) handle(ctx context.Context, runner *runner) EventResult {
+func (e SetupJobEvent) handle(_ context.Context, runner *runner) EventResult {
 	runner.log.Info("Set up job")
 
-	// TODO: this is a hack, we should find better way to do this
-	runner.WithExec("mkdir", "-p", runner.context.Github.Workspace)
+	var children []*EventRecord
 
-	runner.WithEnvironment(runner.context.ToEnv())
-	runner.WithEnvironment(runner.workflow.Environment)
-	runner.WithEnvironment(runner.job.Environment)
+	// TODO: this is a hack, we should find better way to do this
+	children = append(children, runner.WithExec("mkdir", "-p", runner.context.Github.Workspace))
+
+	children = append(children, runner.WithEnvironment(runner.context.ToEnv())...)
+	children = append(children, runner.WithEnvironment(runner.workflow.Environment)...)
+	children = append(children, runner.WithEnvironment(runner.job.Environment)...)
 
 	for _, step := range runner.job.Steps {
-		runner.WithCustomAction(step.Uses)
+		children = append(children, runner.WithCustomAction(step.Uses))
 
 		runner.log.Info(fmt.Sprintf("Download action repository '%s'", step.Uses))
 	}
 
-	return newSuccessEvent()
+	return EventResult{Status: EventStatusSucceeded, Children: children}
 }
 
 // Action Events
@@ -163,42 +170,42 @@ var (
 	_ Event = new(ExecStepActionEvent)
 )
 
-// WithActionEvent fetches github action code from given source and mount as a directory in a runner container.
+// WithActionEvent fetches github action code from given Source and mount as a directory in a runner container.
 type WithActionEvent struct {
-	source string
+	Source string
 }
 
 func (e WithActionEvent) handle(ctx context.Context, runner *runner) EventResult {
-	action, err := gha.LoadActionFromSource(ctx, runner.client, e.source)
+	action, err := gha.LoadActionFromSource(ctx, runner.client, e.Source)
 	if err != nil {
 		return newErrorEvent(err)
 	}
 
 	path := fmt.Sprintf("/home/runner/_temp/%s", uuid.New())
 
-	runner.actionsBySource[e.source] = action
-	runner.actionPathsBySource[e.source] = path
+	runner.actionsBySource[e.Source] = action
+	runner.actionPathsBySource[e.Source] = path
 
 	runner.container = runner.container.WithDirectory(path, action.Directory)
 
 	return newSuccessEvent()
 }
 
-// ExecStepActionEvent executes step on runner
+// ExecStepActionEvent executes Step on runner
 type ExecStepActionEvent struct {
-	stage string
-	step  *gha.Step
+	Stage string
+	Step  *gha.Step
 }
 
 func (e ExecStepActionEvent) handle(ctx context.Context, runner *runner) EventResult {
 	var (
 		runs   = ""
-		step   = e.step
+		step   = e.Step
 		path   = runner.actionPathsBySource[step.Uses]
 		action = runner.actionsBySource[step.Uses]
 	)
 
-	switch e.stage {
+	switch e.Stage {
 	case "pre":
 		runs = action.Runs.Pre
 	case "main":
@@ -206,7 +213,7 @@ func (e ExecStepActionEvent) handle(ctx context.Context, runner *runner) EventRe
 	case "post":
 		runs = action.Runs.Post
 	default:
-		return newErrorEvent(fmt.Errorf("unknow stage %s for ExecActionEvent", e.stage))
+		return newErrorEvent(fmt.Errorf("unknow stage %s for ExecActionEvent", e.Stage))
 	}
 
 	if runs == "" {
@@ -215,7 +222,7 @@ func (e ExecStepActionEvent) handle(ctx context.Context, runner *runner) EventRe
 
 	// TODO: check if conditions
 
-	runner.log.Info(fmt.Sprintf("%s Run %s", e.stage, step.Uses))
+	runner.log.Info(fmt.Sprintf("%s Run %s", e.Stage, step.Uses))
 
 	var children []*EventRecord
 
@@ -233,10 +240,10 @@ func (e ExecStepActionEvent) handle(ctx context.Context, runner *runner) EventRe
 	children = append(children, runner.WithoutEnvironment(step.Environment, runner.context.ToEnv(), runner.workflow.Environment, runner.job.Environment)...)
 
 	return EventResult{
-		status:   EventStatusSucceeded,
-		err:      outErr,
-		stdout:   out,
-		children: children,
+		Status:   EventStatusSucceeded,
+		Err:      outErr,
+		Stdout:   out,
+		Children: children,
 	}
 }
 
@@ -266,12 +273,12 @@ func (e BuildContainerEvent) handle(ctx context.Context, runner *runner) EventRe
 
 // LoadContainerEvent load container from given host path
 type LoadContainerEvent struct {
-	path string
+	Path string
 }
 
-func (e LoadContainerEvent) handle(ctx context.Context, runner *runner) EventResult {
-	dir := filepath.Dir(e.path)
-	base := filepath.Base(e.path)
+func (e LoadContainerEvent) handle(_ context.Context, runner *runner) EventResult {
+	dir := filepath.Dir(e.Path)
+	base := filepath.Base(e.Path)
 
 	runner.container = runner.client.Container().Import(runner.client.Host().Directory(dir).File(base))
 

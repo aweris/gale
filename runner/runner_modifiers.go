@@ -16,9 +16,9 @@ func (r *runner) WithEnvironment(env gha.Environment) []*EventRecord {
 
 	for k, v := range env {
 		if val, _ := r.container.EnvVariable(ctx, k); val != "" {
-			events = append(events, r.handle(ctx, ReplaceEnvEvent{name: k, oldValue: val, newValue: v}))
+			events = append(events, r.handle(ctx, ReplaceEnvEvent{Name: k, OldValue: val, NewValue: v}))
 		} else {
-			events = append(events, r.handle(ctx, AddEnvEvent{name: k, value: v}))
+			events = append(events, r.handle(ctx, AddEnvEvent{Name: k, Value: v}))
 		}
 	}
 
@@ -53,9 +53,9 @@ func (r *runner) WithoutEnvironment(env gha.Environment, fallback ...gha.Environ
 
 	for k, v := range env {
 		if _, ok := merged[k]; ok {
-			events = append(events, r.handle(ctx, ReplaceEnvEvent{name: k, oldValue: v, newValue: merged[k]}))
+			events = append(events, r.handle(ctx, ReplaceEnvEvent{Name: k, OldValue: v, NewValue: merged[k]}))
 		} else {
-			events = append(events, r.handle(ctx, RemoveEnvEvent{name: k}))
+			events = append(events, r.handle(ctx, RemoveEnvEvent{Name: k}))
 		}
 	}
 
@@ -75,7 +75,7 @@ func (r *runner) WithInputs(inputs map[string]string) []*EventRecord {
 			v = os.Getenv("GITHUB_TOKEN")
 		}
 
-		events = append(events, r.handle(ctx, AddEnvEvent{name: fmt.Sprintf("INPUT_%s", strings.ToUpper(k)), value: v}))
+		events = append(events, r.handle(ctx, AddEnvEvent{Name: fmt.Sprintf("INPUT_%s", strings.ToUpper(k)), Value: v}))
 	}
 
 	return events
@@ -88,7 +88,7 @@ func (r *runner) WithoutInputs(inputs map[string]string) []*EventRecord {
 	var events []*EventRecord
 
 	for k := range inputs {
-		events = append(events, r.handle(ctx, RemoveEnvEvent{name: fmt.Sprintf("INPUT_%s", strings.ToUpper(k))}))
+		events = append(events, r.handle(ctx, RemoveEnvEvent{Name: fmt.Sprintf("INPUT_%s", strings.ToUpper(k))}))
 	}
 
 	return events
@@ -98,7 +98,7 @@ func (r *runner) WithoutInputs(inputs map[string]string) []*EventRecord {
 func (r *runner) WithCustomAction(source string) *EventRecord {
 	ctx := context.Background()
 
-	return r.handle(ctx, WithActionEvent{source: source})
+	return r.handle(ctx, WithActionEvent{Source: source})
 }
 
 // WithExec is simple wrapper around dagger.container.WithExec. This is useful for simplifying the syntax when
@@ -106,5 +106,5 @@ func (r *runner) WithCustomAction(source string) *EventRecord {
 func (r *runner) WithExec(cmd string, args ...string) *EventRecord {
 	ctx := context.Background()
 
-	return r.handle(ctx, WithExecEvent{args: append([]string{cmd}, args...)})
+	return r.handle(ctx, WithExecEvent{Args: append([]string{cmd}, args...)})
 }

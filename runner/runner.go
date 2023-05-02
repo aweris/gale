@@ -54,7 +54,7 @@ func (r *runner) Run(ctx context.Context) {
 
 	// Load or build container
 	if path != "" {
-		r.handle(ctx, LoadContainerEvent{path: path})
+		r.handle(ctx, LoadContainerEvent{Path: path})
 	} else {
 		r.handle(ctx, BuildContainerEvent{})
 	}
@@ -64,14 +64,14 @@ func (r *runner) Run(ctx context.Context) {
 
 	// Run stages
 	for _, step := range r.job.Steps {
-		r.handle(ctx, ExecStepActionEvent{stage: "pre", step: step})
+		r.handle(ctx, ExecStepActionEvent{Stage: "pre", Step: step})
 	}
 
 	for _, step := range r.job.Steps {
-		r.handle(ctx, ExecStepActionEvent{stage: "main", step: step})
+		r.handle(ctx, ExecStepActionEvent{Stage: "main", Step: step})
 	}
 
 	for _, step := range r.job.Steps {
-		r.handle(ctx, ExecStepActionEvent{stage: "post", step: step})
+		r.handle(ctx, ExecStepActionEvent{Stage: "post", Step: step})
 	}
 }
