@@ -112,21 +112,6 @@ func (e RemoveEnvEvent) handle(_ context.Context, runner *runner) EventResult {
 	return newSuccessEvent()
 }
 
-// Directory Events
-
-var _ Event = new(WithDirectoryEvent)
-
-// WithDirectoryEvent mounts a dagger.Directory to runner container with given path.
-type WithDirectoryEvent struct {
-	path string
-	dir  *dagger.Directory
-}
-
-func (e WithDirectoryEvent) handle(_ context.Context, runner *runner) EventResult {
-	runner.container = runner.container.WithDirectory(e.path, e.dir)
-	return newSuccessEvent()
-}
-
 // Exec Events
 
 var _ Event = new(WithExecEvent)
