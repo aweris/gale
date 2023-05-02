@@ -214,5 +214,5 @@ func (b *Builder) Build(ctx context.Context) (Runner, error) {
 		return nil, err
 	}
 
-	return &runner{container: container}, nil
+	return &runner{context: &Context{container: container}}, nil
 }

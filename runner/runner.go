@@ -4,11 +4,10 @@ import (
 	"context"
 	"dagger.io/dagger"
 	"github.com/aweris/gale/config"
-	"path/filepath"
-	"sync/atomic"
-
 	"github.com/aweris/gale/gha"
+	"github.com/aweris/gale/internal/event"
 	"github.com/aweris/gale/logger"
+	"path/filepath"
 )
 
 var _ Runner = new(runner)
@@ -19,6 +18,13 @@ type Runner interface {
 
 // runner represents a GitHub Action runner powered by Dagger.
 type runner struct {
+	context   *Context
+	publisher event.Publisher[Context]
+}
+
+var _ event.Context = new(Context)
+
+type Context struct {
 	client    *dagger.Client
 	container *dagger.Container
 
@@ -29,14 +35,12 @@ type runner struct {
 	actionsBySource     map[string]*gha.Action
 	actionPathsBySource map[string]string
 
-	log     logger.Logger
-	events  []*EventRecord
-	counter *atomic.Uint64
+	log logger.Logger
 }
 
 // NewRunner creates a new Runner.
 func NewRunner(client *dagger.Client, log logger.Logger, runContext *gha.RunContext, workflow *gha.Workflow, job *gha.Job) Runner {
-	return &runner{
+	rc := &Context{
 		client:              client,
 		context:             runContext,
 		workflow:            workflow,
@@ -44,7 +48,10 @@ func NewRunner(client *dagger.Client, log logger.Logger, runContext *gha.RunCont
 		actionsBySource:     make(map[string]*gha.Action),
 		actionPathsBySource: make(map[string]string),
 		log:                 log,
-		counter:             &atomic.Uint64{},
+	}
+	return &runner{
+		context:   rc,
+		publisher: event.NewStdPublisher(rc),
 	}
 }
 
@@ -54,24 +61,24 @@ func (r *runner) Run(ctx context.Context) {
 
 	// Load or build container
 	if path != "" {
-		r.handle(ctx, LoadContainerEvent{Path: path})
+		r.publisher.Publish(ctx, LoadContainerEvent{Path: path})
 	} else {
-		r.handle(ctx, BuildContainerEvent{})
+		r.publisher.Publish(ctx, BuildContainerEvent{})
 	}
 
 	// Setup Job
-	r.handle(ctx, SetupJobEvent{})
+	r.publisher.Publish(ctx, SetupJobEvent{})
 
 	// Run stages
-	for _, step := range r.job.Steps {
-		r.handle(ctx, ExecStepActionEvent{Stage: "pre", Step: step})
+	for _, step := range r.context.job.Steps {
+		r.publisher.Publish(ctx, ExecStepActionEvent{Stage: "pre", Step: step})
 	}
 
-	for _, step := range r.job.Steps {
-		r.handle(ctx, ExecStepActionEvent{Stage: "main", Step: step})
+	for _, step := range r.context.job.Steps {
+		r.publisher.Publish(ctx, ExecStepActionEvent{Stage: "main", Step: step})
 	}
 
-	for _, step := range r.job.Steps {
-		r.handle(ctx, ExecStepActionEvent{Stage: "post", Step: step})
+	for _, step := range r.context.job.Steps {
+		r.publisher.Publish(ctx, ExecStepActionEvent{Stage: "post", Step: step})
 	}
 }

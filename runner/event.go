@@ -5,86 +5,22 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"reflect"
 	"strings"
-	"time"
 
 	"github.com/google/uuid"
 
 	"github.com/aweris/gale/gha"
+	"github.com/aweris/gale/internal/event"
 )
-
-type EventStatus string
-
-const (
-	EventStatusInProgress = "in_progress"
-	EventStatusSucceeded  = "succeeded"
-	EventStatusSkipped    = "skipped"
-	EventStatusFailed     = "failed"
-)
-
-// Event represents a significant change or action that occurs within the runner.
-type Event interface {
-	handle(context.Context, *runner) EventResult
-}
-
-type EventResult struct {
-	Status   EventStatus
-	Err      error
-	Stdout   string
-	Children []*EventRecord
-}
-
-type EventRecord struct {
-	Event
-	EventResult
-
-	ID        int
-	EventName string
-	Timestamp time.Time
-}
-
-func (r *runner) handle(ctx context.Context, event Event) *EventRecord {
-	record := &EventRecord{
-		ID:        int(r.counter.Add(1)),
-		EventName: reflect.TypeOf(event).Name(),
-		Event:     event,
-		EventResult: EventResult{
-			Status: EventStatusInProgress,
-		},
-		Timestamp: time.Now(),
-	}
-
-	r.events = append(r.events, record)
-
-	record.EventResult = event.handle(ctx, r)
-
-	return record
-}
-
-// newSuccessEvent creates a new success event without any Stdout.
-func newSuccessEvent() EventResult {
-	return EventResult{Status: EventStatusSucceeded}
-}
-
-// newSkippedEvent creates a new skipped event without any Stdout.
-func newSkippedEvent() EventResult {
-	return EventResult{Status: EventStatusSkipped}
-}
-
-// newErrorEvent creates a new error event without any Stdout.
-func newErrorEvent(err error) EventResult {
-	return EventResult{Status: EventStatusFailed, Err: err}
-}
 
 // Environment Events
 
 var (
-	_ Event = new(WithEnvironmentEvent)
-	_ Event = new(WithoutEnvironmentEvent)
-	_ Event = new(AddEnvEvent)
-	_ Event = new(ReplaceEnvEvent)
-	_ Event = new(RemoveEnvEvent)
+	_ event.Event[Context] = new(WithEnvironmentEvent)
+	_ event.Event[Context] = new(WithoutEnvironmentEvent)
+	_ event.Event[Context] = new(AddEnvEvent)
+	_ event.Event[Context] = new(ReplaceEnvEvent)
+	_ event.Event[Context] = new(RemoveEnvEvent)
 )
 
 // WithEnvironmentEvent introduces new environment to runner container.
@@ -92,18 +28,16 @@ type WithEnvironmentEvent struct {
 	Env gha.Environment
 }
 
-func (e WithEnvironmentEvent) handle(ctx context.Context, runner *runner) EventResult {
-	var children []*EventRecord
-
+func (e WithEnvironmentEvent) Handle(ctx context.Context, ec *Context, publisher event.Publisher[Context]) event.Result[Context] {
 	for k, v := range e.Env {
-		if val, _ := runner.container.EnvVariable(ctx, k); val != "" {
-			children = append(children, runner.handle(ctx, ReplaceEnvEvent{Name: k, OldValue: val, NewValue: v}))
+		if val, _ := ec.container.EnvVariable(ctx, k); val != "" {
+			publisher.Publish(ctx, ReplaceEnvEvent{Name: k, OldValue: val, NewValue: v})
 		} else {
-			children = append(children, runner.handle(ctx, AddEnvEvent{Name: k, Value: v}))
+			publisher.Publish(ctx, AddEnvEvent{Name: k, Value: v})
 		}
 	}
 
-	return EventResult{Status: EventStatusSucceeded, Children: children}
+	return event.Result[Context]{Status: event.StatusSucceeded}
 }
 
 // WithoutEnvironmentEvent removes given environment variables from the container. If a fallback environment is given,
@@ -118,7 +52,7 @@ type WithoutEnvironmentEvent struct {
 	FallbackEnvs []gha.Environment
 }
 
-func (e WithoutEnvironmentEvent) handle(ctx context.Context, runner *runner) EventResult {
+func (e WithoutEnvironmentEvent) Handle(ctx context.Context, _ *Context, publisher event.Publisher[Context]) event.Result[Context] {
 	merged := gha.Environment{}
 
 	for _, environment := range e.FallbackEnvs {
@@ -127,17 +61,15 @@ func (e WithoutEnvironmentEvent) handle(ctx context.Context, runner *runner) Eve
 		merged = merged.Merge(environment)
 	}
 
-	var children []*EventRecord
-
 	for k, v := range e.Env {
 		if _, ok := merged[k]; ok {
-			children = append(children, runner.handle(ctx, ReplaceEnvEvent{Name: k, OldValue: v, NewValue: merged[k]}))
+			publisher.Publish(ctx, ReplaceEnvEvent{Name: k, OldValue: v, NewValue: merged[k]})
 		} else {
-			children = append(children, runner.handle(ctx, RemoveEnvEvent{Name: k}))
+			publisher.Publish(ctx, RemoveEnvEvent{Name: k})
 		}
 	}
 
-	return EventResult{Status: EventStatusSucceeded, Children: children}
+	return event.Result[Context]{Status: event.StatusSucceeded}
 }
 
 // AddEnvEvent introduces new env variable to runner container.
@@ -146,9 +78,9 @@ type AddEnvEvent struct {
 	Value string
 }
 
-func (e AddEnvEvent) handle(_ context.Context, runner *runner) EventResult {
-	runner.container = runner.container.WithEnvVariable(e.Name, e.Value)
-	return newSuccessEvent()
+func (e AddEnvEvent) Handle(_ context.Context, ec *Context, _ event.Publisher[Context]) event.Result[Context] {
+	ec.container = ec.container.WithEnvVariable(e.Name, e.Value)
+	return event.Result[Context]{Status: event.StatusSucceeded}
 }
 
 // ReplaceEnvEvent replaces existing env Value with the new one. Event assumes existing env and Value validated
@@ -159,9 +91,9 @@ type ReplaceEnvEvent struct {
 	NewValue string
 }
 
-func (e ReplaceEnvEvent) handle(_ context.Context, runner *runner) EventResult {
-	runner.container = runner.container.WithEnvVariable(e.Name, e.NewValue)
-	return newSuccessEvent()
+func (e ReplaceEnvEvent) Handle(_ context.Context, ec *Context, _ event.Publisher[Context]) event.Result[Context] {
+	ec.container = ec.container.WithEnvVariable(e.Name, e.NewValue)
+	return event.Result[Context]{Status: event.StatusSucceeded}
 }
 
 // RemoveEnvEvent removes an env Value from runner container
@@ -169,14 +101,14 @@ type RemoveEnvEvent struct {
 	Name string
 }
 
-func (e RemoveEnvEvent) handle(_ context.Context, runner *runner) EventResult {
-	runner.container = runner.container.WithoutEnvVariable(e.Name)
-	return newSuccessEvent()
+func (e RemoveEnvEvent) Handle(_ context.Context, ec *Context, _ event.Publisher[Context]) event.Result[Context] {
+	ec.container = ec.container.WithoutEnvVariable(e.Name)
+	return event.Result[Context]{Status: event.StatusSucceeded}
 }
 
 // Exec Events
 
-var _ Event = new(WithExecEvent)
+var _ event.Event[Context] = new(WithExecEvent)
 
 // WithExecEvent adds WithExec to runner container with given Args. If Execute is true, it will execute the command
 // immediately after adding it to the container. Otherwise, it will be added to the container but not executed.
@@ -185,25 +117,25 @@ type WithExecEvent struct {
 	Execute bool
 }
 
-func (e WithExecEvent) handle(ctx context.Context, runner *runner) EventResult {
-	runner.container = runner.container.WithExec(e.Args)
+func (e WithExecEvent) Handle(ctx context.Context, ec *Context, _ event.Publisher[Context]) event.Result[Context] {
+	ec.container = ec.container.WithExec(e.Args)
 
 	if !e.Execute {
-		return newSuccessEvent()
+		return event.Result[Context]{Status: event.StatusSucceeded}
 	}
 
-	out, err := runner.container.Stdout(ctx)
+	out, err := ec.container.Stdout(ctx)
 	if err != nil {
-		return EventResult{Status: EventStatusFailed, Err: err, Stdout: out}
+		return event.Result[Context]{Status: event.StatusFailed, Err: err, Stdout: out}
 	}
 
-	return EventResult{Status: EventStatusSucceeded, Stdout: out}
+	return event.Result[Context]{Status: event.StatusSucceeded, Stdout: out}
 }
 
 // Job Events
 
 var (
-	_ Event = new(SetupJobEvent)
+	_ event.Event[Context] = new(SetupJobEvent)
 )
 
 // SetupJobEvent runs `setup job` Step for the runner job.
@@ -211,34 +143,32 @@ type SetupJobEvent struct {
 	// Intentionally left blank. It's not take any parameters
 }
 
-func (e SetupJobEvent) handle(ctx context.Context, runner *runner) EventResult {
-	runner.log.Info("Set up job")
-
-	var children []*EventRecord
+func (e SetupJobEvent) Handle(ctx context.Context, ec *Context, publisher event.Publisher[Context]) event.Result[Context] {
+	ec.log.Info("Set up job")
 
 	// TODO: this is a hack, we should find better way to do this
-	children = append(children, runner.handle(ctx, WithExecEvent{Args: []string{"mkdir", "-p", runner.context.Github.Workspace}}))
+	publisher.Publish(ctx, WithExecEvent{Args: []string{"mkdir", "-p", ec.context.Github.Workspace}})
 
-	children = append(children, runner.handle(ctx, WithEnvironmentEvent{Env: runner.context.ToEnv()}))
-	children = append(children, runner.handle(ctx, WithEnvironmentEvent{Env: runner.workflow.Environment}))
-	children = append(children, runner.handle(ctx, WithEnvironmentEvent{Env: runner.job.Environment}))
+	publisher.Publish(ctx, WithEnvironmentEvent{Env: ec.context.ToEnv()})
+	publisher.Publish(ctx, WithEnvironmentEvent{Env: ec.workflow.Environment})
+	publisher.Publish(ctx, WithEnvironmentEvent{Env: ec.job.Environment})
 
-	for _, step := range runner.job.Steps {
-		children = append(children, runner.handle(ctx, WithActionEvent{Source: step.Uses}))
+	for _, step := range ec.job.Steps {
+		publisher.Publish(ctx, WithActionEvent{Source: step.Uses})
 
-		runner.log.Info(fmt.Sprintf("Download action repository '%s'", step.Uses))
+		ec.log.Info(fmt.Sprintf("Download action repository '%s'", step.Uses))
 	}
 
-	return EventResult{Status: EventStatusSucceeded, Children: children}
+	return event.Result[Context]{Status: event.StatusSucceeded}
 }
 
 // Action Events
 
 var (
-	_ Event = new(WithStepInputsEvent)
-	_ Event = new(WithoutStepInputsEvent)
-	_ Event = new(WithActionEvent)
-	_ Event = new(ExecStepActionEvent)
+	_ event.Event[Context] = new(WithStepInputsEvent)
+	_ event.Event[Context] = new(WithoutStepInputsEvent)
+	_ event.Event[Context] = new(WithActionEvent)
+	_ event.Event[Context] = new(ExecStepActionEvent)
 )
 
 // WithStepInputsEvent transform given input name as INPUT_<NAME> and add it to the container as environment variable.
@@ -246,7 +176,7 @@ type WithStepInputsEvent struct {
 	Inputs map[string]string
 }
 
-func (e WithStepInputsEvent) handle(ctx context.Context, runner *runner) EventResult {
+func (e WithStepInputsEvent) Handle(_ context.Context, ec *Context, _ event.Publisher[Context]) event.Result[Context] {
 	for k, v := range e.Inputs {
 		// TODO: This is a hack to get around the fact that we can't set the GITHUB_TOKEN as an input. Remove this
 		// once we have a better solution.
@@ -254,10 +184,10 @@ func (e WithStepInputsEvent) handle(ctx context.Context, runner *runner) EventRe
 			v = os.Getenv("GITHUB_TOKEN")
 		}
 
-		runner.container = runner.container.WithEnvVariable(fmt.Sprintf("INPUT_%s", strings.ToUpper(k)), v)
+		ec.container = ec.container.WithEnvVariable(fmt.Sprintf("INPUT_%s", strings.ToUpper(k)), v)
 	}
 
-	return newSuccessEvent()
+	return event.Result[Context]{Status: event.StatusSucceeded}
 }
 
 // WithoutStepInputsEvent removes the given inputs from the container.
@@ -265,12 +195,12 @@ type WithoutStepInputsEvent struct {
 	Inputs map[string]string
 }
 
-func (e WithoutStepInputsEvent) handle(ctx context.Context, runner *runner) EventResult {
+func (e WithoutStepInputsEvent) Handle(_ context.Context, ec *Context, _ event.Publisher[Context]) event.Result[Context] {
 	for k := range e.Inputs {
-		runner.container = runner.container.WithoutEnvVariable(fmt.Sprintf("INPUT_%s", strings.ToUpper(k)))
+		ec.container = ec.container.WithoutEnvVariable(fmt.Sprintf("INPUT_%s", strings.ToUpper(k)))
 	}
 
-	return newSuccessEvent()
+	return event.Result[Context]{Status: event.StatusSucceeded}
 }
 
 // WithActionEvent fetches github action code from given Source and mount as a directory in a runner container.
@@ -278,20 +208,20 @@ type WithActionEvent struct {
 	Source string
 }
 
-func (e WithActionEvent) handle(ctx context.Context, runner *runner) EventResult {
-	action, err := gha.LoadActionFromSource(ctx, runner.client, e.Source)
+func (e WithActionEvent) Handle(ctx context.Context, ec *Context, _ event.Publisher[Context]) event.Result[Context] {
+	action, err := gha.LoadActionFromSource(ctx, ec.client, e.Source)
 	if err != nil {
-		return newErrorEvent(err)
+		return event.Result[Context]{Status: event.StatusFailed, Err: err}
 	}
 
 	path := fmt.Sprintf("/home/runner/_temp/%s", uuid.New())
 
-	runner.actionsBySource[e.Source] = action
-	runner.actionPathsBySource[e.Source] = path
+	ec.actionsBySource[e.Source] = action
+	ec.actionPathsBySource[e.Source] = path
 
-	runner.container = runner.container.WithDirectory(path, action.Directory)
+	ec.container = ec.container.WithDirectory(path, action.Directory)
 
-	return newSuccessEvent()
+	return event.Result[Context]{Status: event.StatusSucceeded}
 }
 
 // ExecStepActionEvent executes Step on runner
@@ -300,12 +230,12 @@ type ExecStepActionEvent struct {
 	Step  *gha.Step
 }
 
-func (e ExecStepActionEvent) handle(ctx context.Context, runner *runner) EventResult {
+func (e ExecStepActionEvent) Handle(ctx context.Context, ec *Context, publisher event.Publisher[Context]) event.Result[Context] {
 	var (
 		runs   = ""
 		step   = e.Step
-		path   = runner.actionPathsBySource[step.Uses]
-		action = runner.actionsBySource[step.Uses]
+		path   = ec.actionPathsBySource[step.Uses]
+		action = ec.actionsBySource[step.Uses]
 	)
 
 	switch e.Stage {
@@ -316,48 +246,46 @@ func (e ExecStepActionEvent) handle(ctx context.Context, runner *runner) EventRe
 	case "post":
 		runs = action.Runs.Post
 	default:
-		return newErrorEvent(fmt.Errorf("unknow stage %s for ExecActionEvent", e.Stage))
+		return event.Result[Context]{Status: event.StatusFailed, Err: fmt.Errorf("unknown stage %s", e.Stage)}
 	}
 
 	if runs == "" {
-		return newSkippedEvent()
+		return event.Result[Context]{Status: event.StatusSkipped}
 	}
 
 	// TODO: check if conditions
 
-	runner.log.Info(fmt.Sprintf("%s Run %s", e.Stage, step.Uses))
-
-	var children []*EventRecord
+	ec.log.Info(fmt.Sprintf("%s Run %s", e.Stage, step.Uses))
 
 	// Set up inputs and environment variables for step
-	children = append(children, runner.handle(ctx, WithEnvironmentEvent{Env: step.Environment}))
-	children = append(children, runner.handle(ctx, WithStepInputsEvent{Inputs: step.With}))
+	publisher.Publish(ctx, WithEnvironmentEvent{Env: step.Environment})
+	publisher.Publish(ctx, WithStepInputsEvent{Inputs: step.With})
 
 	// Execute main step
 	// TODO: add error handling. Need to check step continue-on-error, fail, always conditions as well
-	execEvent := runner.handle(ctx, WithExecEvent{
-		Args: []string{"node", fmt.Sprintf("%s/%s", path, runs)}, Execute: true},
-	)
-	children = append(children, execEvent)
+
+	withExec := WithExecEvent{Args: []string{"node", fmt.Sprintf("%s/%s", path, runs)}, Execute: true}
+
+	publisher.Publish(ctx, withExec)
 
 	// Clean up inputs and environment variables for next step
 
-	children = append(children, runner.handle(ctx, WithoutStepInputsEvent{Inputs: step.With}))
+	publisher.Publish(ctx, WithoutStepInputsEvent{Inputs: step.With})
 
 	withoutEnv := WithoutEnvironmentEvent{
 		Env:          step.Environment,
-		FallbackEnvs: []gha.Environment{runner.context.ToEnv(), runner.workflow.Environment, runner.job.Environment},
+		FallbackEnvs: []gha.Environment{ec.context.ToEnv(), ec.workflow.Environment, ec.job.Environment},
 	}
-	children = append(children, runner.handle(ctx, withoutEnv))
+	publisher.Publish(ctx, withoutEnv)
 
-	return EventResult{Status: EventStatusSucceeded, Children: children}
+	return event.Result[Context]{Status: event.StatusSucceeded}
 }
 
 // Runner Events
 
 var (
-	_ Event = new(BuildContainerEvent)
-	_ Event = new(LoadContainerEvent)
+	_ event.Event[Context] = new(BuildContainerEvent)
+	_ event.Event[Context] = new(LoadContainerEvent)
 )
 
 // BuildContainerEvent builds a default runner container. This event will be called right before executing job if runner
@@ -366,15 +294,15 @@ type BuildContainerEvent struct {
 	// Intentionally left blank
 }
 
-func (e BuildContainerEvent) handle(ctx context.Context, runner *runner) EventResult {
-	container, err := NewBuilder(runner.client).build(ctx)
+func (e BuildContainerEvent) Handle(ctx context.Context, ec *Context, _ event.Publisher[Context]) event.Result[Context] {
+	container, err := NewBuilder(ec.client).build(ctx)
 	if err != nil {
-		return newErrorEvent(err)
+		return event.Result[Context]{Status: event.StatusFailed, Err: err}
 	}
 
-	runner.container = container
+	ec.container = container
 
-	return newSuccessEvent()
+	return event.Result[Context]{Status: event.StatusSucceeded}
 }
 
 // LoadContainerEvent load container from given host path
@@ -382,11 +310,11 @@ type LoadContainerEvent struct {
 	Path string
 }
 
-func (e LoadContainerEvent) handle(_ context.Context, runner *runner) EventResult {
+func (e LoadContainerEvent) Handle(_ context.Context, ec *Context, _ event.Publisher[Context]) event.Result[Context] {
 	dir := filepath.Dir(e.Path)
 	base := filepath.Base(e.Path)
 
-	runner.container = runner.client.Container().Import(runner.client.Host().Directory(dir).File(base))
+	ec.container = ec.client.Container().Import(ec.client.Host().Directory(dir).File(base))
 
-	return newSuccessEvent()
+	return event.Result[Context]{Status: event.StatusSucceeded}
 }
