@@ -3,8 +3,10 @@ package runner
 import (
 	"context"
 	"fmt"
+	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -78,10 +80,65 @@ func newErrorEvent(err error) EventResult {
 // Environment Events
 
 var (
+	_ Event = new(WithEnvironmentEvent)
+	_ Event = new(WithoutEnvironmentEvent)
 	_ Event = new(AddEnvEvent)
 	_ Event = new(ReplaceEnvEvent)
 	_ Event = new(RemoveEnvEvent)
 )
+
+// WithEnvironmentEvent introduces new environment to runner container.
+type WithEnvironmentEvent struct {
+	Env gha.Environment
+}
+
+func (e WithEnvironmentEvent) handle(ctx context.Context, runner *runner) EventResult {
+	var children []*EventRecord
+
+	for k, v := range e.Env {
+		if val, _ := runner.container.EnvVariable(ctx, k); val != "" {
+			children = append(children, runner.handle(ctx, ReplaceEnvEvent{Name: k, OldValue: val, NewValue: v}))
+		} else {
+			children = append(children, runner.handle(ctx, AddEnvEvent{Name: k, Value: v}))
+		}
+	}
+
+	return EventResult{Status: EventStatusSucceeded, Children: children}
+}
+
+// WithoutEnvironmentEvent removes given environment variables from the container. If a fallback environment is given,
+// instead of removing the variable, it will be set to the value of the fallback environment.
+//
+// If multiple fallback environments are given, they will be merged in the order they are given. The last environment
+// in the list will have the highest priority.
+//
+// This is useful for removing overridden environment variables without losing the original value.
+type WithoutEnvironmentEvent struct {
+	Env          gha.Environment
+	FallbackEnvs []gha.Environment
+}
+
+func (e WithoutEnvironmentEvent) handle(ctx context.Context, runner *runner) EventResult {
+	merged := gha.Environment{}
+
+	for _, environment := range e.FallbackEnvs {
+		// to merge the fallback environments with priority, we need to merge them in order.
+		// the last environment in the list will have the highest priority.
+		merged = merged.Merge(environment)
+	}
+
+	var children []*EventRecord
+
+	for k, v := range e.Env {
+		if _, ok := merged[k]; ok {
+			children = append(children, runner.handle(ctx, ReplaceEnvEvent{Name: k, OldValue: v, NewValue: merged[k]}))
+		} else {
+			children = append(children, runner.handle(ctx, RemoveEnvEvent{Name: k}))
+		}
+	}
+
+	return EventResult{Status: EventStatusSucceeded, Children: children}
+}
 
 // AddEnvEvent introduces new env variable to runner container.
 type AddEnvEvent struct {
@@ -142,20 +199,20 @@ type SetupJobEvent struct {
 	// Intentionally left blank. It's not take any parameters
 }
 
-func (e SetupJobEvent) handle(_ context.Context, runner *runner) EventResult {
+func (e SetupJobEvent) handle(ctx context.Context, runner *runner) EventResult {
 	runner.log.Info("Set up job")
 
 	var children []*EventRecord
 
 	// TODO: this is a hack, we should find better way to do this
-	children = append(children, runner.WithExec("mkdir", "-p", runner.context.Github.Workspace))
+	children = append(children, runner.handle(ctx, WithExecEvent{Args: []string{"mkdir", "-p", runner.context.Github.Workspace}}))
 
-	children = append(children, runner.WithEnvironment(runner.context.ToEnv())...)
-	children = append(children, runner.WithEnvironment(runner.workflow.Environment)...)
-	children = append(children, runner.WithEnvironment(runner.job.Environment)...)
+	children = append(children, runner.handle(ctx, WithEnvironmentEvent{Env: runner.context.ToEnv()}))
+	children = append(children, runner.handle(ctx, WithEnvironmentEvent{Env: runner.workflow.Environment}))
+	children = append(children, runner.handle(ctx, WithEnvironmentEvent{Env: runner.job.Environment}))
 
 	for _, step := range runner.job.Steps {
-		children = append(children, runner.WithCustomAction(step.Uses))
+		children = append(children, runner.handle(ctx, WithActionEvent{Source: step.Uses}))
 
 		runner.log.Info(fmt.Sprintf("Download action repository '%s'", step.Uses))
 	}
@@ -166,9 +223,43 @@ func (e SetupJobEvent) handle(_ context.Context, runner *runner) EventResult {
 // Action Events
 
 var (
+	_ Event = new(WithStepInputsEvent)
+	_ Event = new(WithoutStepInputsEvent)
 	_ Event = new(WithActionEvent)
 	_ Event = new(ExecStepActionEvent)
 )
+
+// WithStepInputsEvent transform given input name as INPUT_<NAME> and add it to the container as environment variable.
+type WithStepInputsEvent struct {
+	Inputs map[string]string
+}
+
+func (e WithStepInputsEvent) handle(ctx context.Context, runner *runner) EventResult {
+	for k, v := range e.Inputs {
+		// TODO: This is a hack to get around the fact that we can't set the GITHUB_TOKEN as an input. Remove this
+		// once we have a better solution.
+		if strings.TrimSpace(v) == "${{ secrets.GITHUB_TOKEN }}" {
+			v = os.Getenv("GITHUB_TOKEN")
+		}
+
+		runner.container = runner.container.WithEnvVariable(fmt.Sprintf("INPUT_%s", strings.ToUpper(k)), v)
+	}
+
+	return newSuccessEvent()
+}
+
+// WithoutStepInputsEvent removes the given inputs from the container.
+type WithoutStepInputsEvent struct {
+	Inputs map[string]string
+}
+
+func (e WithoutStepInputsEvent) handle(ctx context.Context, runner *runner) EventResult {
+	for k := range e.Inputs {
+		runner.container = runner.container.WithoutEnvVariable(fmt.Sprintf("INPUT_%s", strings.ToUpper(k)))
+	}
+
+	return newSuccessEvent()
+}
 
 // WithActionEvent fetches github action code from given Source and mount as a directory in a runner container.
 type WithActionEvent struct {
@@ -227,8 +318,8 @@ func (e ExecStepActionEvent) handle(ctx context.Context, runner *runner) EventRe
 	var children []*EventRecord
 
 	// Set up inputs and environment variables for step
-	children = append(children, runner.WithEnvironment(step.Environment)...)
-	children = append(children, runner.WithInputs(step.With)...)
+	children = append(children, runner.handle(ctx, WithEnvironmentEvent{Env: step.Environment}))
+	children = append(children, runner.handle(ctx, WithStepInputsEvent{Inputs: step.With}))
 
 	// Execute main step
 	// TODO: add error handling. Need to check step continue-on-error, fail, always conditions as well
@@ -236,8 +327,13 @@ func (e ExecStepActionEvent) handle(ctx context.Context, runner *runner) EventRe
 
 	// Clean up inputs and environment variables for next step
 
-	children = append(children, runner.WithoutInputs(step.With)...)
-	children = append(children, runner.WithoutEnvironment(step.Environment, runner.context.ToEnv(), runner.workflow.Environment, runner.job.Environment)...)
+	children = append(children, runner.handle(ctx, WithoutStepInputsEvent{Inputs: step.With}))
+
+	withoutEnv := WithoutEnvironmentEvent{
+		Env:          step.Environment,
+		FallbackEnvs: []gha.Environment{runner.context.ToEnv(), runner.workflow.Environment, runner.job.Environment},
+	}
+	children = append(children, runner.handle(ctx, withoutEnv))
 
 	return EventResult{
 		Status:   EventStatusSucceeded,
