@@ -178,14 +178,26 @@ func (e RemoveEnvEvent) handle(_ context.Context, runner *runner) EventResult {
 
 var _ Event = new(WithExecEvent)
 
-// WithExecEvent adds WithExec to runner container with given Args.
+// WithExecEvent adds WithExec to runner container with given Args. If Execute is true, it will execute the command
+// immediately after adding it to the container. Otherwise, it will be added to the container but not executed.
 type WithExecEvent struct {
-	Args []string
+	Args    []string
+	Execute bool
 }
 
-func (e WithExecEvent) handle(_ context.Context, runner *runner) EventResult {
+func (e WithExecEvent) handle(ctx context.Context, runner *runner) EventResult {
 	runner.container = runner.container.WithExec(e.Args)
-	return newSuccessEvent()
+
+	if !e.Execute {
+		return newSuccessEvent()
+	}
+
+	out, err := runner.container.Stdout(ctx)
+	if err != nil {
+		return EventResult{Status: EventStatusFailed, Err: err, Stdout: out}
+	}
+
+	return EventResult{Status: EventStatusSucceeded, Stdout: out}
 }
 
 // Job Events
@@ -323,7 +335,10 @@ func (e ExecStepActionEvent) handle(ctx context.Context, runner *runner) EventRe
 
 	// Execute main step
 	// TODO: add error handling. Need to check step continue-on-error, fail, always conditions as well
-	out, outErr := runner.ExecAndCaptureOutput(ctx, "node", fmt.Sprintf("%s/%s", path, runs))
+	execEvent := runner.handle(ctx, WithExecEvent{
+		Args: []string{"node", fmt.Sprintf("%s/%s", path, runs)}, Execute: true},
+	)
+	children = append(children, execEvent)
 
 	// Clean up inputs and environment variables for next step
 
@@ -335,12 +350,7 @@ func (e ExecStepActionEvent) handle(ctx context.Context, runner *runner) EventRe
 	}
 	children = append(children, runner.handle(ctx, withoutEnv))
 
-	return EventResult{
-		Status:   EventStatusSucceeded,
-		Err:      outErr,
-		Stdout:   out,
-		Children: children,
-	}
+	return EventResult{Status: EventStatusSucceeded, Children: children}
 }
 
 // Runner Events
