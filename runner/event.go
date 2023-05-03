@@ -232,7 +232,7 @@ type ExecStepActionEvent struct {
 
 func (e ExecStepActionEvent) Handle(ctx context.Context, ec *Context, publisher event.Publisher[Context]) event.Result[Context] {
 	var (
-		runs   = ""
+		runs   string
 		step   = e.Step
 		path   = ec.actionPathsBySource[step.Uses]
 		action = ec.actionsBySource[step.Uses]

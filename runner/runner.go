@@ -2,12 +2,14 @@ package runner
 
 import (
 	"context"
+	"path/filepath"
+
 	"dagger.io/dagger"
+
 	"github.com/aweris/gale/config"
 	"github.com/aweris/gale/gha"
 	"github.com/aweris/gale/internal/event"
 	"github.com/aweris/gale/logger"
-	"path/filepath"
 )
 
 var _ Runner = new(runner)
