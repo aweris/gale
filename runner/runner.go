@@ -2,37 +2,85 @@ package runner
 
 import (
 	"context"
-	"fmt"
 	"path/filepath"
 
 	"dagger.io/dagger"
 
 	"github.com/aweris/gale/config"
+	"github.com/aweris/gale/gha"
+	"github.com/aweris/gale/internal/event"
+	"github.com/aweris/gale/logger"
 )
 
-// Runner represents a GitHub Action runner powered by Dagger.
-type Runner struct {
-	// Container is the Dagger container that the runner is running in.
-	Container *dagger.Container
+var _ Runner = new(runner)
+
+type Runner interface {
+	Run(ctx context.Context)
+}
+
+// runner represents a GitHub Action runner powered by Dagger.
+type runner struct {
+	context   *Context
+	publisher event.Publisher[Context]
+}
+
+var _ event.Context = new(Context)
+
+type Context struct {
+	client    *dagger.Client
+	container *dagger.Container
+
+	context  *gha.RunContext
+	workflow *gha.Workflow
+	job      *gha.Job
+
+	actionsBySource     map[string]*gha.Action
+	actionPathsBySource map[string]string
+
+	log logger.Logger
 }
 
 // NewRunner creates a new Runner.
-func NewRunner(ctx context.Context, client *dagger.Client) (*Runner, error) {
-	// check if there is a pre-built runner image
+func NewRunner(client *dagger.Client, log logger.Logger, runContext *gha.RunContext, workflow *gha.Workflow, job *gha.Job) Runner {
+	rc := &Context{
+		client:              client,
+		context:             runContext,
+		workflow:            workflow,
+		job:                 job,
+		actionsBySource:     make(map[string]*gha.Action),
+		actionPathsBySource: make(map[string]string),
+		log:                 log,
+	}
+	return &runner{
+		context:   rc,
+		publisher: event.NewStdPublisher(rc),
+	}
+}
+
+// Run runs the job
+func (r *runner) Run(ctx context.Context) {
 	path, _ := config.SearchDataFile(filepath.Join(config.DefaultRunnerLabel, config.DefaultRunnerImageTar))
+
+	// Load or build container
 	if path != "" {
-		dir := filepath.Dir(path)
-		base := filepath.Base(path)
-
-		fmt.Printf("Found pre-built image for %s, importing...\n", config.DefaultRunnerLabel)
-
-		container := client.Container().Import(client.Host().Directory(dir).File(base))
-
-		return &Runner{Container: container}, nil
+		r.publisher.Publish(ctx, LoadContainerEvent{Path: path})
+	} else {
+		r.publisher.Publish(ctx, BuildContainerEvent{})
 	}
 
-	fmt.Printf("No pre-built image found for %s, building a new one...\n", config.DefaultRunnerLabel)
+	// Setup Job
+	r.publisher.Publish(ctx, SetupJobEvent{})
 
-	// Build the runner with the defaults and return it, if there is no pre-built image
-	return NewBuilder(client).Build(ctx)
+	// Run stages
+	for _, step := range r.context.job.Steps {
+		r.publisher.Publish(ctx, ExecStepActionEvent{Stage: "pre", Step: step})
+	}
+
+	for _, step := range r.context.job.Steps {
+		r.publisher.Publish(ctx, ExecStepActionEvent{Stage: "main", Step: step})
+	}
+
+	for _, step := range r.context.job.Steps {
+		r.publisher.Publish(ctx, ExecStepActionEvent{Stage: "post", Step: step})
+	}
 }
