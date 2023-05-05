@@ -148,14 +148,19 @@ func (e ExecStepActionEvent) Handle(ctx context.Context, ec *Context, publisher 
 
 	ec.log.Info(fmt.Sprintf("%s Run %s", e.Stage, step.Uses))
 
-	// Set up inputs and environment variables for step
-	state, stateOK := ec.stepState[step.ID]
-	if stateOK {
+	// Set up state, inputs and environment variables for step
+
+	if state, stateOK := ec.stepState[step.ID]; stateOK {
 		publisher.Publish(ctx, WithStepStateEvent{State: state})
 	}
 
-	publisher.Publish(ctx, WithEnvironmentEvent{Env: step.Environment})
-	publisher.Publish(ctx, WithStepInputsEvent{Inputs: step.With})
+	if len(step.Environment) > 0 {
+		publisher.Publish(ctx, WithEnvironmentEvent{Env: step.Environment})
+	}
+
+	if len(step.With) > 0 {
+		publisher.Publish(ctx, WithStepInputsEvent{Inputs: step.With})
+	}
 
 	// Execute main step
 	// TODO: add error handling. Need to check step continue-on-error, fail, always conditions as well
@@ -189,17 +194,21 @@ func (e ExecStepActionEvent) Handle(ctx context.Context, ec *Context, publisher 
 		publisher.Publish(ctx, GithubWorkflowCommandEvent{Raw: line, Command: command, StepID: step.ID})
 	}
 
-	// Clean up inputs and environment variables for next step
+	// Clean up state, inputs and environment variables for next step
 
-	publisher.Publish(ctx, WithoutStepInputsEvent{Inputs: step.With})
-
-	withoutEnv := WithoutEnvironmentEvent{
-		Env:          step.Environment,
-		FallbackEnvs: []gha.Environment{ec.context.ToEnv(), ec.workflow.Environment, ec.job.Environment},
+	if len(step.With) > 0 {
+		publisher.Publish(ctx, WithoutStepInputsEvent{Inputs: step.With})
 	}
-	publisher.Publish(ctx, withoutEnv)
 
-	if stateOK {
+	if len(step.Environment) > 0 {
+		withoutEnv := WithoutEnvironmentEvent{
+			Env:          step.Environment,
+			FallbackEnvs: []gha.Environment{ec.context.ToEnv(), ec.workflow.Environment, ec.job.Environment},
+		}
+		publisher.Publish(ctx, withoutEnv)
+	}
+
+	if state, stateOK := ec.stepState[step.ID]; stateOK {
 		publisher.Publish(ctx, WithoutStepStateEvent{State: state})
 	}
 

@@ -22,9 +22,17 @@ func (e SetupJobEvent) Handle(ctx context.Context, ec *Context, publisher event.
 	// TODO: this is a hack, we should find better way to do this
 	publisher.Publish(ctx, WithExecEvent{Args: []string{"mkdir", "-p", ec.context.Github.Workspace}})
 
-	publisher.Publish(ctx, WithEnvironmentEvent{Env: ec.context.ToEnv()})
-	publisher.Publish(ctx, WithEnvironmentEvent{Env: ec.workflow.Environment})
-	publisher.Publish(ctx, WithEnvironmentEvent{Env: ec.job.Environment})
+	if env := ec.context.ToEnv(); len(env) > 0 {
+		publisher.Publish(ctx, WithEnvironmentEvent{Env: env})
+	}
+
+	if len(ec.workflow.Environment) > 0 {
+		publisher.Publish(ctx, WithEnvironmentEvent{Env: ec.workflow.Environment})
+	}
+
+	if len(ec.job.Environment) > 0 {
+		publisher.Publish(ctx, WithEnvironmentEvent{Env: ec.job.Environment})
+	}
 
 	for idx, step := range ec.job.Steps {
 		// using index as step ID if it's not set as fallback
