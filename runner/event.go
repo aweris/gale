@@ -18,7 +18,6 @@ import (
 var (
 	_ event.Event[Context] = new(WithStepInputsEvent)
 	_ event.Event[Context] = new(WithoutStepInputsEvent)
-	_ event.Event[Context] = new(SaveStepStateEvent)
 	_ event.Event[Context] = new(WithStepStateEvent)
 	_ event.Event[Context] = new(WithoutStepStateEvent)
 	_ event.Event[Context] = new(WithActionEvent)
@@ -53,24 +52,6 @@ func (e WithoutStepInputsEvent) Handle(_ context.Context, ec *Context, _ event.P
 	for k := range e.Inputs {
 		ec.container = ec.container.WithoutEnvVariable(fmt.Sprintf("INPUT_%s", strings.ToUpper(k)))
 	}
-
-	return event.Result[Context]{Status: event.StatusSucceeded}
-}
-
-type SaveStepStateEvent struct {
-	StepID string
-	Name   string
-	Value  string
-}
-
-func (e SaveStepStateEvent) Handle(_ context.Context, ec *Context, _ event.Publisher[Context]) event.Result[Context] {
-	state, ok := ec.stepState[e.StepID]
-	if !ok {
-		state = make(map[string]string)
-		ec.stepState[e.StepID] = state
-	}
-
-	state[e.Name] = e.Value
 
 	return event.Result[Context]{Status: event.StatusSucceeded}
 }
@@ -223,103 +204,6 @@ func (e ExecStepActionEvent) Handle(ctx context.Context, ec *Context, publisher 
 	if stateOK {
 		publisher.Publish(ctx, WithoutStepStateEvent{State: state})
 	}
-
-	return event.Result[Context]{Status: event.StatusSucceeded}
-}
-
-// GitHub Actions Events
-var (
-	_ event.Event[Context] = new(GithubWorkflowCommandEvent)
-	_ event.Event[Context] = new(SetOutputEvent)
-	_ event.Event[Context] = new(AddPathEvent)
-	_ event.Event[Context] = new(AddMaskEvent)
-	_ event.Event[Context] = new(AddMatcherEvent)
-)
-
-type GithubWorkflowCommandEvent struct {
-	// raw is the raw command string. It is kept for debugging purposes. Command is already parsed by this point.
-	Raw string
-
-	// command is the parsed command
-	Command *gha.Command
-
-	// stepID is the ID of the step that emitted this command.
-	StepID string
-}
-
-func (e GithubWorkflowCommandEvent) Handle(ctx context.Context, ec *Context, publisher event.Publisher[Context]) event.Result[Context] {
-	var (
-		stepID  = e.StepID
-		command = e.Command
-	)
-
-	// Only handle commands that are make modifications to the environment. Logging commands are handled by the logger.
-	switch command.Name {
-	case "set-env":
-		publisher.Publish(ctx, AddEnvEvent{Name: command.Parameters["name"], Value: command.Value})
-	case "set-output":
-		publisher.Publish(ctx, SetOutputEvent{StepID: stepID, Name: command.Parameters["name"], Value: command.Value})
-	case "add-path":
-		publisher.Publish(ctx, AddPathEvent{Path: command.Value})
-	case "add-mask":
-		publisher.Publish(ctx, AddMaskEvent{Value: command.Value})
-	case "save-state":
-		publisher.Publish(ctx, SaveStepStateEvent{StepID: stepID, Name: command.Parameters["name"], Value: command.Value})
-	case "add-matcher":
-		publisher.Publish(ctx, AddMatcherEvent{Matcher: command.Value})
-	}
-
-	return event.Result[Context]{Status: event.StatusSucceeded}
-}
-
-type SetOutputEvent struct {
-	StepID string
-	Name   string
-	Value  string
-}
-
-func (e SetOutputEvent) Handle(_ context.Context, ec *Context, _ event.Publisher[Context]) event.Result[Context] {
-	sr, ok := ec.stepResults[e.StepID]
-	if !ok {
-		return event.Result[Context]{Status: event.StatusFailed, Err: fmt.Errorf("step result %s not found", e.StepID)}
-	}
-
-	sr.Outputs[e.Name] = e.Value
-
-	return event.Result[Context]{Status: event.StatusSucceeded}
-}
-
-type AddPathEvent struct {
-	Path string
-}
-
-func (e AddPathEvent) Handle(ctx context.Context, ec *Context, _ event.Publisher[Context]) event.Result[Context] {
-	path, err := ec.container.EnvVariable(ctx, "PATH")
-	if err != nil {
-		return event.Result[Context]{Status: event.StatusFailed, Err: fmt.Errorf("failed to get PATH: %w", err)}
-	}
-
-	ec.container = ec.container.WithEnvVariable("PATH", fmt.Sprintf("%s:%s", path, e.Path))
-
-	return event.Result[Context]{Status: event.StatusSucceeded}
-}
-
-type AddMaskEvent struct {
-	Value string
-}
-
-func (e AddMaskEvent) Handle(_ context.Context, ec *Context, _ event.Publisher[Context]) event.Result[Context] {
-	fmt.Printf("add-mask: %s\n", e.Value)
-
-	return event.Result[Context]{Status: event.StatusSucceeded}
-}
-
-type AddMatcherEvent struct {
-	Matcher string
-}
-
-func (e AddMatcherEvent) Handle(_ context.Context, ec *Context, _ event.Publisher[Context]) event.Result[Context] {
-	fmt.Printf("add-matcher: %s\n", e.Matcher)
 
 	return event.Result[Context]{Status: event.StatusSucceeded}
 }
