@@ -24,9 +24,9 @@ const (
 
 // Result represents the result of an event.
 type Result[T Context] struct {
-	Status Status
-	Err    error
-	Stdout string
+	Status Status `json:"status"`
+	Err    error  `json:"error,omitempty"`
+	Stdout string `json:"stdout,omitempty"`
 }
 
 // Record wraps an event and its result with additional metadata.
@@ -34,10 +34,11 @@ type Record[T Context] struct {
 	Event[T]
 	Result[T]
 
-	ID        int
-	EventName string
-	Timestamp time.Time
-	Parent    *Record[T]
+	ID        int          `json:"id"`
+	EventName string       `json:"event_name"`
+	Timestamp time.Time    `json:"timestamp"`
+	Parent    *Record[T]   `json:"-"` // not serialized to avoid circular references
+	Children  []*Record[T] `json:"children,omitempty"`
 }
 
 // Context is a marker interface for event contexts to pass to event handlers.
@@ -59,6 +60,10 @@ type StdPublisher[T Context] struct {
 	events  []*Record[T]
 	counter *atomic.Uint64
 	context *T
+
+	// idxRootEvents is an index of the root events in the events slice. This is used to avoid having to iterate
+	// over the entire slice to find the root events.
+	idxRootEvents []*Record[T]
 }
 
 func NewStdPublisher[T Context](context *T) *StdPublisher[T] {
@@ -80,6 +85,13 @@ func (s *StdPublisher[T]) publish(ctx context.Context, event Event[T], parent *R
 		Result:    Result[T]{Status: StatusInProgress},
 		Timestamp: time.Now(),
 		Parent:    parent,
+	}
+
+	// If the parent is not nil, add the record to the parent's children. Otherwise, add it to the root events.
+	if parent != nil {
+		parent.Children = append(parent.Children, &record)
+	} else {
+		s.idxRootEvents = append(s.idxRootEvents, &record)
 	}
 
 	s.events = append(s.events, &record)
