@@ -148,15 +148,7 @@ func (e ExecStepActionEvent) Handle(ctx context.Context, ec *Context, publisher 
 
 	ec.log.Info(fmt.Sprintf("%s Run %s", e.Stage, step.Uses))
 
-	// Set up state, inputs and environment variables for step
-
-	if state, stateOK := ec.stepState[step.ID]; stateOK {
-		publisher.Publish(ctx, WithStepStateEvent{State: state})
-	}
-
-	if len(step.Environment) > 0 {
-		publisher.Publish(ctx, WithEnvironmentEvent{Env: step.Environment})
-	}
+	// Set up inputs variables for step
 
 	if len(step.With) > 0 {
 		publisher.Publish(ctx, WithStepInputsEvent{Inputs: step.With})
@@ -198,18 +190,6 @@ func (e ExecStepActionEvent) Handle(ctx context.Context, ec *Context, publisher 
 
 	if len(step.With) > 0 {
 		publisher.Publish(ctx, WithoutStepInputsEvent{Inputs: step.With})
-	}
-
-	if len(step.Environment) > 0 {
-		withoutEnv := WithoutEnvironmentEvent{
-			Env:          step.Environment,
-			FallbackEnvs: []gha.Environment{ec.context.ToEnv(), ec.workflow.Environment, ec.job.Environment},
-		}
-		publisher.Publish(ctx, withoutEnv)
-	}
-
-	if state, stateOK := ec.stepState[step.ID]; stateOK {
-		publisher.Publish(ctx, WithoutStepStateEvent{State: state})
 	}
 
 	return event.Result[Context]{Status: event.StatusSucceeded}
