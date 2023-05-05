@@ -13,8 +13,6 @@ import (
 	"github.com/aweris/gale/internal/event"
 )
 
-// Action Events
-
 var (
 	_ event.Event[Context] = new(WithStepInputsEvent)
 	_ event.Event[Context] = new(WithoutStepInputsEvent)
