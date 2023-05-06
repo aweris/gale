@@ -103,7 +103,7 @@ func (e WithActionEvent) Handle(ctx context.Context, ec *Context, _ event.Publis
 
 // ExecStepActionEvent executes Step on runner
 type ExecStepActionEvent struct {
-	Stage string
+	Stage gha.ActionStage
 	Step  *gha.Step
 }
 
@@ -116,27 +116,27 @@ func (e ExecStepActionEvent) Handle(ctx context.Context, ec *Context, publisher 
 	)
 
 	switch e.Stage {
-	case "pre":
+	case gha.ActionStagePre:
 		runs = action.Runs.Pre
-	case "main":
+	case gha.ActionStageMain:
 		runs = action.Runs.Main
 		ec.stepResults[step.ID] = &gha.StepResult{
 			Outputs:    make(map[string]string),
 			Conclusion: gha.StepStatusSuccess,
 			Outcome:    gha.StepStatusSuccess,
 		}
-	case "post":
+	case gha.ActionStagePost:
 		runs = action.Runs.Post
 	default:
 		return event.Result[Context]{Status: event.StatusFailed, Err: fmt.Errorf("unknown stage %s", e.Stage)}
 	}
 
 	// if runs is empty for pre or post, this is a no-op step
-	if runs == "" && e.Stage != "main" {
+	if runs == "" && e.Stage != gha.ActionStageMain {
 		return event.Result[Context]{Status: event.StatusSkipped}
 	}
 
-	if runs == "" && e.Stage == "main" {
+	if runs == "" && e.Stage == gha.ActionStageMain {
 		// update step result
 		ec.stepResults[step.ID].Conclusion = gha.StepStatusFailure
 		ec.stepResults[step.ID].Outcome = gha.StepStatusFailure

@@ -59,14 +59,14 @@ func (r *runner) Run(ctx context.Context) {
 
 	// Run stages
 	for _, step := range r.context.job.Steps {
-		r.publisher.Publish(ctx, ExecStepEvent{Stage: "pre", Step: step})
+		r.publisher.Publish(ctx, ExecStepEvent{Stage: gha.ActionStagePre, Step: step})
 	}
 
 	for _, step := range r.context.job.Steps {
-		r.publisher.Publish(ctx, ExecStepEvent{Stage: "main", Step: step})
+		r.publisher.Publish(ctx, ExecStepEvent{Stage: gha.ActionStageMain, Step: step})
 	}
 
 	for _, step := range r.context.job.Steps {
-		r.publisher.Publish(ctx, ExecStepEvent{Stage: "post", Step: step})
+		r.publisher.Publish(ctx, ExecStepEvent{Stage: gha.ActionStagePost, Step: step})
 	}
 }

@@ -62,10 +62,10 @@ type WithExecEvent struct {
 }
 
 func (e WithExecEvent) Handle(ctx context.Context, ec *Context, _ event.Publisher[Context]) event.Result[Context] {
-
-	args := e.Args
-
-	straceLogPath := fmt.Sprintf("/tmp/strace-%s.log", uuid.New())
+	var (
+		args          = e.Args
+		straceLogPath = fmt.Sprintf("/tmp/strace-%s.log", uuid.New())
+	)
 
 	if e.Execute && e.Strace {
 		args = append([]string{"strace", "-o", straceLogPath}, args...)

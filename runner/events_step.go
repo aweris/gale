@@ -3,6 +3,7 @@ package runner
 import (
 	"context"
 	"fmt"
+
 	"github.com/aweris/gale/gha"
 	"github.com/aweris/gale/internal/event"
 )
@@ -12,7 +13,7 @@ var _ event.Event[Context] = new(ExecStepEvent)
 // ExecStepEvent orchestrates the execution of a step. It is responsible for setting up and cleaning up the step
 // environment and publishing events to execute the step.
 type ExecStepEvent struct {
-	Stage string
+	Stage gha.ActionStage
 	Step  *gha.Step
 }
 
@@ -30,7 +31,7 @@ func (e ExecStepEvent) Handle(ctx context.Context, ec *Context, publisher event.
 	}
 
 	// TODO: add check for the step type for shell, docker, etc. and publish the appropriate event. For now, we only support actions
-	publisher.Publish(ctx, ExecStepActionEvent{Stage: e.Stage, Step: e.Step})
+	publisher.Publish(ctx, ExecStepActionEvent(e)) // convert to ExecStepActionEvent since events are identical
 
 	// Clean up state and environment variables for next step
 
