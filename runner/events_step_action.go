@@ -157,7 +157,11 @@ func (e ExecStepActionEvent) Handle(ctx context.Context, ec *Context, publisher 
 	// Execute main step
 	// TODO: add error handling. Need to check step continue-on-error, fail, always conditions as well
 
-	withExec := WithExecEvent{Args: []string{"node", fmt.Sprintf("%s/%s", path, runs)}, Execute: true}
+	withExec := WithExecEvent{
+		Args:    []string{"node", fmt.Sprintf("%s/%s", path, runs)},
+		Execute: true,
+		Strace:  true,
+	}
 
 	record := publisher.Publish(ctx, withExec)
 

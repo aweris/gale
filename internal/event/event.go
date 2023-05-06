@@ -27,6 +27,7 @@ type Result[T Context] struct {
 	Status Status `json:"status"`
 	Err    error  `json:"error,omitempty"`
 	Stdout string `json:"stdout,omitempty"`
+	Strace string `json:"strace,omitempty"`
 }
 
 // Record wraps an event and its result with additional metadata.

@@ -2,7 +2,10 @@ package runner
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
+
+	"github.com/google/uuid"
 
 	"github.com/aweris/gale/internal/event"
 )
@@ -47,12 +50,28 @@ func (e LoadContainerEvent) Handle(_ context.Context, ec *Context, _ event.Publi
 // WithExecEvent adds WithExec to runner container with given Args. If Execute is true, it will execute the command
 // immediately after adding it to the container. Otherwise, it will be added to the container but not executed.
 type WithExecEvent struct {
-	Args    []string
+	// Args is the command to be executed.
+	Args []string
+
+	// Execute is a flag to indicate whether the command should be executed immediately after adding it to the container.
 	Execute bool
+
+	// Strace is a flag to indicate whether the command should be executed with system trace. This is only applicable
+	// if Execute is true.
+	Strace bool
 }
 
 func (e WithExecEvent) Handle(ctx context.Context, ec *Context, _ event.Publisher[Context]) event.Result[Context] {
-	ec.container = ec.container.WithExec(e.Args)
+
+	args := e.Args
+
+	straceLogPath := fmt.Sprintf("/tmp/strace-%s.log", uuid.New())
+
+	if e.Execute && e.Strace {
+		args = append([]string{"strace", "-o", straceLogPath}, args...)
+	}
+
+	ec.container = ec.container.WithExec(args)
 
 	if !e.Execute {
 		return event.Result[Context]{Status: event.StatusSucceeded}
@@ -63,5 +82,21 @@ func (e WithExecEvent) Handle(ctx context.Context, ec *Context, _ event.Publishe
 		return event.Result[Context]{Status: event.StatusFailed, Err: err, Stdout: out}
 	}
 
-	return event.Result[Context]{Status: event.StatusSucceeded, Stdout: out}
+	strace := ""
+
+	if e.Strace {
+		contents, err := ec.container.File(straceLogPath).Contents(ctx)
+		if err != nil {
+			return event.Result[Context]{
+				Status: event.StatusFailed,
+				Err:    fmt.Errorf("failed to read strace log: %w", err),
+				Stdout: out,
+				Strace: contents,
+			}
+		}
+
+		strace = contents
+	}
+
+	return event.Result[Context]{Status: event.StatusSucceeded, Stdout: out, Strace: strace}
 }
