@@ -24,3 +24,15 @@ type Context struct {
 
 	log logger.Logger
 }
+
+// NewContext creates a minimal context for a runner
+func NewContext(client *dagger.Client, log logger.Logger) *Context {
+	return &Context{
+		client:              client,
+		stepResults:         make(map[string]*gha.StepResult),
+		stepState:           make(map[string]map[string]string),
+		actionsBySource:     make(map[string]*gha.Action),
+		actionPathsBySource: make(map[string]string),
+		log:                 log,
+	}
+}

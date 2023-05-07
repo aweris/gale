@@ -15,7 +15,7 @@ import (
 var _ Runner = new(runner)
 
 type Runner interface {
-	Run(ctx context.Context)
+	Run(ctx context.Context, rc *gha.RunContext, workflow *gha.Workflow, job *gha.Job)
 }
 
 // runner represents a GitHub Action runner powered by Dagger.
@@ -25,26 +25,19 @@ type runner struct {
 }
 
 // NewRunner creates a new Runner.
-func NewRunner(client *dagger.Client, log logger.Logger, runContext *gha.RunContext, workflow *gha.Workflow, job *gha.Job) Runner {
-	rc := &Context{
-		client:              client,
-		context:             runContext,
-		workflow:            workflow,
-		job:                 job,
-		stepResults:         make(map[string]*gha.StepResult),
-		stepState:           make(map[string]map[string]string),
-		actionsBySource:     make(map[string]*gha.Action),
-		actionPathsBySource: make(map[string]string),
-		log:                 log,
-	}
-	return &runner{
-		context:   rc,
-		publisher: event.NewStdPublisher(rc),
-	}
+func NewRunner(client *dagger.Client, log logger.Logger) Runner {
+	rc := NewContext(client, log)
+
+	return &runner{context: rc, publisher: event.NewStdPublisher(rc)}
 }
 
 // Run runs the job
-func (r *runner) Run(ctx context.Context) {
+func (r *runner) Run(ctx context.Context, runContext *gha.RunContext, workflow *gha.Workflow, job *gha.Job) {
+	// update context with new run
+	r.context.context = runContext
+	r.context.workflow = workflow
+	r.context.job = job
+
 	path, _ := config.SearchDataFile(filepath.Join(config.DefaultRunnerLabel, config.DefaultRunnerImageTar))
 
 	// Load or build container

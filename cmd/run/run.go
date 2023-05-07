@@ -53,9 +53,9 @@ func runWorkflow() error {
 	job := workflow.Jobs["clone"]
 
 	// Create runner
-	runner := runnerpkg.NewRunner(client, log, gha.NewDummyContext(), workflow, job)
+	runner := runnerpkg.NewRunner(client, log)
 
-	runner.Run(ctx)
+	runner.Run(ctx, gha.NewDummyContext(), workflow, job)
 
 	return nil
 }
