@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/aweris/gale/gha"
+	"github.com/aweris/gale/github/actions"
 	"github.com/aweris/gale/internal/event"
 )
 
@@ -23,7 +23,7 @@ var (
 // - if the variable is not set, it will publish a AddEnvEvent to add the variable.
 // - if the variable is already set and value is the same, it will do nothing.
 type WithEnvironmentEvent struct {
-	Env gha.Environment
+	Env actions.Environment
 }
 
 func (e WithEnvironmentEvent) Handle(ctx context.Context, ec *Context, publisher event.Publisher[Context]) event.Result[Context] {
@@ -50,12 +50,12 @@ func (e WithEnvironmentEvent) Handle(ctx context.Context, ec *Context, publisher
 //
 // This is useful for removing overridden environment variables without losing the original value.
 type WithoutEnvironmentEvent struct {
-	Env          gha.Environment
-	FallbackEnvs []gha.Environment
+	Env          actions.Environment
+	FallbackEnvs []actions.Environment
 }
 
 func (e WithoutEnvironmentEvent) Handle(ctx context.Context, _ *Context, publisher event.Publisher[Context]) event.Result[Context] {
-	merged := gha.Environment{}
+	merged := actions.Environment{}
 
 	for _, environment := range e.FallbackEnvs {
 		// to merge the fallback environments with priority, we need to merge them in order.

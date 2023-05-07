@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/aweris/gale/gha"
+	"github.com/aweris/gale/github/actions"
 	"github.com/aweris/gale/internal/event"
 )
 
@@ -13,8 +13,8 @@ var _ event.Event[Context] = new(ExecStepEvent)
 // ExecStepEvent orchestrates the execution of a step. It is responsible for setting up and cleaning up the step
 // environment and publishing events to execute the step.
 type ExecStepEvent struct {
-	Stage gha.ActionStage
-	Step  *gha.Step
+	Stage actions.ActionStage
+	Step  *actions.Step
 }
 
 func (e ExecStepEvent) Handle(ctx context.Context, ec *Context, publisher event.Publisher[Context]) event.Result[Context] {
@@ -38,7 +38,7 @@ func (e ExecStepEvent) Handle(ctx context.Context, ec *Context, publisher event.
 	if len(e.Step.Environment) > 0 {
 		withoutEnv := WithoutEnvironmentEvent{
 			Env:          e.Step.Environment,
-			FallbackEnvs: []gha.Environment{ec.context.ToEnv(), ec.workflow.Environment, ec.job.Environment},
+			FallbackEnvs: []actions.Environment{ec.context.ToEnv(), ec.workflow.Environment, ec.job.Environment},
 		}
 		publisher.Publish(ctx, withoutEnv)
 	}

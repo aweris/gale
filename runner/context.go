@@ -2,7 +2,7 @@ package runner
 
 import (
 	"dagger.io/dagger"
-	"github.com/aweris/gale/gha"
+	"github.com/aweris/gale/github/actions"
 	"github.com/aweris/gale/internal/event"
 	"github.com/aweris/gale/logger"
 )
@@ -13,13 +13,13 @@ type Context struct {
 	client    *dagger.Client
 	container *dagger.Container
 
-	workflow *gha.Workflow
-	job      *gha.Job
-	context  *gha.RunContext
+	workflow *actions.Workflow
+	job      *actions.Job
+	context  *actions.RunContext
 
-	stepResults         map[string]*gha.StepResult
+	stepResults         map[string]*actions.StepResult
 	stepState           map[string]map[string]string
-	actionsBySource     map[string]*gha.Action
+	actionsBySource     map[string]*actions.Action
 	actionPathsBySource map[string]string
 
 	log logger.Logger
@@ -29,9 +29,9 @@ type Context struct {
 func NewContext(client *dagger.Client, log logger.Logger) *Context {
 	return &Context{
 		client:              client,
-		stepResults:         make(map[string]*gha.StepResult),
+		stepResults:         make(map[string]*actions.StepResult),
 		stepState:           make(map[string]map[string]string),
-		actionsBySource:     make(map[string]*gha.Action),
+		actionsBySource:     make(map[string]*actions.Action),
 		actionPathsBySource: make(map[string]string),
 		log:                 log,
 	}

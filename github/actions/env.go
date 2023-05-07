@@ -1,4 +1,4 @@
-package gha
+package actions
 
 // Environment is a custom type representing a map of environment variables
 type Environment map[string]string

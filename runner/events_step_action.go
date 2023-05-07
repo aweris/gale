@@ -9,7 +9,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/aweris/gale/gha"
+	"github.com/aweris/gale/github/actions"
 	"github.com/aweris/gale/internal/event"
 )
 
@@ -86,7 +86,7 @@ type WithActionEvent struct {
 }
 
 func (e WithActionEvent) Handle(ctx context.Context, ec *Context, _ event.Publisher[Context]) event.Result[Context] {
-	action, err := gha.LoadActionFromSource(ctx, ec.client, e.Source)
+	action, err := actions.LoadActionFromSource(ctx, ec.client, e.Source)
 	if err != nil {
 		return event.Result[Context]{Status: event.StatusFailed, Err: err}
 	}
@@ -103,8 +103,8 @@ func (e WithActionEvent) Handle(ctx context.Context, ec *Context, _ event.Publis
 
 // ExecStepActionEvent executes Step on runner
 type ExecStepActionEvent struct {
-	Stage gha.ActionStage
-	Step  *gha.Step
+	Stage actions.ActionStage
+	Step  *actions.Step
 }
 
 func (e ExecStepActionEvent) Handle(ctx context.Context, ec *Context, publisher event.Publisher[Context]) event.Result[Context] {
@@ -116,30 +116,30 @@ func (e ExecStepActionEvent) Handle(ctx context.Context, ec *Context, publisher 
 	)
 
 	switch e.Stage {
-	case gha.ActionStagePre:
+	case actions.ActionStagePre:
 		runs = action.Runs.Pre
-	case gha.ActionStageMain:
+	case actions.ActionStageMain:
 		runs = action.Runs.Main
-		ec.stepResults[step.ID] = &gha.StepResult{
+		ec.stepResults[step.ID] = &actions.StepResult{
 			Outputs:    make(map[string]string),
-			Conclusion: gha.StepStatusSuccess,
-			Outcome:    gha.StepStatusSuccess,
+			Conclusion: actions.StepStatusSuccess,
+			Outcome:    actions.StepStatusSuccess,
 		}
-	case gha.ActionStagePost:
+	case actions.ActionStagePost:
 		runs = action.Runs.Post
 	default:
 		return event.Result[Context]{Status: event.StatusFailed, Err: fmt.Errorf("unknown stage %s", e.Stage)}
 	}
 
 	// if runs is empty for pre or post, this is a no-op step
-	if runs == "" && e.Stage != gha.ActionStageMain {
+	if runs == "" && e.Stage != actions.ActionStageMain {
 		return event.Result[Context]{Status: event.StatusSkipped}
 	}
 
-	if runs == "" && e.Stage == gha.ActionStageMain {
+	if runs == "" && e.Stage == actions.ActionStageMain {
 		// update step result
-		ec.stepResults[step.ID].Conclusion = gha.StepStatusFailure
-		ec.stepResults[step.ID].Outcome = gha.StepStatusFailure
+		ec.stepResults[step.ID].Conclusion = actions.StepStatusFailure
+		ec.stepResults[step.ID].Outcome = actions.StepStatusFailure
 
 		return event.Result[Context]{Status: event.StatusFailed, Err: fmt.Errorf("no runs for step %s", step.ID)}
 	}
@@ -168,8 +168,8 @@ func (e ExecStepActionEvent) Handle(ctx context.Context, ec *Context, publisher 
 	if e.Stage == "main" && record.Status == event.StatusFailed {
 		// TODO: check if step continue-on-error
 		// update step result
-		ec.stepResults[step.ID].Conclusion = gha.StepStatusFailure
-		ec.stepResults[step.ID].Outcome = gha.StepStatusFailure
+		ec.stepResults[step.ID].Conclusion = actions.StepStatusFailure
+		ec.stepResults[step.ID].Outcome = actions.StepStatusFailure
 	}
 
 	scanner := bufio.NewScanner(strings.NewReader(record.Stdout))
@@ -182,7 +182,7 @@ func (e ExecStepActionEvent) Handle(ctx context.Context, ec *Context, publisher 
 			continue
 		}
 
-		isCommand, command := gha.ParseCommand(line)
+		isCommand, command := actions.ParseCommand(line)
 		if !isCommand {
 			continue
 		}
