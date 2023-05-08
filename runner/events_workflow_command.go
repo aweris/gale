@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/aweris/gale/gha"
+	"github.com/aweris/gale/github/actions"
 	"github.com/aweris/gale/internal/event"
 )
 
@@ -24,7 +24,7 @@ type GithubWorkflowCommandEvent struct {
 	Raw string
 
 	// command is the parsed command
-	Command *gha.Command
+	Command *actions.Command
 
 	// stepID is the ID of the step that emitted this command.
 	StepID string

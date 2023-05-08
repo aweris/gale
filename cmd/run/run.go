@@ -7,7 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/aweris/gale/gha"
+	"github.com/aweris/gale/github/actions"
 	"github.com/aweris/gale/journal"
 	"github.com/aweris/gale/logger"
 	runnerpkg "github.com/aweris/gale/runner"
@@ -43,7 +43,7 @@ func runWorkflow() error {
 	defer client.Close()
 
 	// Load the workflows from the .github/workflows directory.
-	workflows, loadErr := gha.LoadWorkflows(ctx, client)
+	workflows, loadErr := actions.LoadWorkflows(ctx, client)
 	if loadErr != nil {
 		return loadErr
 	}
@@ -55,7 +55,7 @@ func runWorkflow() error {
 	// Create runner
 	runner := runnerpkg.NewRunner(client, log)
 
-	runner.Run(ctx, gha.NewDummyContext(), workflow, job)
+	runner.Run(ctx, actions.NewDummyContext(), workflow, job)
 
 	return nil
 }

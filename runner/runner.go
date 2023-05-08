@@ -7,7 +7,7 @@ import (
 	"dagger.io/dagger"
 
 	"github.com/aweris/gale/config"
-	"github.com/aweris/gale/gha"
+	"github.com/aweris/gale/github/actions"
 	"github.com/aweris/gale/internal/event"
 	"github.com/aweris/gale/logger"
 )
@@ -15,7 +15,7 @@ import (
 var _ Runner = new(runner)
 
 type Runner interface {
-	Run(ctx context.Context, rc *gha.RunContext, workflow *gha.Workflow, job *gha.Job)
+	Run(ctx context.Context, rc *actions.RunContext, workflow *actions.Workflow, job *actions.Job)
 }
 
 // runner represents a GitHub Action runner powered by Dagger.
@@ -32,7 +32,7 @@ func NewRunner(client *dagger.Client, log logger.Logger) Runner {
 }
 
 // Run runs the job
-func (r *runner) Run(ctx context.Context, runContext *gha.RunContext, workflow *gha.Workflow, job *gha.Job) {
+func (r *runner) Run(ctx context.Context, runContext *actions.RunContext, workflow *actions.Workflow, job *actions.Job) {
 	// update context with new run
 	r.context.context = runContext
 	r.context.workflow = workflow
@@ -52,14 +52,14 @@ func (r *runner) Run(ctx context.Context, runContext *gha.RunContext, workflow *
 
 	// Run stages
 	for _, step := range r.context.job.Steps {
-		r.publisher.Publish(ctx, ExecStepEvent{Stage: gha.ActionStagePre, Step: step})
+		r.publisher.Publish(ctx, ExecStepEvent{Stage: actions.ActionStagePre, Step: step})
 	}
 
 	for _, step := range r.context.job.Steps {
-		r.publisher.Publish(ctx, ExecStepEvent{Stage: gha.ActionStageMain, Step: step})
+		r.publisher.Publish(ctx, ExecStepEvent{Stage: actions.ActionStageMain, Step: step})
 	}
 
 	for _, step := range r.context.job.Steps {
-		r.publisher.Publish(ctx, ExecStepEvent{Stage: gha.ActionStagePost, Step: step})
+		r.publisher.Publish(ctx, ExecStepEvent{Stage: actions.ActionStagePost, Step: step})
 	}
 }

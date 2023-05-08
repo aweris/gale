@@ -1,4 +1,4 @@
-package gha
+package actions
 
 // Steps represents a list of steps
 type Steps []*Step

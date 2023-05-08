@@ -1,4 +1,4 @@
-package gha
+package actions
 
 // RunnerContext contains information about the runner that is executing the current job.
 // All fields in this section are based on the Runner context documentation. Not all of them meaningful

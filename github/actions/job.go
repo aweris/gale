@@ -1,4 +1,4 @@
-package gha
+package actions
 
 // Jobs represents a map of jobs
 // For more information about workflows, see: https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobs

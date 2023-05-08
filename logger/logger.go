@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/aweris/gale/gha"
+	"github.com/aweris/gale/github/actions"
 	"github.com/aweris/gale/journal"
 )
 
@@ -101,7 +101,7 @@ func handleJournalR(logger *logger) {
 				continue
 			}
 
-			isCommand, command := gha.ParseCommand(entry.Message)
+			isCommand, command := actions.ParseCommand(entry.Message)
 			if !isCommand {
 				// if verbose is enabled, print entry itself, otherwise just print the message
 				if options.verbose {
