@@ -12,6 +12,15 @@ import (
 	"dagger.io/dagger"
 )
 
+// ActionStage represents the stage of an action. It can be pre, main or post.
+type ActionStage string
+
+const (
+	ActionStagePre  ActionStage = "pre"
+	ActionStageMain ActionStage = "main"
+	ActionStagePost ActionStage = "post"
+)
+
 // Action represents a metadata for a GitHub Action. It contains all the information needed to run the action.
 // The metadata is loaded from the action.yml | action.yaml file in the action repository.
 //

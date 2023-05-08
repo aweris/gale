@@ -24,22 +24,6 @@ type runner struct {
 	publisher event.Publisher[Context]
 }
 
-var _ event.Context = new(Context)
-
-type Context struct {
-	client    *dagger.Client
-	container *dagger.Container
-
-	context  *gha.RunContext
-	workflow *gha.Workflow
-	job      *gha.Job
-
-	actionsBySource     map[string]*gha.Action
-	actionPathsBySource map[string]string
-
-	log logger.Logger
-}
-
 // NewRunner creates a new Runner.
 func NewRunner(client *dagger.Client, log logger.Logger, runContext *gha.RunContext, workflow *gha.Workflow, job *gha.Job) Runner {
 	rc := &Context{
@@ -47,6 +31,8 @@ func NewRunner(client *dagger.Client, log logger.Logger, runContext *gha.RunCont
 		context:             runContext,
 		workflow:            workflow,
 		job:                 job,
+		stepResults:         make(map[string]*gha.StepResult),
+		stepState:           make(map[string]map[string]string),
 		actionsBySource:     make(map[string]*gha.Action),
 		actionPathsBySource: make(map[string]string),
 		log:                 log,
@@ -73,14 +59,14 @@ func (r *runner) Run(ctx context.Context) {
 
 	// Run stages
 	for _, step := range r.context.job.Steps {
-		r.publisher.Publish(ctx, ExecStepActionEvent{Stage: "pre", Step: step})
+		r.publisher.Publish(ctx, ExecStepEvent{Stage: gha.ActionStagePre, Step: step})
 	}
 
 	for _, step := range r.context.job.Steps {
-		r.publisher.Publish(ctx, ExecStepActionEvent{Stage: "main", Step: step})
+		r.publisher.Publish(ctx, ExecStepEvent{Stage: gha.ActionStageMain, Step: step})
 	}
 
 	for _, step := range r.context.job.Steps {
-		r.publisher.Publish(ctx, ExecStepActionEvent{Stage: "post", Step: step})
+		r.publisher.Publish(ctx, ExecStepEvent{Stage: gha.ActionStagePost, Step: step})
 	}
 }

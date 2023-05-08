@@ -84,7 +84,7 @@ func (b *Builder) installDependencies() *Builder {
 		"apt-get install -y software-properties-common",
 		"add-apt-repository -y ppa:git-core/ppa",
 		"apt-get update -y",
-		"apt-get install -y --no-install-recommends git curl ca-certificates jq sudo unzip zip",
+		"apt-get install -y --no-install-recommends git curl ca-certificates jq sudo unzip zip strace",
 		"rm -rf /var/lib/apt/lists/*",
 	)
 }
