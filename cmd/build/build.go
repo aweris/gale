@@ -2,14 +2,15 @@ package build
 
 import (
 	"context"
-
 	"dagger.io/dagger"
+	"os"
 
 	"github.com/spf13/cobra"
 
+	"github.com/aweris/gale/builder"
+	"github.com/aweris/gale/github/cli"
 	"github.com/aweris/gale/journal"
 	"github.com/aweris/gale/logger"
-	"github.com/aweris/gale/runner"
 )
 
 // NewCommand creates a new run command.
@@ -30,18 +31,23 @@ func build() error {
 	// Create a context to pass to Dagger.
 	ctx := context.Background()
 
-	journalW, journalR := journal.Pipe()
+	_, journalR := journal.Pipe()
 
 	_ = logger.NewLogger(logger.WithJournalR(journalR))
 
 	// Connect to Dagger
-	client, clientErr := dagger.Connect(ctx, dagger.WithLogOutput(journalW))
+	client, clientErr := dagger.Connect(ctx, dagger.WithLogOutput(os.Stdout))
 	if clientErr != nil {
 		return clientErr
 	}
 	defer client.Close()
 
-	_, err := runner.NewBuilder(client).Build(ctx)
+	repo, err := cli.CurrentRepository(ctx)
+	if err != nil {
+		return err
+	}
+
+	_, err = builder.NewBuilder(client, repo).Build(ctx)
 	if err != nil {
 		return err
 	}

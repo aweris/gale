@@ -7,6 +7,8 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/aweris/gale/builder"
+	"github.com/aweris/gale/github/cli"
 	"github.com/aweris/gale/internal/event"
 )
 
@@ -23,7 +25,12 @@ type BuildContainerEvent struct {
 }
 
 func (e BuildContainerEvent) Handle(ctx context.Context, ec *Context, _ event.Publisher[Context]) event.Result[Context] {
-	container, err := NewBuilder(ec.client).build(ctx)
+	repo, err := cli.CurrentRepository(ctx)
+	if err != nil {
+		return event.Result[Context]{Status: event.StatusFailed, Err: err}
+	}
+
+	container, err := builder.NewBuilder(ec.client, repo).Build(ctx)
 	if err != nil {
 		return event.Result[Context]{Status: event.StatusFailed, Err: err}
 	}
