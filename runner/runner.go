@@ -2,64 +2,29 @@ package runner
 
 import (
 	"context"
-	"path/filepath"
 
-	"dagger.io/dagger"
-
-	"github.com/aweris/gale/config"
-	"github.com/aweris/gale/github/actions"
-	"github.com/aweris/gale/internal/event"
-	"github.com/aweris/gale/logger"
+	"github.com/aweris/gale/runner/state"
+	"github.com/aweris/gale/runner/workflows"
 )
 
 var _ Runner = new(runner)
 
 type Runner interface {
-	Run(ctx context.Context, rc *actions.RunContext, workflow *actions.Workflow, job *actions.Job)
+	RunWorkflow(ctx context.Context, name string) error // TBD -- result as well
 }
 
 // runner represents a GitHub Action runner powered by Dagger.
 type runner struct {
-	context   *Context
-	publisher event.Publisher[Context]
+	wh *workflows.Handler
 }
 
 // NewRunner creates a new Runner.
-func NewRunner(client *dagger.Client, log logger.Logger) Runner {
-	rc := NewContext(client, log)
+func NewRunner(base *state.BaseState) (Runner, error) {
+	wh := workflows.NewHandler(state.NewWorkflowRunState(base))
 
-	return &runner{context: rc, publisher: event.NewStdPublisher(rc)}
+	return &runner{wh: wh}, nil
 }
 
-// Run runs the job
-func (r *runner) Run(ctx context.Context, runContext *actions.RunContext, workflow *actions.Workflow, job *actions.Job) {
-	// update context with new run
-	r.context.context = runContext
-	r.context.workflow = workflow
-	r.context.job = job
-
-	path, _ := config.SearchDataFile(filepath.Join(config.DefaultRunnerLabel, config.DefaultRunnerImageTar))
-
-	// Load or build container
-	if path != "" {
-		r.publisher.Publish(ctx, LoadContainerEvent{Path: path})
-	} else {
-		r.publisher.Publish(ctx, BuildContainerEvent{})
-	}
-
-	// Setup Job
-	r.publisher.Publish(ctx, SetupJobEvent{})
-
-	// Run stages
-	for _, step := range r.context.job.Steps {
-		r.publisher.Publish(ctx, ExecStepEvent{Stage: actions.ActionStagePre, Step: step})
-	}
-
-	for _, step := range r.context.job.Steps {
-		r.publisher.Publish(ctx, ExecStepEvent{Stage: actions.ActionStageMain, Step: step})
-	}
-
-	for _, step := range r.context.job.Steps {
-		r.publisher.Publish(ctx, ExecStepEvent{Stage: actions.ActionStagePost, Step: step})
-	}
+func (r *runner) RunWorkflow(ctx context.Context, name string) error {
+	return r.wh.RunWorkflow(ctx, name)
 }

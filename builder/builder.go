@@ -3,13 +3,13 @@ package builder
 import (
 	"context"
 	"os"
-	"path"
 	"path/filepath"
+	"strings"
 
 	"dagger.io/dagger"
 
 	"github.com/aweris/gale/config"
-	"github.com/aweris/gale/github/cli"
+	"github.com/aweris/gale/repository"
 )
 
 // Builder represents a builder for creating a GitHub Action runner.
@@ -37,11 +37,11 @@ func (b *Builder) WithRunnerLabel(label string) *Builder {
 }
 
 // NewBuilder creates a new Builder.
-func NewBuilder(client *dagger.Client, repo *cli.Repository) *Builder {
+func NewBuilder(client *dagger.Client, repo *repository.Repo) *Builder {
 	// create a new builder instance with default values
 	builder := &Builder{
 		client:     client,
-		repository: path.Join(repo.URL, repo.NameWithOwner),
+		repository: strings.TrimPrefix(repo.URL, "https://"), // use github.com/owner/repo as the repository
 		label:      config.DefaultRunnerLabel,
 	}
 
@@ -61,7 +61,7 @@ func (b *Builder) Build(ctx context.Context) (*dagger.Container, error) {
 	}
 
 	// Set the user to the runner user. User is created in default modifyFns added in NewBuilder.
-	container.WithUser("runner")
+	container = container.WithUser("runner")
 
 	directory := filepath.Join(config.DataHome(), b.repository, "images", b.label)
 	file := filepath.Join(directory, config.DefaultRunnerImageTar)
