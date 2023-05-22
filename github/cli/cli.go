@@ -6,32 +6,15 @@ import (
 	"fmt"
 
 	"github.com/cli/go-gh/v2"
+
+	"github.com/aweris/gale/model"
 )
 
-// Repository represents a GitHub repository
-type Repository struct {
-	ID               string
-	Name             string
-	NameWithOwner    string
-	URL              string
-	Owner            RepositoryOwner
-	DefaultBranchRef RepositoryBranchRef
-}
-
-// RepositoryOwner represents a GitHub repository owner
-type RepositoryOwner struct {
-	ID    string
-	Login string
-}
-
-// RepositoryBranchRef represents a GitHub repository branch ref
-type RepositoryBranchRef struct {
-	Name string
-}
-
 // CurrentRepository returns current repository information. This is a wrapper around
-// gh repo view --json id,name,owner,nameWithOwner,url,defaultBranchRef
-func CurrentRepository(ctx context.Context) (*Repository, error) {
+// gh repository view --json id,name,owner,nameWithOwner,url,defaultBranchRef
+func CurrentRepository(ctx context.Context) (*model.Repository, error) {
+	var repo model.Repository
+
 	stdout, stderr, err := gh.ExecContext(
 		ctx, "repo", "view", "--json", "id,name,owner,nameWithOwner,url,defaultBranchRef",
 	)
@@ -39,12 +22,37 @@ func CurrentRepository(ctx context.Context) (*Repository, error) {
 		return nil, fmt.Errorf("failed to get current repository: %w stderr: %s", err, stderr.String())
 	}
 
-	var repo Repository
-
 	err = json.Unmarshal(stdout.Bytes(), &repo)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal current repository: %s err: %w", stdout.String(), err)
 	}
 
 	return &repo, nil
+}
+
+// CurrentUser returns current user information
+func CurrentUser(ctx context.Context) (*model.User, error) {
+	stdout, stderr, err := gh.ExecContext(ctx, "api", "user")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get current user: %w stderr: %s", err, stderr.String())
+	}
+
+	var user model.User
+
+	err = json.Unmarshal(stdout.Bytes(), &user)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal current user: %s err: %w", stdout.String(), err)
+	}
+
+	return &user, nil
+}
+
+// GetToken returns the auth token gh is configured to use
+func GetToken(ctx context.Context) (string, error) {
+	stdout, stderr, err := gh.ExecContext(ctx, "auth", "token")
+	if err != nil {
+		return "", fmt.Errorf("failed to get token: %w stderr: %s", err, stderr.String())
+	}
+
+	return stdout.String(), nil
 }
