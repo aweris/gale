@@ -1,6 +1,8 @@
 package model
 
 import (
+	"fmt"
+	"os"
 	"strconv"
 )
 
@@ -10,6 +12,12 @@ import (
 //
 // See more: https://docs.github.com/en/actions/learn-github-actions/contexts#github-context
 type GithubContext struct {
+	// CI is true when GitHub Actions is running the workflow. You can use this variable to differentiate when
+	// tests are being run locally or by GitHub Actions.
+	//
+	// In gale, this is always true. We're keeping this field for completeness.
+	CI bool `json:"ci"`
+
 	// The name of the action currently running, or the id of a step. GitHub removes special characters, and
 	// uses the name __run when the current step runs a script without an id. If you use the same action more
 	// than once in the same job, the name will include a suffix with the sequence number with underscore before it.
@@ -31,6 +39,12 @@ type GithubContext struct {
 
 	// For a composite action, the current result of the composite action.
 	ActionStatus string `json:"action_status"`
+
+	// Always set to true when GitHub Actions is running the workflow. You can use this variable to differentiate
+	// when tests are being run locally or by GitHub Actions.
+	//
+	// In gale, this is always true. We're keeping this field for completeness.
+	Actions bool `json:"actions"`
 
 	// The username of the user that triggered the initial workflow run. If the workflow run is a re-run,
 	// this value may differ from github.triggering_actor. Any workflow re-runs will use the privileges of
@@ -165,6 +179,67 @@ type GithubContext struct {
 	// The default working directory on the runner for steps, and the default location of your repository when
 	// using the checkout action.
 	Workspace string
+}
+
+// NewGithubContextFromEnv creates a new GithubContext from environment variables.
+func NewGithubContextFromEnv() (*GithubContext, error) {
+	var (
+		err           error
+		refProtected  bool
+		retentionDays int
+	)
+
+	if val := os.Getenv("GITHUB_REF_PROTECTED"); val != "" {
+		refProtected, err = strconv.ParseBool(val)
+		if err != nil {
+			return nil, fmt.Errorf("GITHUB_REF_PROTECTED is not a valid boolean")
+		}
+	}
+
+	if val := os.Getenv("GITHUB_RETENTION_DAYS"); val != "" {
+		retentionDays, err = strconv.Atoi(val)
+		if err != nil {
+			return nil, fmt.Errorf("GITHUB_RETENTION_DAYS is not a valid integer")
+		}
+	}
+
+	return &GithubContext{
+		CI:                true,
+		Actions:           true,
+		Action:            os.Getenv("GITHUB_ACTION"),
+		ActionPath:        os.Getenv("GITHUB_ACTION_PATH"),
+		ActionRepository:  os.Getenv("GITHUB_ACTION_REPOSITORY"),
+		Actor:             os.Getenv("GITHUB_ACTOR"),
+		ActorID:           os.Getenv("GITHUB_ACTOR_ID"),
+		ApiURL:            os.Getenv("GITHUB_API_URL"),
+		BaseRef:           os.Getenv("GITHUB_BASE_REF"),
+		Env:               os.Getenv("GITHUB_ENV"),
+		EventName:         os.Getenv("GITHUB_EVENT_NAME"),
+		EventPath:         os.Getenv("GITHUB_EVENT_PATH"),
+		GraphqlURL:        os.Getenv("GITHUB_GRAPHQL_URL"),
+		HeadRef:           os.Getenv("GITHUB_HEAD_REF"),
+		Job:               os.Getenv("GITHUB_JOB"),
+		Path:              os.Getenv("GITHUB_PATH"),
+		Ref:               os.Getenv("GITHUB_REF"),
+		RefName:           os.Getenv("GITHUB_REF_NAME"),
+		RefProtected:      refProtected,
+		RefType:           os.Getenv("GITHUB_REF_TYPE"),
+		Repository:        os.Getenv("GITHUB_REPOSITORY"),
+		RepositoryID:      os.Getenv("GITHUB_REPOSITORY_ID"),
+		RepositoryOwner:   os.Getenv("GITHUB_REPOSITORY_OWNER"),
+		RepositoryOwnerID: os.Getenv("GITHUB_REPOSITORY_OWNER_ID"),
+		RetentionDays:     retentionDays,
+		RunAttempt:        os.Getenv("GITHUB_RUN_ATTEMPT"),
+		RunID:             os.Getenv("GITHUB_RUN_ID"),
+		RunNumber:         os.Getenv("GITHUB_RUN_NUMBER"),
+		ServerURL:         os.Getenv("GITHUB_SERVER_URL"),
+		SHA:               os.Getenv("GITHUB_SHA"),
+		Workflow:          os.Getenv("GITHUB_WORKFLOW"),
+		WorkflowRef:       os.Getenv("GITHUB_WORKFLOW_REF"),
+		WorkflowSHA:       os.Getenv("GITHUB_WORKFLOW_SHA"),
+		Workspace:         os.Getenv("GITHUB_WORKSPACE"),
+		Token:             os.Getenv("GITHUB_TOKEN"),
+	}, nil
 }
 
 // ToEnv converts the GithubContext to a map of environment variables.

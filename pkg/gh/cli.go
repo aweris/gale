@@ -1,4 +1,4 @@
-package cli
+package gh
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 
 	"github.com/cli/go-gh/v2"
 
-	"github.com/aweris/gale/model"
+	"github.com/aweris/gale/pkg/model"
 )
 
 // CurrentRepository returns current repository information. This is a wrapper around

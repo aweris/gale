@@ -16,6 +16,8 @@
 
 # project directories
 build/
+bin/
+.gale/
 
 # IDE files
 .idea/

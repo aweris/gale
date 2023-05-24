@@ -11,7 +11,7 @@ import (
 
 // Run is a temporary function to execute the code
 func Run(ctx context.Context) error {
-	_, err := sh.Exec(map[string]string{}, os.Stdout, os.Stderr, "go", "run", "./")
+	_, err := sh.Exec(map[string]string{}, os.Stdout, os.Stderr, "go", "run", "./cmd/gale")
 	if err != nil {
 		return err
 	}

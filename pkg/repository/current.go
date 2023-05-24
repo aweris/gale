@@ -3,13 +3,10 @@ package repository
 import (
 	"context"
 	"os"
-	"path/filepath"
-	"strings"
 
 	"dagger.io/dagger"
 
-	"github.com/aweris/gale/config"
-	"github.com/aweris/gale/github/cli"
+	"github.com/aweris/gale/pkg/gh"
 )
 
 // Current returns current repository information from the current working directory.
@@ -19,22 +16,19 @@ func Current(ctx context.Context, client *dagger.Client) (*Repo, error) {
 		return nil, err
 	}
 
-	githubRepo, err := cli.CurrentRepository(ctx)
+	githubRepo, err := gh.CurrentRepository(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	workflows, err := loadWorkflows(ctx, client, path)
+	workflows, err := LoadWorkflows(ctx, client, path)
 	if err != nil {
 		return nil, err
 	}
-
-	dh := filepath.Join(config.DataHome(), strings.TrimPrefix(githubRepo.URL, "https://"))
 
 	return &Repo{
 		Repository: githubRepo,
 		Path:       path,
-		DataHome:   dh,
 		Workflows:  workflows,
 	}, nil
 }

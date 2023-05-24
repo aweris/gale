@@ -9,7 +9,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/aweris/gale/model"
+	"github.com/aweris/gale/pkg/model"
 )
 
 // Repo represents a GitHub repository. This is a wrapper around model.Repository with an additional
@@ -18,16 +18,10 @@ type Repo struct {
 	*model.Repository
 
 	Path      string          // path to the repository
-	DataHome  string          // path to the repository data home
 	Workflows model.Workflows // workflows in the repository
 }
 
-// DataPath constructs a path in the repository data home.
-func (r *Repo) DataPath(path ...string) string {
-	return filepath.Join(r.DataHome, filepath.Join(path...))
-}
-
-func loadWorkflows(ctx context.Context, client *dagger.Client, path string) (model.Workflows, error) {
+func LoadWorkflows(ctx context.Context, client *dagger.Client, path string) (model.Workflows, error) {
 	dir := client.Host().Directory(filepath.Join(path, ".github/workflows"))
 
 	entries, err := dir.Entries(ctx)
