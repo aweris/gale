@@ -142,6 +142,9 @@ func (g *Gale) WithGithubContext(github *model.GithubContext, runner *model.Runn
 		fileOpts := dagger.ContainerWithNewFileOpts{Contents: string(data), Permissions: 0644}
 		container = container.WithNewFile(github.EventPath, fileOpts)
 
+		// make sure directory for GITHUB_PATH exists
+		container = container.WithDirectory(filepath.Dir(github.Path), g.client.Host().Directory(filepath.Dir(github.Path)))
+
 		return container, nil
 	})
 }

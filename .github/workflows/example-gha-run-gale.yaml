@@ -1,0 +1,23 @@
+name: example-gha-run-gale
+
+on: push
+
+jobs:
+  run-gale:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-go@v4
+
+      - run: curl -L https://dl.dagger.io/dagger/install.sh | sh
+
+      - run: ./bin/dagger run go run . --workflow=example-simple-go-run --job=go-run --disable-checkout --export
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: gale
+          path: .gale
