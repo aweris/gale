@@ -1,5 +1,5 @@
-WORKFLOW ?= .github/workflows/clone.yaml
-JOB      ?= clone
+WORKFLOW ?= example-simple-go-run
+JOB      ?= go-run
 
 ARGS ?= --workflow=$(WORKFLOW) --job=$(JOB) --export --disable-checkout
 
