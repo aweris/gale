@@ -3,6 +3,7 @@ package gale
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"path/filepath"
 
 	"dagger.io/dagger"
@@ -11,11 +12,17 @@ import (
 	"github.com/aweris/gale/pkg/repository"
 )
 
-// containerRunnerPath path where the state and artifacts are stored in the container
-const containerRunnerPath = "/home/runner/_temp/ghx"
+const (
+	// containerRunnerPath path where the state and artifacts are stored in the container
+	containerRunnerPath = "/home/runner/_temp/ghx"
 
-// runnerCmdContainerPath is the path to the runner binary in the container
-const runnerCmdContainerPath = "/usr/local/bin/ghx"
+	// runnerCmdContainerPath is the path to the runner binary in the container
+	runnerCmdContainerPath = "/usr/local/bin/ghx"
+
+	// runnerExitCodeFile is the name of the file where the exit code of the runner is stored. Actual exit code is
+	// written to this file by the command in the container.
+	runnerExitCodeFile = "exit-code"
+)
 
 type ModifierFn func(container *dagger.Container) (*dagger.Container, error)
 
@@ -194,9 +201,18 @@ func (g *Gale) Exec(ctx context.Context) (*ExecResult, error) {
 
 	result.Container = result.Container.WithExec(getRunnerCommandWithArgs("run"))
 
-	_, err = result.Container.ExitCode(ctx)
+	// we're not interested in the output of the container. We just want to make sure that the container is running
+	// we'll get the exit code later from the container
+	_, _ = result.Container.ExitCode(ctx)
+
+	exitCode, err := result.Container.Directory(containerRunnerPath).File(runnerExitCodeFile).Contents(ctx)
 	if err != nil {
+		fmt.Printf("failed to get exit code: %v\n", err)
 		return result, err
+	}
+
+	if exitCode != "0" {
+		return result, fmt.Errorf("exit code: %s", exitCode)
 	}
 
 	return result, nil

@@ -66,7 +66,7 @@ func NewCommand() *cobra.Command {
 				gc = gc.WithStep(&model.Step{ID: "0", Run: "echo 'Checkout Disabled to run existing version of the repo' "}, true)
 			}
 
-			result, err := gc.Exec(ctx)
+			result, resultErr := gc.Exec(ctx)
 
 			// even we have an error, we still want to export the runner directory. This is for debugging purposes.
 			// no need to return the error here.
@@ -75,12 +75,14 @@ func NewCommand() *cobra.Command {
 			}
 
 			if export {
-				if err = result.ExportRunnerDirectory(ctx, fmt.Sprintf(".gale/%s", time.Now().Format(time.RFC3339Nano))); err != nil {
+				if err = result.ExportRunnerDirectory(ctx, fmt.Sprintf(".gale/%s", strconv.FormatInt(time.Now().Unix(), 10))); err != nil {
 					return err
 				}
 			}
 
-			return err
+			// make sure we return the error if there is any
+			// TODO: we need to improve this.
+			return resultErr
 		},
 	}
 

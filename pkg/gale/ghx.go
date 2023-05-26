@@ -7,7 +7,7 @@ import "dagger.io/dagger"
 func buildExecutorFromSource(client *dagger.Client) *dagger.File {
 	return client.Container().
 		From("golang:1.20-bullseye").
-		WithExec([]string{"go", "install", "github.com/aweris/ghx@ba9b6144fa7bb283d56f0ad52e9e174239a7aded"}).
+		WithExec([]string{"go", "install", "github.com/aweris/ghx@a9a420e1f5dc2cb4dbdd9f7e3507cbe61a7e5620"}).
 		Directory("/go/bin").
 		File("ghx")
 }
