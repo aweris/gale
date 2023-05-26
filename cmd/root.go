@@ -57,9 +57,6 @@ func NewCommand() *cobra.Command {
 			gc := gale.New(client).
 				WithRepository(repo).
 				WithGithubContext(githubCtx, runnerCtx).
-				WithModifier(func(container *dagger.Container) (*dagger.Container, error) {
-					return container.WithEnvVariable("DEBUG", "1"), nil
-				}).
 				WithJob(workflowName, jobName)
 
 			// TODO: temporary hack to disable checkout step. This is useful when we want to run the existing version of the repo.
