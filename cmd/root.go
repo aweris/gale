@@ -21,9 +21,10 @@ import (
 func NewCommand() *cobra.Command {
 	// Flags for the gale command
 	var (
-		workflowName string
-		jobName      string
-		export       bool
+		workflowName    string
+		jobName         string
+		export          bool
+		disableCheckout bool
 	)
 
 	cmd := &cobra.Command{
@@ -53,15 +54,22 @@ func NewCommand() *cobra.Command {
 
 			runnerCtx := GetRunnerContext()
 
-			result, err := gale.New(client).
+			gc := gale.New(client).
 				WithRepository(repo).
 				WithGithubContext(githubCtx, runnerCtx).
 				WithModifier(func(container *dagger.Container) (*dagger.Container, error) {
 					return container.WithEnvVariable("DEBUG", "1"), nil
 				}).
-				WithJob(workflowName, jobName).
-				WithStep(&model.Step{ID: "0", Uses: "actions/checkout@v3", With: map[string]string{"token": githubCtx.Token}}, true). // override checkout step
-				Exec(ctx)
+				WithJob(workflowName, jobName)
+
+			// TODO: temporary hack to disable checkout step. This is useful when we want to run the existing version of the repo.
+			// We're mounting the current directory to the container. This is useful for testing for current directory.
+			// This assumes that first step is checkout step. If not, we'll have to find the checkout step and mount the
+			if disableCheckout {
+				gc = gc.WithStep(&model.Step{ID: "0", Run: "echo 'Checkout Disabled to run existing version of the repo' "}, true)
+			}
+
+			result, err := gc.Exec(ctx)
 
 			// even we have an error, we still want to export the runner directory. This is for debugging purposes.
 			// no need to return the error here.
@@ -83,6 +91,8 @@ func NewCommand() *cobra.Command {
 	cmd.Flags().StringVar(&workflowName, "workflow", "", "Name of the workflow. If workflow doesn't have name, than it must be relative path to the workflow file")
 	cmd.Flags().StringVar(&jobName, "job", "", "Name of the job")
 	cmd.Flags().BoolVar(&export, "export", false, "Export the runner directory after the execution. Exported directory will be placed under .gale directory in the current directory.")
+	cmd.Flags().BoolVar(&disableCheckout, "disable-checkout", false, "Disable checkout step. This is useful when you want to run the existing version of the repository.")
+	cmd.Flags().MarkHidden("disable-checkout") // This is a temporary flag until we have a expression parser. We need to disable checkout step for the existing repository to avoid authentication issues.
 
 	return cmd
 }
