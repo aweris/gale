@@ -1,17 +1,27 @@
-CMD  := $(CURDIR)/hack/mage
-ARGS ?= run
+WORKFLOW ?= .github/workflows/clone.yaml
+JOB      ?= clone
 
-default: mage
+ARGS ?= --workflow=$(WORKFLOW) --job=$(JOB) --export --disable-checkout
 
-mage:
-	@$(CMD) $(ARGS)
+DAGGER_CMD     := ./bin/dagger
+DAGGER_VERSION := v0.6.0
+
+default: run
+
+run: $(DAGGER_CMD);
+	$(shell $(DAGGER_CMD) run go run main.go $(ARGS))
 
 help:
-	@echo "This Makefile is a wrapper for mage. It is intended to transition from make to mage easily."
+	@echo "This Makefile is a wrapper for dagger run to make it easier to run gale."
 	@echo "Usage: make [target] [ARGS=...]"
 	@echo "Targets:"
-	@echo "  mage:    Runs mage with the default arguments. This is the default target."
+	@echo "  run:     Runs main.go with the given arguments."
 	@echo "  help:    Prints this help message."
 	@echo ""
 	@echo "Arguments:"
-	@echo "  ARGS:    Arguments to pass to mage. Defaults to \"run\"."
+	@echo "  ARGS:     Arguments to pass to gale. Defaults to \"$(ARGS)\"."
+	@echo "  WORKFLOW: Path to the workflow file to use. Defaults to \"$(WORKFLOW)\"."
+	@echo "  JOB:      Name of the job to run. Defaults to \"$(JOB)\"."
+
+$(DAGGER_CMD):
+	$(shell curl -L https://dl.dagger.io/dagger/install.sh | VERSION=$(DAGGER_VERSION) bash)
