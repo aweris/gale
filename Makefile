@@ -1,5 +1,5 @@
-WORKFLOW ?= .github/workflows/clone.yaml
-JOB      ?= clone
+WORKFLOW ?= example-golangci-lint
+JOB      ?= golangci-lint
 
 ARGS ?= --workflow=$(WORKFLOW) --job=$(JOB) --export --disable-checkout
 

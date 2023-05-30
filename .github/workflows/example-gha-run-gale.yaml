@@ -1,0 +1,30 @@
+name: example-gha-run-gale
+
+on: push
+
+jobs:
+  run-gale:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.20'
+
+      - name: Install Dagger CLI
+        run: curl -L https://dl.dagger.io/dagger/install.sh | sh
+
+      - name: Run example-golangci-lint / golangci-lint
+        run: ./bin/dagger run go run . --workflow=example-golangci-lint --job=golangci-lint --disable-checkout --export
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload gale artifacts
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: gale
+          path: .gale
