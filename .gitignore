@@ -16,6 +16,7 @@
 
 # project directories
 build/
+bin/
 
 # IDE files
 .idea/
