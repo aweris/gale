@@ -1,4 +1,4 @@
-package cli
+package gh
 
 import (
 	"context"
