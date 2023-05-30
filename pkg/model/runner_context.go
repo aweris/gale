@@ -1,5 +1,7 @@
 package model
 
+import "os"
+
 // RunnerContext contains information about the runner that is executing the current job.
 // All fields in this section are based on the Runner context documentation. Not all of them meaningful
 // for gale, but we include them all for completeness.
@@ -28,19 +30,14 @@ type RunnerContext struct {
 	Debug string `json:"debug"`
 }
 
-func NewRunnerContext(debug bool) *RunnerContext {
-	debugVal := ""
-	if debug {
-		debugVal = "1"
-	}
-
+func NewRunnerContextFromEnv() *RunnerContext {
 	return &RunnerContext{
-		Name:      "", // TODO: Not sure if we need this at all. Remove after double-checking.
+		Name:      "Gale Agent",
 		OS:        "linux",
-		Arch:      "x64", // TODO: This should be determined by the host
+		Arch:      "x64",
 		Temp:      "/home/runner/_temp",
-		ToolCache: "/home/runner/_tool",
-		Debug:     debugVal,
+		ToolCache: "/opt/hostedtoolcache",
+		Debug:     os.Getenv("RUNNER_DEBUG"),
 	}
 }
 
