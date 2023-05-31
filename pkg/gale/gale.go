@@ -188,12 +188,9 @@ func (g *Gale) Container() (container *dagger.Container, err error) {
 	return container, nil
 }
 
-// TODO: this is a temporary solution, we should find a better way to get ghx into the container.
-
 func withGHX(client *dagger.Client, version string) *dagger.File {
 	return client.Container().
-		From("golang:1.20-bullseye").
-		WithExec([]string{"go", "install", fmt.Sprintf("github.com/aweris/ghx@%s", version)}).
-		Directory("/go/bin").
+		From(fmt.Sprintf("ghcr.io/aweris/ghx:%s", version)).
+		Directory("/usr/local/bin").
 		File("ghx")
 }
