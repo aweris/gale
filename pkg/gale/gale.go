@@ -3,7 +3,9 @@ package gale
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"path/filepath"
+	"strings"
 
 	"dagger.io/dagger"
 
@@ -60,7 +62,13 @@ func (g *Gale) init() *Gale {
 			container = g.client.Container().From("ghcr.io/catthehacker/ubuntu:act-22.04")
 		}
 
-		container = container.WithUnixSocket("/var/run/docker.sock", g.client.Host().UnixSocket("/var/run/docker.sock"))
+		// check if DOCKER_HOST should overrides the default docker socket location
+		hostDockerSocket := "/var/run/docker.sock"
+		if dockerHost := os.Getenv("DOCKER_HOST"); strings.HasPrefix(dockerHost, "unix://") {
+			hostDockerSocket = strings.TrimPrefix(dockerHost, "unix://")
+		}
+
+		container = container.WithUnixSocket("/var/run/docker.sock", g.client.Host().UnixSocket(hostDockerSocket))
 		container = container.WithFile("/usr/local/bin/ghx", withGHX(g.client, "v0.0.1"))
 
 		// load the runner context into the container.
