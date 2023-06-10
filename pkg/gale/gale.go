@@ -69,7 +69,7 @@ func (g *Gale) init() *Gale {
 		}
 
 		container = container.WithUnixSocket("/var/run/docker.sock", g.client.Host().UnixSocket(hostDockerSocket))
-		container = container.WithFile("/usr/local/bin/ghx", withGHX(g.client, "v0.0.1"))
+		container = container.WithFile("/usr/local/bin/ghx", withGHX(g.client, "v0.0.2"))
 
 		// load the runner context into the container.
 		for k, v := range model.NewRunnerContextFromEnv().ToEnv() {
