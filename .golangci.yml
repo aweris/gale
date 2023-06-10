@@ -29,3 +29,14 @@ linters:
     - unused
     - unused
     - whitespace
+
+linters-settings:
+  depguard:
+    rules:
+      main:
+        allow:
+          - $gostd
+          - dagger.io/dagger
+          - github.com/aweris/gale
+          - github.com/spf13/cobra
+          - github.com/cli/go-gh/v2
