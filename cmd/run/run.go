@@ -2,6 +2,7 @@ package run
 
 import (
 	"fmt"
+	"github.com/aweris/gale/pkg/repository"
 	"os"
 	"strconv"
 	"time"
@@ -40,9 +41,24 @@ func NewCommand() *cobra.Command {
 				return err
 			}
 
+			workflows, err := repository.LoadWorkflows(cmd.Context(), client)
+			if err != nil {
+				return err
+			}
+
+			workflow, ok := workflows[args[0]]
+			if !ok {
+				return fmt.Errorf("workflow %s not found", args[0])
+			}
+
+			_, ok = workflow.Jobs[args[1]]
+			if !ok {
+				return fmt.Errorf("job %s not found in workflow %s", args[1], args[0])
+			}
+
 			gc := gale.New(client).
 				WithGithubContext(githubCtx).
-				WithJob(args[0], args[1]) // TODO: add validation for workflow and job name
+				WithJob(args[0], args[1])
 
 			// TODO: temporary hack to disable checkout step. This is useful when we want to run the existing version of the repo.
 			// We're mounting the current directory to the container. This is useful for testing for current directory.
