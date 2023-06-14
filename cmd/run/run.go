@@ -2,7 +2,6 @@ package run
 
 import (
 	"fmt"
-	"github.com/aweris/gale/pkg/repository"
 	"os"
 	"strconv"
 	"time"
@@ -14,6 +13,7 @@ import (
 	"github.com/aweris/gale/pkg/gale"
 	"github.com/aweris/gale/pkg/gh"
 	"github.com/aweris/gale/pkg/model"
+	"github.com/aweris/gale/pkg/repository"
 )
 
 // NewCommand  creates a new root command.
