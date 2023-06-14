@@ -1,10 +1,10 @@
 WORKFLOW ?= example-golangci-lint
 JOB      ?= golangci-lint
 
-ARGS ?= --workflow=$(WORKFLOW) --job=$(JOB) --export --disable-checkout
+ARGS ?= run $(WORKFLOW) $(JOB) --export --disable-checkout
 
 DAGGER_CMD     := ./bin/dagger
-DAGGER_VERSION := v0.6.0
+DAGGER_VERSION := v0.6.1
 
 default: run
 
