@@ -18,7 +18,7 @@ jobs:
         run: curl -L https://dl.dagger.io/dagger/install.sh | sh
 
       - name: Run example-golangci-lint / golangci-lint
-        run: ./bin/dagger run go run . --workflow=example-golangci-lint --job=golangci-lint --disable-checkout --export
+        run: ./bin/dagger run go run . run example-golangci-lint golangci-lint --disable-checkout --export
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
