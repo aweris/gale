@@ -111,8 +111,7 @@ func GetGithubContext() (*model.GithubContext, error) {
 		return nil, err
 	}
 
-	// Not checking github.CI here because it's always true to mimic the github actions environment.
-	if os.Getenv("CI") != "true" {
+	if github.CI != true {
 		// user information
 		user, err := gh.CurrentUser()
 		if err != nil {
