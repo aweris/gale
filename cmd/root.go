@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/aweris/gale/cmd/list"
 	"github.com/aweris/gale/cmd/run"
 	"github.com/aweris/gale/cmd/version"
 )
@@ -25,6 +26,7 @@ func Execute() {
 	rootCmd := NewCommand()
 
 	rootCmd.AddCommand(run.NewCommand())
+	rootCmd.AddCommand(list.NewCommand())
 	rootCmd.AddCommand(version.NewCommand())
 
 	if err := rootCmd.Execute(); err != nil {
