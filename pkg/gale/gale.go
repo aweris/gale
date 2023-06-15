@@ -62,6 +62,23 @@ func (g *Gale) init() *Gale {
 			container = g.client.Container().From("ghcr.io/catthehacker/ubuntu:act-22.04")
 		}
 
+		// check if _EXPERIMENTAL_DAGGER_RUNNER_HOST exists and if so, use it
+		if val := os.Getenv("_EXPERIMENTAL_DAGGER_RUNNER_HOST"); val != "" {
+			if strings.HasPrefix(val, "unix://") {
+				socket := strings.TrimPrefix(val, "unix://")
+				container = container.WithUnixSocket(socket, g.client.Host().UnixSocket(socket))
+			}
+
+			container = container.WithEnvVariable("_EXPERIMENTAL_DAGGER_RUNNER_HOST", val)
+		}
+
+		// check if DAGGER_SESSION exists and if so, use it
+		if val := os.Getenv("DAGGER_SESSION"); val != "" {
+			container = container.WithEnvVariable("DAGGER_SESSION", val)
+		}
+
+		// TODO: make this optional. If _EXPERIMENTAL_DAGGER_RUNNER_HOST is set, we don't need to mount the docker socket
+
 		// check if DOCKER_HOST should overrides the default docker socket location
 		hostDockerSocket := "/var/run/docker.sock"
 		if dockerHost := os.Getenv("DOCKER_HOST"); strings.HasPrefix(dockerHost, "unix://") {
