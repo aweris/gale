@@ -1,6 +1,6 @@
 name: example-gha-run-gale
 
-on: push
+on: workflow_call
 
 jobs:
   run-gale:
