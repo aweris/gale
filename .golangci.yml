@@ -39,5 +39,6 @@ linters-settings:
           - dagger.io/dagger
           - github.com/aweris/gale
           - github.com/spf13/cobra
+          - github.com/spf13/viper
           - github.com/cli/go-gh/v2
           - github.com/Masterminds/semver/v3
