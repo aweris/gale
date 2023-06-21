@@ -1,14 +1,15 @@
 package gale
 
 import (
+	"context"
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"dagger.io/dagger"
 
+	"github.com/aweris/gale/internal/dagger/binaries"
 	"github.com/aweris/gale/internal/dagger/images"
 	"github.com/aweris/gale/pkg/gh"
 	"github.com/aweris/gale/pkg/model"
@@ -86,7 +87,13 @@ func (g *Gale) init() *Gale {
 		}
 
 		container = container.WithUnixSocket("/var/run/docker.sock", g.client.Host().UnixSocket(hostDockerSocket))
-		container = container.WithFile("/usr/local/bin/ghx", withGHX(g.client, "v0.0.2"))
+
+		ghx, err := binaries.Ghx(context.Background(), g.client, "v0.0.2")
+		if err != nil {
+			return nil, err
+		}
+
+		container = container.WithFile("/usr/local/bin/ghx", ghx)
 
 		// load the runner context into the container.
 		for k, v := range model.NewRunnerContextFromEnv().ToEnv() {
@@ -211,11 +218,4 @@ func (g *Gale) Container() (container *dagger.Container, err error) {
 	}
 
 	return container, nil
-}
-
-func withGHX(client *dagger.Client, version string) *dagger.File {
-	return client.Container().
-		From(fmt.Sprintf("ghcr.io/aweris/ghx:%s", version)).
-		Directory("/usr/local/bin").
-		File("ghx")
 }
