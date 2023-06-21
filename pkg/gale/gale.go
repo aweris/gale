@@ -11,6 +11,7 @@ import (
 
 	"github.com/aweris/gale/internal/dagger/binaries"
 	"github.com/aweris/gale/internal/dagger/images"
+	"github.com/aweris/gale/pkg/config"
 	"github.com/aweris/gale/pkg/gh"
 	"github.com/aweris/gale/pkg/model"
 )
@@ -29,19 +30,20 @@ type ModifierFn func(container *dagger.Container) (*dagger.Container, error)
 
 // Gale is the entry point for the Gale library
 type Gale struct {
+	cfg         *config.Config
 	client      *dagger.Client
 	base        *dagger.Container
 	modifierFns []ModifierFn
 }
 
 // New creates a new Gale instance
-func New(client *dagger.Client) *Gale {
-	return NewFromContainer(client, nil)
+func New(cfg *config.Config, client *dagger.Client) *Gale {
+	return NewFromContainer(cfg, client, nil)
 }
 
 // NewFromContainer creates a new Gale instance from an existing container.
-func NewFromContainer(client *dagger.Client, base *dagger.Container) *Gale {
-	gale := &Gale{client: client, base: base}
+func NewFromContainer(cfg *config.Config, client *dagger.Client, base *dagger.Container) *Gale {
+	gale := &Gale{cfg: cfg, client: client, base: base}
 
 	// adds the default modifier functions to the gale instance
 	gale.init()
@@ -88,7 +90,7 @@ func (g *Gale) init() *Gale {
 
 		container = container.WithUnixSocket("/var/run/docker.sock", g.client.Host().UnixSocket(hostDockerSocket))
 
-		ghx, err := binaries.Ghx(context.Background(), g.client, "v0.0.2")
+		ghx, err := binaries.Ghx(context.Background(), g.client, g.cfg.GhxVersion)
 		if err != nil {
 			return nil, err
 		}

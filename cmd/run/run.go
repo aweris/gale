@@ -9,7 +9,9 @@ import (
 	"dagger.io/dagger"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 
+	"github.com/aweris/gale/pkg/config"
 	"github.com/aweris/gale/pkg/gale"
 	"github.com/aweris/gale/pkg/gh"
 	"github.com/aweris/gale/pkg/model"
@@ -30,6 +32,11 @@ func NewCommand() *cobra.Command {
 		Args:         cobra.ExactArgs(2),
 		SilenceUsage: true, // don't print usage when error occurs
 		RunE: func(cmd *cobra.Command, args []string) error {
+			cfg, err := config.Load()
+			if err != nil {
+				return err
+			}
+
 			client, err := dagger.Connect(cmd.Context(), dagger.WithLogOutput(os.Stdout))
 			if err != nil {
 				return err
@@ -56,7 +63,7 @@ func NewCommand() *cobra.Command {
 				return fmt.Errorf("job %s not found in workflow %s", args[1], args[0])
 			}
 
-			gc := gale.New(client).
+			gc := gale.New(cfg, client).
 				WithGithubContext(githubCtx).
 				WithJob(args[0], args[1])
 
@@ -92,8 +99,15 @@ func NewCommand() *cobra.Command {
 
 	// Define flags for the Step command
 	cmd.Flags().BoolVar(&export, "export", false, "Export the runner directory after the execution. Exported directory will be placed under .gale directory in the current directory.")
+
+	// Hidden flags
+
 	cmd.Flags().BoolVar(&disableCheckout, "disable-checkout", false, "Disable checkout step. This is useful when you want to run the existing version of the repository.")
 	cmd.Flags().MarkHidden("disable-checkout") // This is a temporary flag until we have a expression parser. We need to disable checkout step for the existing repository to avoid authentication issues.
+
+	cmd.Flags().String("ghx-version", "v0.0.2", "The version of the ghx binary to use")
+	cmd.Flags().MarkHidden("ghx-version")
+	viper.BindPFlag("ghx_version", cmd.Flags().Lookup("ghx-version")) // bind the flag to viper so that we can use it in the config file
 
 	return cmd
 }
