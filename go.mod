@@ -12,6 +12,7 @@ require (
 require (
 	github.com/99designs/gqlgen v0.17.2 // indirect
 	github.com/Khan/genqlient v0.5.0 // indirect
+	github.com/Masterminds/semver/v3 v3.2.1 // indirect
 	github.com/adrg/xdg v0.4.0 // indirect
 	github.com/cli/safeexec v1.0.0 // indirect
 	github.com/iancoleman/strcase v0.2.0 // indirect

@@ -1,14 +1,16 @@
 package gale
 
 import (
+	"context"
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"dagger.io/dagger"
 
+	"github.com/aweris/gale/internal/dagger/binaries"
+	"github.com/aweris/gale/internal/dagger/images"
 	"github.com/aweris/gale/pkg/gh"
 	"github.com/aweris/gale/pkg/model"
 )
@@ -57,9 +59,8 @@ func (g *Gale) WithModifier(fn ModifierFn) *Gale {
 // init initializes the container with the default configuration.
 func (g *Gale) init() *Gale {
 	return g.WithModifier(func(container *dagger.Container) (*dagger.Container, error) {
-		// TODO: make this configurable as well
 		if container == nil {
-			container = g.client.Container().From("ghcr.io/catthehacker/ubuntu:act-22.04")
+			container = images.RunnerBase(g.client)
 		}
 
 		// check if _EXPERIMENTAL_DAGGER_RUNNER_HOST exists and if so, use it
@@ -86,7 +87,13 @@ func (g *Gale) init() *Gale {
 		}
 
 		container = container.WithUnixSocket("/var/run/docker.sock", g.client.Host().UnixSocket(hostDockerSocket))
-		container = container.WithFile("/usr/local/bin/ghx", withGHX(g.client, "v0.0.2"))
+
+		ghx, err := binaries.Ghx(context.Background(), g.client, "v0.0.2")
+		if err != nil {
+			return nil, err
+		}
+
+		container = container.WithFile("/usr/local/bin/ghx", ghx)
 
 		// load the runner context into the container.
 		for k, v := range model.NewRunnerContextFromEnv().ToEnv() {
@@ -211,11 +218,4 @@ func (g *Gale) Container() (container *dagger.Container, err error) {
 	}
 
 	return container, nil
-}
-
-func withGHX(client *dagger.Client, version string) *dagger.File {
-	return client.Container().
-		From(fmt.Sprintf("ghcr.io/aweris/ghx:%s", version)).
-		Directory("/usr/local/bin").
-		File("ghx")
 }
