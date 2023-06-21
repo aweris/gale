@@ -9,6 +9,7 @@ import (
 
 	"dagger.io/dagger"
 
+	"github.com/aweris/gale/internal/dagger/images"
 	"github.com/aweris/gale/pkg/gh"
 	"github.com/aweris/gale/pkg/model"
 )
@@ -57,9 +58,8 @@ func (g *Gale) WithModifier(fn ModifierFn) *Gale {
 // init initializes the container with the default configuration.
 func (g *Gale) init() *Gale {
 	return g.WithModifier(func(container *dagger.Container) (*dagger.Container, error) {
-		// TODO: make this configurable as well
 		if container == nil {
-			container = g.client.Container().From("ghcr.io/catthehacker/ubuntu:act-22.04")
+			container = images.RunnerBase(g.client)
 		}
 
 		// check if _EXPERIMENTAL_DAGGER_RUNNER_HOST exists and if so, use it
