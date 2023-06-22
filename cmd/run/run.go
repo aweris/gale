@@ -86,7 +86,7 @@ func NewCommand() *cobra.Command {
 			}
 
 			if export {
-				if err = result.ExportRunnerDirectory(cmd.Context(), fmt.Sprintf(".gale/%s", strconv.FormatInt(time.Now().Unix(), 10))); err != nil {
+				if err = result.ExportRunnerDirectory(cmd.Context(), fmt.Sprintf(".gale/runs/%s", strconv.FormatInt(time.Now().Unix(), 10))); err != nil {
 					return err
 				}
 			}
