@@ -4,6 +4,7 @@ go 1.20
 
 require (
 	dagger.io/dagger v0.7.2
+	github.com/Masterminds/semver/v3 v3.2.1
 	github.com/cli/go-gh/v2 v2.0.0
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.16.0
@@ -13,7 +14,6 @@ require (
 require (
 	github.com/99designs/gqlgen v0.17.2 // indirect
 	github.com/Khan/genqlient v0.5.0 // indirect
-	github.com/Masterminds/semver/v3 v3.2.1 // indirect
 	github.com/adrg/xdg v0.4.0 // indirect
 	github.com/cli/safeexec v1.0.0 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
@@ -30,7 +30,6 @@ require (
 	github.com/spf13/cast v1.5.1 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/spf13/viper v1.16.0 // indirect
 	github.com/subosito/gotenv v1.4.2 // indirect
 	github.com/vektah/gqlparser/v2 v2.5.1 // indirect
 	golang.org/x/mod v0.10.0 // indirect
