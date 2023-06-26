@@ -52,6 +52,7 @@ func Serve(port string, srv Service) error {
 	router.PUT("/upload/:containerID", handler.HandleUploadArtifactToFileContainer)
 	router.GET("/download/:containerID", handler.HandleGetContainerItems)
 	router.GET("/artifact/*path", handler.HandleDownloadSingleArtifact)
+	router.GET("/healthz", handler.HandleHealthz)
 
 	return http.ListenAndServe(fmt.Sprintf(":%s", port), router)
 }
@@ -171,4 +172,8 @@ func (h *handler) sendJSON(w http.ResponseWriter, code int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	json.NewEncoder(w).Encode(data)
+}
+
+func (h *handler) HandleHealthz(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
+	w.WriteHeader(http.StatusOK)
 }
