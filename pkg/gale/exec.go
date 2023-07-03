@@ -3,18 +3,33 @@ package gale
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 
 	"dagger.io/dagger"
+
+	"github.com/aweris/gale/internal/dagger/services"
+	"github.com/aweris/gale/pkg/model"
 )
 
 type ExecResult struct {
 	Container *dagger.Container
+
+	// contexts
+	github *model.GithubContext
+
+	// services
+	artifactService *services.ArtifactService
 }
 
 // ExportRunnerDirectory exports the runner directory contains all configuration, logs and artifacts to the host
 // machine. This is useful for debugging purposes.
 func (r *ExecResult) ExportRunnerDirectory(ctx context.Context, path string) error {
 	_, err := r.Container.Directory(containerRunnerPath).Export(ctx, path)
+	if err != nil {
+		return err
+	}
+
+	_, err = r.artifactService.Artifacts(r.github.RunID).Export(ctx, filepath.Join(path, "artifacts"))
 	if err != nil {
 		return err
 	}
@@ -28,7 +43,11 @@ func (g *Gale) Exec(ctx context.Context) (*ExecResult, error) {
 		return nil, err
 	}
 
-	result := &ExecResult{Container: container}
+	result := &ExecResult{
+		Container:       container,
+		github:          g.github,
+		artifactService: g.artifactService,
+	}
 
 	result.Container = result.Container.WithExec([]string{"ghx", "run"})
 
