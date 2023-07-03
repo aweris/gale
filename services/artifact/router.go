@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/julienschmidt/httprouter"
 )
@@ -56,6 +57,11 @@ func Serve(port string, srv Service) error {
 
 	return http.ListenAndServe(fmt.Sprintf(":%s", port), router)
 }
+
+const (
+	EncodingGzip = "gzip"
+	ExtGzip      = ".gz"
+)
 
 type handler struct {
 	srv Service
@@ -117,6 +123,11 @@ func (h *handler) HandleUploadArtifactToFileContainer(w http.ResponseWriter, r *
 	containerID := params.ByName("containerID")
 	itemPath := r.URL.Query().Get("itemPath")
 
+	// If the request is gzipped, add the .gz extension to the item path
+	if r.Header.Get("Content-Encoding") == EncodingGzip {
+		itemPath += ExtGzip
+	}
+
 	// Read the request body
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -143,6 +154,11 @@ func (h *handler) HandleGetContainerItems(w http.ResponseWriter, r *http.Request
 	var files []ContainerEntry
 
 	for _, item := range items {
+		// Remove the .gz extension from the item path while listing container items
+		if strings.HasSuffix(item, ExtGzip) {
+			item = strings.TrimSuffix(item, ExtGzip)
+		}
+
 		files = append(files, ContainerEntry{
 			Path:            item,
 			ItemType:        "file",
@@ -156,11 +172,18 @@ func (h *handler) HandleGetContainerItems(w http.ResponseWriter, r *http.Request
 func (h *handler) HandleDownloadSingleArtifact(w http.ResponseWriter, _ *http.Request, params httprouter.Params) {
 	path := params.ByName("path")[1:]
 
+	// look for the non-gzipped version first
 	content, err := h.srv.DownloadSingleArtifact(path)
 	if err != nil {
-		fmt.Printf("Error downloading single artifact: %s\n", err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		// If the file is not found, try to download the gzipped version
+		content, err = h.srv.DownloadSingleArtifact(path + ExtGzip)
+		if err != nil {
+			fmt.Printf("Error downloading single artifact: %s\n", err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Add("Content-Encoding", EncodingGzip)
 	}
 
 	w.Header().Set("Content-Type", "application/octet-stream")
