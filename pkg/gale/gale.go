@@ -11,6 +11,7 @@ import (
 
 	"github.com/aweris/gale/internal/dagger/binaries"
 	"github.com/aweris/gale/internal/dagger/images"
+	"github.com/aweris/gale/internal/dagger/services"
 	"github.com/aweris/gale/pkg/config"
 	"github.com/aweris/gale/pkg/gh"
 	"github.com/aweris/gale/pkg/model"
@@ -34,6 +35,14 @@ type Gale struct {
 	client      *dagger.Client
 	base        *dagger.Container
 	modifierFns []ModifierFn
+
+	// contexts
+
+	github *model.GithubContext
+
+	// services
+
+	artifactService *services.ArtifactService
 }
 
 // New creates a new Gale instance
@@ -102,6 +111,15 @@ func (g *Gale) init() *Gale {
 			container = container.WithEnvVariable(k, v)
 		}
 
+		// services
+
+		artifactService := services.NewArtifactService(g.client)
+
+		container = container.With(artifactService.ServiceBinding)
+
+		// Keep service instances in the gale instance to be able to access data later on.
+		g.artifactService = artifactService
+
 		return container, nil
 	})
 }
@@ -132,6 +150,9 @@ func (g *Gale) loadCurrentRepository() *Gale {
 // WithGithubContext sets the github and runner contexts for the gale instance.
 func (g *Gale) WithGithubContext(github *model.GithubContext) *Gale {
 	return g.WithModifier(func(container *dagger.Container) (*dagger.Container, error) {
+		// keep reference to the github context in the gale instance to be able to access it later on.
+		g.github = github
+
 		for k, v := range github.ToEnv() {
 			container = container.WithEnvVariable(k, v)
 		}
