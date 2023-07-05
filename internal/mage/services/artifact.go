@@ -32,8 +32,8 @@ func (_ Artifact) Publish(ctx context.Context, version string) error {
 	}
 
 	file := images.GoBase(client).
-		WithMountedDirectory("/src", client.Host().Directory("services/artifact")).
-		WithWorkdir("/src").
+		WithMountedDirectory("/src", client.Host().Directory(".")).
+		WithWorkdir("/src/services/artifact").
 		WithEnvVariable("CGO_ENABLED", "0").
 		WithExec([]string{"go", "build", "-o", "/src/out/artifact-service", "."}).
 		File("/src/out/artifact-service")
