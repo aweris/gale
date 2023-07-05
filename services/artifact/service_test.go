@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
 	"testing"
@@ -37,17 +38,23 @@ func TestLocalService_UploadArtifactToFileContainer(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	service := NewLocalService(tmpDir)
+
 	containerID := "testContainerID"
 	filePath := "test/path/file.txt"
 	content := "test content"
 
-	err := service.UploadArtifactToFileContainer(containerID, filePath, content)
+	_, err := service.CreateArtifactInNameContainer(containerID)
+	if err != nil {
+		t.Errorf("Failed to create artifact container: %v", err)
+	}
+
+	err = service.UploadArtifactToFileContainer(containerID, filePath, 0, bytes.NewReader([]byte(content)))
 	if err != nil {
 		t.Errorf("Failed to upload artifact: %v", err)
 	}
 
 	// Verify the artifact file exists
-	artifactPath := filepath.Join(tmpDir, containerID, filePath)
+	artifactPath := filepath.Join(tmpDir, containerID, filePath+".part.0")
 	if _, err := os.Stat(artifactPath); os.IsNotExist(err) {
 		t.Errorf("Artifact file does not exist")
 	}

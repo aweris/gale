@@ -2,9 +2,12 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
+
+	"github.com/aweris/gale/pkg/utils"
 )
 
 // Service represents the artifact service
@@ -14,7 +17,7 @@ type Service interface {
 
 	// UploadArtifactToFileContainer Upload file to the file container. Uploads are handled in chunks. The first chunk will
 	// create the file and the subsequent chunks will append to the file.
-	UploadArtifactToFileContainer(containerID, path, content string) error
+	UploadArtifactToFileContainer(containerID string, path string, offset int, reader io.Reader) error
 
 	// PatchArtifactSize updates the size of the artifact to indicate we are done uploading. The uncompressed size
 	// is used for display purposes however the implementation of the artifact service ignores it. It is only exist
@@ -45,7 +48,8 @@ func NewLocalService(path string) *LocalService {
 func (s *LocalService) CreateArtifactInNameContainer(runID string) (string, error) {
 	path := filepath.Join(s.path, runID)
 
-	if err := os.MkdirAll(path, 0755); err != nil {
+	// Added for the sake of consistency. Otherwise, simple os.MkdirAll would be enough
+	if _, err := utils.NewMultipartFileWriter(path); err != nil {
 		return "", err
 	}
 
@@ -58,32 +62,20 @@ func (s *LocalService) CreateArtifactInNameContainer(runID string) (string, erro
 	return runID, nil
 }
 
-func (s *LocalService) UploadArtifactToFileContainer(containerID, path, content string) error {
-	// Get the path to the artifact
-	artifactPath := filepath.Join(s.path, containerID, filepath.Clean(path))
-
-	// Create the directory if it doesn't exist
-	if err := os.MkdirAll(filepath.Dir(artifactPath), 0755); err != nil {
+func (s *LocalService) UploadArtifactToFileContainer(containerID string, path string, offset int, reader io.Reader) error {
+	writer, err := utils.NewMultipartFileWriter(filepath.Join(s.path, containerID))
+	if err != nil {
 		return err
 	}
 
-	// Open the file in append mode
-	file, err := os.OpenFile(artifactPath, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
-	if err != nil {
-		return fmt.Errorf("failed to open file: %w", err)
-	}
-	defer file.Close()
-
-	// Append the data to the file
-	_, err = file.WriteString(content)
-	if err != nil {
-		return fmt.Errorf("failed to write to file: %w", err)
-	}
-
-	return nil
+	return writer.Write(filepath.Clean(path), offset, reader)
 }
 
 func (s *LocalService) PatchArtifactSize(runID string) {
+	writer, _ := utils.NewMultipartFileWriter(filepath.Join(s.path, runID))
+
+	writer.Merge()
+
 	fmt.Printf("Artifact upload complete for run %s\n", runID)
 }
 

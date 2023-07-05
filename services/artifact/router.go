@@ -3,8 +3,8 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/julienschmidt/httprouter"
@@ -128,14 +128,21 @@ func (h *handler) HandleUploadArtifactToFileContainer(w http.ResponseWriter, r *
 		itemPath += ExtGzip
 	}
 
-	// Read the request body
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, "Failed to read request body", http.StatusInternalServerError)
-		return
+	offset := 0
+
+	contentRange := r.Header.Get("Content-Range")
+	if contentRange != "" && !strings.HasPrefix(contentRange, "bytes 0-") {
+		rangeStart, err := strconv.Atoi(strings.Split(contentRange, "-")[0][6:])
+		if err != nil {
+			fmt.Printf("Error parsing content range: %s\n", err.Error())
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		offset = rangeStart
 	}
 
-	h.srv.UploadArtifactToFileContainer(containerID, itemPath, string(body))
+	h.srv.UploadArtifactToFileContainer(containerID, itemPath, offset, r.Body)
 
 	w.WriteHeader(http.StatusOK)
 }

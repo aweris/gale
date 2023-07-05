@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -26,7 +27,7 @@ func (m *mockService) ListArtifacts(runID string) (string, []string, error) {
 	return "testContainerID", []string{"file1.txt", "file2.txt"}, nil
 }
 
-func (m *mockService) UploadArtifactToFileContainer(containerID string, itemPath string, content string) error {
+func (m *mockService) UploadArtifactToFileContainer(containerID string, itemPath string, offset int, reader io.Reader) error {
 	return nil
 }
 
