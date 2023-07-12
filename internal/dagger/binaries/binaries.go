@@ -12,6 +12,7 @@ import (
 )
 
 // Ghx returns a dagger file for the ghx binary. It'll return an error if the binary is not available.
+// Deprecated: will be removed in the with followup commits
 func Ghx(ctx context.Context, client *dagger.Client, version string) (*dagger.File, error) {
 	var file *dagger.File
 
