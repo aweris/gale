@@ -11,10 +11,10 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
+	"github.com/aweris/gale/internal/gh"
+	"github.com/aweris/gale/internal/model"
 	"github.com/aweris/gale/pkg/config"
 	"github.com/aweris/gale/pkg/gale"
-	"github.com/aweris/gale/pkg/gh"
-	"github.com/aweris/gale/pkg/model"
 	"github.com/aweris/gale/pkg/repository"
 )
 

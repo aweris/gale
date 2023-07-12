@@ -9,7 +9,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/aweris/gale/pkg/model"
+	"github.com/aweris/gale/internal/model"
 )
 
 func LoadWorkflows(ctx context.Context, client *dagger.Client) (model.Workflows, error) {

@@ -6,7 +6,7 @@ import (
 
 	"github.com/cli/go-gh/v2"
 
-	"github.com/aweris/gale/pkg/model"
+	"github.com/aweris/gale/internal/model"
 )
 
 // CurrentRepository returns current repository information. This is a wrapper around
