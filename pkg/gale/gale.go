@@ -13,8 +13,8 @@ import (
 	"github.com/aweris/gale/internal/dagger/images"
 	"github.com/aweris/gale/internal/dagger/services"
 	"github.com/aweris/gale/internal/gh"
+	"github.com/aweris/gale/internal/model"
 	"github.com/aweris/gale/pkg/config"
-	"github.com/aweris/gale/pkg/model"
 )
 
 const (

@@ -8,7 +8,7 @@ import (
 	"dagger.io/dagger"
 
 	"github.com/aweris/gale/internal/dagger/services"
-	"github.com/aweris/gale/pkg/model"
+	"github.com/aweris/gale/internal/model"
 )
 
 type ExecResult struct {
