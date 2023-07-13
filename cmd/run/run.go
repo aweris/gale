@@ -11,7 +11,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/aweris/gale/internal/gh"
 	"github.com/aweris/gale/internal/model"
 	"github.com/aweris/gale/pkg/config"
 	"github.com/aweris/gale/pkg/gale"
@@ -43,11 +42,6 @@ func NewCommand() *cobra.Command {
 			}
 			defer client.Close()
 
-			githubCtx, err := GetGithubContext()
-			if err != nil {
-				return err
-			}
-
 			workflows, err := repository.LoadWorkflows(cmd.Context(), client)
 			if err != nil {
 				return err
@@ -63,9 +57,12 @@ func NewCommand() *cobra.Command {
 				return fmt.Errorf("job %s not found in workflow %s", args[1], args[0])
 			}
 
-			gc := gale.New(cfg, client).
-				WithGithubContext(githubCtx).
-				WithJob(args[0], args[1])
+			g, err := gale.New(cfg, client)
+			if err != nil {
+				return err
+			}
+
+			gc := g.WithJob(args[0], args[1])
 
 			// TODO: temporary hack to disable checkout step. This is useful when we want to run the existing version of the repo.
 			// We're mounting the current directory to the container. This is useful for testing for current directory.
@@ -110,61 +107,4 @@ func NewCommand() *cobra.Command {
 	viper.BindPFlag("ghx_version", cmd.Flags().Lookup("ghx-version")) // bind the flag to viper so that we can use it in the config file
 
 	return cmd
-}
-
-// TODO: we should find a better way to get the github contexts. This is a temporary solution.
-
-func GetGithubContext() (*model.GithubContext, error) {
-	github := model.NewGithubContextFromEnv()
-
-	if !github.CI {
-		// user information
-		user, err := gh.CurrentUser()
-		if err != nil {
-			return nil, err
-		}
-
-		github.Actor = user.Login
-		github.ActorID = strconv.Itoa(user.ID)
-		github.TriggeringActor = user.Login
-
-		// repository , currently we're only supporting the current repository
-		repo, err := gh.CurrentRepository()
-		if err != nil {
-			return nil, err
-		}
-
-		github.Repository = repo.NameWithOwner
-		github.RepositoryID = repo.ID
-		github.RepositoryOwner = repo.Owner.Login
-		github.RepositoryOwnerID = repo.Owner.ID
-		github.RepositoryURL = repo.URL
-		github.Workspace = fmt.Sprintf("/home/runner/work/%s/%s", repo.Name, repo.Name)
-
-		// token
-		token, err := gh.GetToken()
-		if err != nil {
-			return nil, err
-		}
-
-		github.Token = token
-
-		// default values
-		github.ApiURL = "https://api.github.com"                    // TODO: make this configurable for github enterprise
-		github.Event = make(map[string]interface{})                 // TODO: generate event data
-		github.EventName = "push"                                   // TODO: make this configurable, this is for testing purposes
-		github.EventPath = "/home/runner/_temp/workflow/event.json" // TODO: make this configurable or get from runner
-		github.GraphqlURL = "https://api.github.com/graphql"        // TODO: make this configurable for github enterprise
-		github.RetentionDays = "0"
-		github.RunID = "1"
-		github.RunNumber = "1"
-		github.RunAttempt = "1"
-		github.SecretSource = "None"            // TODO: double check if it's possible to get this value from github cli
-		github.ServerURL = "https://github.com" // TODO: make this configurable for github enterprise
-		github.Workflow = ""                    // TODO: fill this value
-		github.WorkflowRef = ""                 // TODO: fill this value
-		github.WorkflowSHA = ""                 // TODO: fill this value
-	}
-
-	return github, nil
 }

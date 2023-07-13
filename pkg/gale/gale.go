@@ -3,8 +3,10 @@ package gale
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"dagger.io/dagger"
@@ -46,19 +48,25 @@ type Gale struct {
 }
 
 // New creates a new Gale instance
-func New(cfg *config.Config, client *dagger.Client) *Gale {
+func New(cfg *config.Config, client *dagger.Client) (*Gale, error) {
 	return NewFromContainer(cfg, client, nil)
 }
 
 // NewFromContainer creates a new Gale instance from an existing container.
-func NewFromContainer(cfg *config.Config, client *dagger.Client, base *dagger.Container) *Gale {
+func NewFromContainer(cfg *config.Config, client *dagger.Client, base *dagger.Container) (*Gale, error) {
 	gale := &Gale{cfg: cfg, client: client, base: base}
+
+	github, err := getInitialGithubContext()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get initial github context: %w", err)
+	}
 
 	// adds the default modifier functions to the gale instance
 	gale.init()
 	gale.loadCurrentRepository()
+	gale.WithGithubContext(github)
 
-	return gale
+	return gale, nil
 }
 
 // WithModifier adds a modifier function to the gale instance.
@@ -241,4 +249,64 @@ func (g *Gale) Container() (container *dagger.Container, err error) {
 	}
 
 	return container, nil
+}
+
+// TODO: we should find a better way to get the github contexts. This is a temporary solution.
+
+func getInitialGithubContext() (*model.GithubContext, error) {
+	github := model.NewGithubContextFromEnv()
+
+	// if we're running in github actions, we can get the github context from the environment variables.
+	if github.CI {
+		return github, nil
+	}
+
+	// update user related information
+	user, err := gh.CurrentUser()
+	if err != nil {
+		return nil, err
+	}
+
+	github.Actor = user.Login
+	github.ActorID = strconv.Itoa(user.ID)
+	github.TriggeringActor = user.Login
+
+	// update repository related information
+	repo, err := gh.CurrentRepository()
+	if err != nil {
+		return nil, err
+	}
+
+	github.Repository = repo.NameWithOwner
+	github.RepositoryID = repo.ID
+	github.RepositoryOwner = repo.Owner.Login
+	github.RepositoryOwnerID = repo.Owner.ID
+	github.RepositoryURL = repo.URL
+	github.Workspace = fmt.Sprintf("/home/runner/work/%s/%s", repo.Name, repo.Name)
+
+	// update token
+	token, err := gh.GetToken()
+	if err != nil {
+		return nil, err
+	}
+
+	github.Token = token
+
+	// default values
+	github.ApiURL = "https://api.github.com"                    // TODO: make this configurable for github enterprise
+	github.Event = make(map[string]interface{})                 // TODO: generate event data
+	github.EventName = "push"                                   // TODO: make this configurable, this is for testing purposes
+	github.EventPath = "/home/runner/_temp/workflow/event.json" // TODO: make this configurable or get from runner
+	github.GraphqlURL = "https://api.github.com/graphql"        // TODO: make this configurable for github enterprise
+	github.RetentionDays = "0"
+	github.RunID = "1"
+	github.RunNumber = "1"
+	github.RunAttempt = "1"
+	github.SecretSource = "None"            // TODO: double check if it's possible to get this value from github cli
+	github.ServerURL = "https://github.com" // TODO: make this configurable for github enterprise
+	github.Workflow = ""                    // TODO: fill this value
+	github.WorkflowRef = ""                 // TODO: fill this value
+	github.WorkflowSHA = ""                 // TODO: fill this value
+
+	return github, nil
 }
