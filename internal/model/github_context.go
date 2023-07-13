@@ -1,7 +1,6 @@
 package model
 
 import (
-	"fmt"
 	"os"
 	"strconv"
 )
@@ -128,7 +127,7 @@ type GithubContext struct {
 	RepositoryURL string `json:"repositoryUrl"`
 
 	// The number of days that workflow run logs and artifacts are kept.
-	RetentionDays int `json:"retention_days"`
+	RetentionDays string `json:"retention_days"`
 
 	// A unique number for each workflow run within a repository. This number does not change if you re-run
 	// the workflow run.
@@ -179,19 +178,7 @@ type GithubContext struct {
 }
 
 // NewGithubContextFromEnv creates a new GithubContext from environment variables.
-func NewGithubContextFromEnv() (*GithubContext, error) {
-	var (
-		err           error
-		retentionDays int
-	)
-
-	if val := os.Getenv("GITHUB_RETENTION_DAYS"); val != "" {
-		retentionDays, err = strconv.Atoi(val)
-		if err != nil {
-			return nil, fmt.Errorf("GITHUB_RETENTION_DAYS %s is not a valid integer", val)
-		}
-	}
-
+func NewGithubContextFromEnv() *GithubContext {
 	//nolint:goconst // keeping "true" here as string makes it easier to read and understand. No need to create a const.
 	return &GithubContext{
 		CI:                os.Getenv("CI") == "true",
@@ -218,7 +205,7 @@ func NewGithubContextFromEnv() (*GithubContext, error) {
 		RepositoryID:      os.Getenv("GITHUB_REPOSITORY_ID"),
 		RepositoryOwner:   os.Getenv("GITHUB_REPOSITORY_OWNER"),
 		RepositoryOwnerID: os.Getenv("GITHUB_REPOSITORY_OWNER_ID"),
-		RetentionDays:     retentionDays,
+		RetentionDays:     os.Getenv("GITHUB_RETENTION_DAYS"),
 		RunAttempt:        os.Getenv("GITHUB_RUN_ATTEMPT"),
 		RunID:             os.Getenv("GITHUB_RUN_ID"),
 		RunNumber:         os.Getenv("GITHUB_RUN_NUMBER"),
@@ -229,7 +216,7 @@ func NewGithubContextFromEnv() (*GithubContext, error) {
 		WorkflowSHA:       os.Getenv("GITHUB_WORKFLOW_SHA"),
 		Workspace:         os.Getenv("GITHUB_WORKSPACE"),
 		Token:             os.Getenv("GITHUB_TOKEN"),
-	}, nil
+	}
 }
 
 // ToEnv converts the GithubContext to a map of environment variables.
@@ -260,7 +247,7 @@ func (g *GithubContext) ToEnv() map[string]string {
 		"GITHUB_REPOSITORY_ID":       g.RepositoryID,
 		"GITHUB_REPOSITORY_OWNER":    g.RepositoryOwner,
 		"GITHUB_REPOSITORY_OWNER_ID": g.RepositoryOwnerID,
-		"GITHUB_RETENTION_DAYS":      strconv.Itoa(g.RetentionDays),
+		"GITHUB_RETENTION_DAYS":      g.RetentionDays,
 		"GITHUB_RUN_ATTEMPT":         g.RunAttempt,
 		"GITHUB_RUN_ID":              g.RunID,
 		"GITHUB_RUN_NUMBER":          g.RunNumber,

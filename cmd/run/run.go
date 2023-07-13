@@ -115,10 +115,7 @@ func NewCommand() *cobra.Command {
 // TODO: we should find a better way to get the github contexts. This is a temporary solution.
 
 func GetGithubContext() (*model.GithubContext, error) {
-	github, err := model.NewGithubContextFromEnv()
-	if err != nil {
-		return nil, err
-	}
+	github := model.NewGithubContextFromEnv()
 
 	if !github.CI {
 		// user information
@@ -158,7 +155,7 @@ func GetGithubContext() (*model.GithubContext, error) {
 		github.EventName = "push"                                   // TODO: make this configurable, this is for testing purposes
 		github.EventPath = "/home/runner/_temp/workflow/event.json" // TODO: make this configurable or get from runner
 		github.GraphqlURL = "https://api.github.com/graphql"        // TODO: make this configurable for github enterprise
-		github.RetentionDays = 0
+		github.RetentionDays = "0"
 		github.RunID = "1"
 		github.RunNumber = "1"
 		github.RunAttempt = "1"
