@@ -15,7 +15,7 @@ type ExecResult struct {
 	Container *dagger.Container
 
 	// contexts
-	github *model.GithubContext
+	github model.GithubContext
 
 	// services
 	artifactService *services.ArtifactService

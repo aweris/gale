@@ -178,9 +178,9 @@ type GithubContext struct {
 }
 
 // NewGithubContextFromEnv creates a new GithubContext from environment variables.
-func NewGithubContextFromEnv() *GithubContext {
+func NewGithubContextFromEnv() GithubContext {
 	//nolint:goconst // keeping "true" here as string makes it easier to read and understand. No need to create a const.
-	return &GithubContext{
+	return GithubContext{
 		CI:                os.Getenv("CI") == "true",
 		Actions:           os.Getenv("GITHUB_ACTIONS") == "true",
 		Action:            os.Getenv("GITHUB_ACTION"),
@@ -221,7 +221,7 @@ func NewGithubContextFromEnv() *GithubContext {
 
 // ToEnv converts the GithubContext to a map of environment variables.
 // More info: https://docs.github.com/en/actions/learn-github-actions/variables#default-environment-variables
-func (g *GithubContext) ToEnv() map[string]string {
+func (g GithubContext) ToEnv() map[string]string {
 	return map[string]string{
 		"CI":                         strconv.FormatBool(g.CI),
 		"GITHUB_ACTION":              g.Action,

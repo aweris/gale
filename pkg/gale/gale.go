@@ -40,7 +40,7 @@ type Gale struct {
 
 	// contexts
 
-	github *model.GithubContext
+	github model.GithubContext
 
 	// services
 
@@ -156,7 +156,7 @@ func (g *Gale) loadCurrentRepository() *Gale {
 }
 
 // WithGithubContext sets the github and runner contexts for the gale instance.
-func (g *Gale) WithGithubContext(github *model.GithubContext) *Gale {
+func (g *Gale) WithGithubContext(github model.GithubContext) *Gale {
 	return g.WithModifier(func(container *dagger.Container) (*dagger.Container, error) {
 		// keep reference to the github context in the gale instance to be able to access it later on.
 		g.github = github
@@ -253,7 +253,7 @@ func (g *Gale) Container() (container *dagger.Container, err error) {
 
 // TODO: we should find a better way to get the github contexts. This is a temporary solution.
 
-func getInitialGithubContext() (*model.GithubContext, error) {
+func getInitialGithubContext() (model.GithubContext, error) {
 	github := model.NewGithubContextFromEnv()
 
 	// if we're running in github actions, we can get the github context from the environment variables.
@@ -264,7 +264,7 @@ func getInitialGithubContext() (*model.GithubContext, error) {
 	// update user related information
 	user, err := gh.CurrentUser()
 	if err != nil {
-		return nil, err
+		return model.GithubContext{}, err
 	}
 
 	github.Actor = user.Login
@@ -274,7 +274,7 @@ func getInitialGithubContext() (*model.GithubContext, error) {
 	// update repository related information
 	repo, err := gh.CurrentRepository()
 	if err != nil {
-		return nil, err
+		return model.GithubContext{}, err
 	}
 
 	github.Repository = repo.NameWithOwner
@@ -287,7 +287,7 @@ func getInitialGithubContext() (*model.GithubContext, error) {
 	// update token
 	token, err := gh.GetToken()
 	if err != nil {
-		return nil, err
+		return model.GithubContext{}, err
 	}
 
 	github.Token = token
