@@ -55,6 +55,7 @@ func (e *Env) WithContainerFunc(container *dagger.Container) *dagger.Container {
 	}
 
 	container = container.WithFile("/usr/local/bin/ghx", ghx)
+	container = container.WithEnvVariable("GHX_HOME", "/home/runner/_temp/ghx")
 
 	// services
 
