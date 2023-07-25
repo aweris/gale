@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/aweris/gale/cmd/gale/list"
+	"github.com/aweris/gale/cmd/gale/run"
 	"github.com/aweris/gale/cmd/gale/version"
 	"github.com/aweris/gale/internal/config"
 )
@@ -41,8 +42,9 @@ func NewCommand() *cobra.Command {
 func Execute() {
 	rootCmd := NewCommand()
 
-	rootCmd.AddCommand(version.NewCommand())
 	rootCmd.AddCommand(list.NewCommand())
+	rootCmd.AddCommand(run.NewCommand())
+	rootCmd.AddCommand(version.NewCommand())
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Printf("Error executing command: %v", err)
