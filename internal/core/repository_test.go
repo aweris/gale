@@ -90,3 +90,40 @@ func TestGetRepository(t *testing.T) {
 		t.Fatalf("Expected directory entries to be more than 0 but got %d", len(entries))
 	}
 }
+
+func TestLoadWorkflows(t *testing.T) {
+	ctx := context.Background()
+
+	// set dagger client
+	client, err := dagger.Connect(ctx, dagger.WithLogOutput(os.Stdout))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.Close()
+
+	config.SetClient(client)
+
+	// get current repository with current directory. This will load tests directory as repository. It's ok for testing.
+	repo, err := core.GetCurrentRepository()
+	if err != nil {
+		t.Fatalf("Failed to get current repository: %s", err)
+	}
+
+	workflows, err := repo.LoadWorkflows(ctx, core.RepositoryLoadWorkflowOpts{Path: "testdata/workflows"})
+	if err != nil {
+		t.Fatalf("Failed to load workflows: %s", err)
+	}
+
+	if len(workflows) != 2 {
+		t.Fatalf("Expected workflows to be 2 but got %d", len(workflows))
+	}
+
+	if _, ok := workflows["test-with-name"]; !ok {
+		t.Fatalf("Expected workflow example-golangci-lint to be loaded but not found")
+	}
+
+	if _, ok := workflows["testdata/workflows/test-workflow-without-name.yml"]; !ok {
+		t.Fatalf("Expected workflow example-golangci-lint to be loaded but not found")
+	}
+
+}

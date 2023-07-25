@@ -1,10 +1,15 @@
 package core
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"path/filepath"
+	"strings"
 
 	"dagger.io/dagger"
+
+	"gopkg.in/yaml.v3"
 
 	"github.com/cli/go-gh/v2"
 
@@ -91,4 +96,68 @@ func GetRepository(name string, opts ...GetRepositoryOpts) (*Repository, error) 
 	repo.Dir = dir
 
 	return &repo, nil
+}
+
+// RepositoryLoadWorkflowOpts represents the options for loading workflows
+type RepositoryLoadWorkflowOpts struct {
+	Path string // Path is the path to the workflow file. If empty, default path .github/workflows will be used.
+}
+
+func (r *Repository) LoadWorkflows(ctx context.Context, opts ...RepositoryLoadWorkflowOpts) (map[string]*Workflow, error) {
+	path := ".github/workflows"
+
+	if len(opts) > 0 {
+		if opts[0].Path != "" {
+			path = opts[0].Path
+		}
+	}
+
+	dir := r.Dir.Directory(path)
+
+	entries, err := dir.Entries(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	workflows := make(map[string]*Workflow)
+
+	for _, entry := range entries {
+		// load only .yaml and .yml files
+		if strings.HasSuffix(entry, ".yaml") || strings.HasSuffix(entry, ".yml") {
+			file := dir.File(entry)
+
+			workflow, err := loadWorkflow(ctx, filepath.Join(path, entry), file)
+			if err != nil {
+				return nil, err
+			}
+
+			workflows[workflow.Name] = workflow
+		}
+	}
+
+	return workflows, nil
+}
+
+// loadWorkflow loads a workflow from a file. If the workflow name is not provided, the relative path to the workflow
+// file will be used as the workflow name.
+func loadWorkflow(ctx context.Context, path string, file *dagger.File) (*Workflow, error) {
+	content, err := file.Contents(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var workflow Workflow
+
+	if err := yaml.Unmarshal([]byte(content), &workflow); err != nil {
+		return nil, err
+	}
+
+	workflow.Path = path
+
+	// if the workflow name is not provided, use the relative path to the workflow file.
+	if workflow.Name == "" {
+		workflow.Name = path
+	}
+
+	return &workflow, nil
 }
