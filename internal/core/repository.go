@@ -100,15 +100,15 @@ func GetRepository(name string, opts ...GetRepositoryOpts) (*Repository, error) 
 
 // RepositoryLoadWorkflowOpts represents the options for loading workflows
 type RepositoryLoadWorkflowOpts struct {
-	Path string // Path is the path to the workflow file. If empty, default path .github/workflows will be used.
+	WorkflowsDir string // WorkflowsDir is the path to the workflow file. If empty, default path .github/workflows will be used.
 }
 
 func (r *Repository) LoadWorkflows(ctx context.Context, opts ...RepositoryLoadWorkflowOpts) (map[string]*Workflow, error) {
 	path := ".github/workflows"
 
 	if len(opts) > 0 {
-		if opts[0].Path != "" {
-			path = opts[0].Path
+		if opts[0].WorkflowsDir != "" {
+			path = opts[0].WorkflowsDir
 		}
 	}
 
