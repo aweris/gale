@@ -86,6 +86,7 @@ func ExecutionEnv(ctx context.Context) dagger.WithContainerFunc {
 
 		container = container.WithFile("/usr/local/bin/ghx", ghx)
 		container = container.WithEnvVariable("GHX_HOME", config.GhxHome())
+		container = container.WithMountedCache(config.GhxActionsDir(), config.Client().CacheVolume("actions"))
 
 		return container
 	}
