@@ -1,6 +1,7 @@
 package run
 
 import (
+	"github.com/aweris/gale/internal/config"
 	"github.com/spf13/cobra"
 
 	"github.com/aweris/gale/pkg/gale"
@@ -16,10 +17,9 @@ func NewCommand() *cobra.Command {
 		Args:         cobra.ExactArgs(2),
 		SilenceUsage: true, // don't print usage when error occurs
 		RunE: func(cmd *cobra.Command, args []string) error {
-			err := gale.Run(cmd.Context(), args[0], args[1], opts)
-			if err != nil {
-				return err
-			}
+			client := config.Client()
+
+			client.Container().From("alpine:latest").With(gale.Run(cmd.Context(), args[0], args[1], opts))
 
 			return nil
 		},
