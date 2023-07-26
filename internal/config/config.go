@@ -1,6 +1,10 @@
 package config
 
-import "dagger.io/dagger"
+import (
+	"path/filepath"
+
+	"dagger.io/dagger"
+)
 
 // cfg is the global configuration for ghx. No other package should access it directly.
 var cfg = new(config)
@@ -32,4 +36,19 @@ func SetGhxHome(home string) {
 // GhxHome returns the ghx home directory for the config.
 func GhxHome() string {
 	return cfg.ghxHome
+}
+
+// GhxActionsDir returns the directory where the actions are stored.
+func GhxActionsDir() string {
+	return filepath.Join(GhxHome(), "actions")
+}
+
+// GhxRunsDir returns the directory where the runs are stored.
+func GhxRunsDir() string {
+	return filepath.Join(GhxHome(), "runs")
+}
+
+// GhxRunDir returns the directory where the run with the given ID is stored.
+func GhxRunDir(runID string) string {
+	return filepath.Join(GhxRunsDir(), runID)
 }
