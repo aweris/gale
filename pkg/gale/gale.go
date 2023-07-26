@@ -6,6 +6,7 @@ import (
 
     "dagger.io/dagger"
 
+    "github.com/aweris/gale/internal/config"
     "github.com/aweris/gale/internal/core"
     "github.com/aweris/gale/internal/dagger/tools"
 )
@@ -67,6 +68,7 @@ func ExecutionEnv(ctx context.Context) dagger.WithContainerFunc {
         }
 
         container = container.WithFile("/usr/local/bin/ghx", ghx)
+        container = container.WithEnvVariable("GHX_HOME", config.GhxHome())
 
         return container
     }
