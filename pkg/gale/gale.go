@@ -62,6 +62,7 @@ func Run(ctx context.Context, workflow, job string, opts ...RunOpts) dagger.With
 			return fail(container, err)
 		}
 
+		container = container.With(core.NewGithubRepositoryContext(repo).Apply)
 		container = container.WithEnvVariable("RUNNER_DEBUG", "1")
 		container = container.WithDirectory(config.GhxRunDir(runID), dir)
 		container = container.WithExec([]string{"/usr/local/bin/ghx", "run", runID})
