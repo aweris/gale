@@ -2,11 +2,12 @@ package core_test
 
 import (
 	"context"
-	"dagger.io/dagger"
-	"github.com/aweris/gale/internal/config"
 	"os"
 	"testing"
 
+	"dagger.io/dagger"
+
+	"github.com/aweris/gale/internal/config"
 	"github.com/aweris/gale/internal/core"
 )
 
@@ -109,7 +110,7 @@ func TestLoadWorkflows(t *testing.T) {
 		t.Fatalf("Failed to get current repository: %s", err)
 	}
 
-	workflows, err := repo.LoadWorkflows(ctx, core.RepositoryLoadWorkflowOpts{Path: "testdata/workflows"})
+	workflows, err := repo.LoadWorkflows(ctx, core.RepositoryLoadWorkflowOpts{WorkflowsDir: "testdata/workflows"})
 	if err != nil {
 		t.Fatalf("Failed to load workflows: %s", err)
 	}
