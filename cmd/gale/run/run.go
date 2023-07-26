@@ -1,9 +1,9 @@
 package run
 
 import (
-    "github.com/aweris/gale/internal/config"
     "github.com/spf13/cobra"
 
+    "github.com/aweris/gale/internal/config"
     "github.com/aweris/gale/pkg/gale"
 )
 
