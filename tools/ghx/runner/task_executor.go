@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/aweris/gale/internal/core"
-	"github.com/aweris/gale/tools/ghx/internal/log"
+	"github.com/aweris/gale/tools/ghx/log"
 )
 
 // TaskExecutor is a task executor that runs a task and keeps status, conclusion and timing information about

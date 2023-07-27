@@ -15,7 +15,7 @@ import (
 	"github.com/aweris/gale/internal/config"
 	"github.com/aweris/gale/internal/core"
 	"github.com/aweris/gale/internal/fs"
-	"github.com/aweris/gale/tools/ghx/internal/log"
+	"github.com/aweris/gale/tools/ghx/log"
 )
 
 // LoadActionFromSource loads an action from given source. Source can be a local directory or a remote repository.
