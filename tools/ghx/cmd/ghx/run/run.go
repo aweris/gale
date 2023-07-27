@@ -1,11 +1,11 @@
 package run
 
 import (
-	"fmt"
 	"github.com/spf13/cobra"
 
 	"github.com/aweris/gale/internal/config"
 	"github.com/aweris/gale/internal/core"
+	runnerpkg "github.com/aweris/gale/tools/ghx/runner"
 )
 
 // NewCommand  creates a new root command.
@@ -28,7 +28,14 @@ func NewCommand() *cobra.Command {
 				return err
 			}
 
-			fmt.Printf("JobRun: %+v\n", jr)
+			runner, err := runnerpkg.Plan(jr)
+			if err != nil {
+				return err
+			}
+
+			if err := runner.Run(cmd.Context()); err != nil {
+				return err
+			}
 
 			return nil
 		},
