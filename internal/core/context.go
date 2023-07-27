@@ -6,6 +6,38 @@ import (
 	"dagger.io/dagger"
 )
 
+type RunnerContext struct {
+	Name      string `json:"name"`       // Name is the name of the runner.
+	OS        string `json:"os"`         // OS is the operating system of the runner.
+	Arch      string `json:"arch"`       // Arch is the architecture of the runner.
+	Temp      string `json:"temp"`       // Temp is the path to a temporary directory on the runner.
+	ToolCache string `json:"tool_cache"` // ToolCache is the path to the directory containing preinstalled tools for GitHub-hosted runners.
+	Debug     string `json:"debug"`      // Debug is set only if debug logging is enabled, and always has the value of 1.
+}
+
+// NewRunnerContext creates a new RunnerContext from the given runner.
+func NewRunnerContext() RunnerContext {
+	return RunnerContext{
+		Name:      "Gale Agent",
+		OS:        "linux",
+		Arch:      "x64",
+		Temp:      "/home/runner/_temp",
+		ToolCache: "/opt/hostedtoolcache",
+		Debug:     "0", // TODO: This should be configurable. Read from config.Debug()
+	}
+}
+
+// Apply applies the RunnerContext to the given container.
+func (c RunnerContext) Apply(container *dagger.Container) *dagger.Container {
+	return container.
+		WithEnvVariable("RUNNER_NAME", c.Name).
+		WithEnvVariable("RUNNER_TEMP", c.Temp).
+		WithEnvVariable("RUNNER_OS", c.OS).
+		WithEnvVariable("RUNNER_ARCH", c.Arch).
+		WithEnvVariable("RUNNER_TOOL_CACHE", c.ToolCache).
+		WithEnvVariable("RUNNER_DEBUG", c.Debug)
+}
+
 // GithubRepositoryContext is a context that contains information about the repository.
 type GithubRepositoryContext struct {
 	Repository        string            // Repository is the combination of owner and name of the repository. e.g. octocat/hello-world
