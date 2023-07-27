@@ -20,7 +20,41 @@ func Plan(jr *core.JobRun) (*Runner, error) {
 	// main task executor that executes the job
 	runner.executor = NewTaskExecutor(jr.Job.Name, run(runner))
 
-	runner.stepTasks = append(runner.stepTasks, NewTaskExecutor("Set up job", setup(runner)))
+	// step task executors that execute the steps
+
+	var setupFns []TaskExecutorFn
+
+	tasks := make([]TaskExecutor, len(jr.Job.Steps)*3)
+
+	for idx, step := range jr.Job.Steps {
+		if step.ID == "" {
+			step.ID = fmt.Sprintf("%d", idx)
+		}
+
+		sr, err := NewStep(runner, step)
+		if err != nil {
+			return nil, err
+		}
+
+		// setup functions are added to the setupFns slice to be executed by the setup task executor.
+		setupFns = append(setupFns, sr.setup())
+
+		// pre task is added same index as the step index
+		tasks[idx] = NewConditionalTaskExecutor(getStepName("Pre", step), sr.pre(), sr.preCondition())
+
+		// main tasks starts after pre tasks. so index is step index + len(steps)
+		prefix := ""
+		if step.Name == "" {
+			prefix = "Run"
+		}
+		tasks[len(jr.Job.Steps)+idx] = NewConditionalTaskExecutor(getStepName(prefix, step), sr.main(), sr.mainCondition())
+
+		// post tasks starts after main tasks. so index is step index + (len(steps) * 2)
+		tasks[(len(jr.Job.Steps)*2)+idx] = NewConditionalTaskExecutor(getStepName("Post", step), sr.post(), sr.postCondition())
+	}
+
+	runner.stepTasks = append(runner.stepTasks, NewTaskExecutor("Set up job", setup(runner, setup(runner, setupFns...))))
+	runner.stepTasks = append(runner.stepTasks, tasks...)
 	runner.stepTasks = append(runner.stepTasks, NewTaskExecutor("Complete job", complete(runner)))
 
 	return runner, nil
@@ -50,6 +84,9 @@ func run(r *Runner) TaskExecutorFn {
 			if err != nil && conclusion != core.ConclusionSuccess {
 				// TODO: handle error, remaining steps should have always() or failure() conditions to run
 				//  otherwise they should be cancelled.
+
+				// TODO: re-add this later. it is removed for now to make the to run all steps. otherwise it will stop
+				// return "", err
 			}
 		}
 
