@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/aweris/gale/tools/ghx/actions"
 )
@@ -16,9 +17,28 @@ type CmdExecutor struct {
 }
 
 func NewCmdExecutorFromStepAction(sa *StepAction, entrypoint string) *CmdExecutor {
+	env := make(map[string]string)
+
+	for k, v := range sa.Step.With {
+		env[fmt.Sprintf("INPUT_%s", strings.ToUpper(k))] = v
+	}
+
+	// add default values for inputs that are not defined in the step config
+	for k, v := range sa.Action.Meta.Inputs {
+		if _, ok := sa.Step.With[k]; ok {
+			continue
+		}
+
+		if v.Default == "" {
+			continue
+		}
+
+		env[fmt.Sprintf("INPUT_%s", strings.ToUpper(k))] = v.Default
+	}
+
 	return &CmdExecutor{
 		args: []string{"node", fmt.Sprintf("%s/%s", sa.Action.Path, entrypoint)},
-		env:  make(map[string]string),
+		env:  env,
 		ec:   &actions.ExprContext{}, // empty expression context TODO: provide the actual context
 	}
 }
