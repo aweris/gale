@@ -11,9 +11,9 @@ import (
 	"github.com/spf13/pflag"
 
 	"github.com/aweris/gale/internal/config"
+	"github.com/aweris/gale/internal/fs"
 	"github.com/aweris/gale/tools/ghx/cmd/ghx/run"
 	"github.com/aweris/gale/tools/ghx/cmd/ghx/version"
-	"github.com/aweris/gale/tools/ghx/internal/fs"
 )
 
 // NewCommand  creates a new root command.
