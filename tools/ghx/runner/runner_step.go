@@ -85,7 +85,14 @@ func (s *StepAction) preCondition() TaskConditionalFn {
 
 func (s *StepAction) pre() TaskExecutorFn {
 	return func(ctx context.Context) (core.Conclusion, error) {
-		return core.ConclusionFailure, fmt.Errorf("pre run is not implemented yet")
+		cmd := NewCmdExecutorFromStepAction(s, s.Action.Meta.Runs.Pre)
+
+		err := cmd.Execute(ctx)
+		if err != nil && !s.Step.ContinueOnError {
+			return core.ConclusionFailure, err
+		}
+
+		return core.ConclusionSuccess, nil
 	}
 }
 
@@ -97,7 +104,15 @@ func (s *StepAction) mainCondition() TaskConditionalFn {
 
 func (s *StepAction) main() TaskExecutorFn {
 	return func(ctx context.Context) (core.Conclusion, error) {
-		return core.ConclusionFailure, fmt.Errorf("main run is not implemented yet")
+
+		cmd := NewCmdExecutorFromStepAction(s, s.Action.Meta.Runs.Main)
+
+		err := cmd.Execute(ctx)
+		if err != nil && !s.Step.ContinueOnError {
+			return core.ConclusionFailure, err
+		}
+
+		return core.ConclusionSuccess, nil
 	}
 }
 
@@ -113,7 +128,14 @@ func (s *StepAction) postCondition() TaskConditionalFn {
 
 func (s *StepAction) post() TaskExecutorFn {
 	return func(ctx context.Context) (core.Conclusion, error) {
-		return core.ConclusionFailure, fmt.Errorf("post run is not implemented yet")
+		cmd := NewCmdExecutorFromStepAction(s, s.Action.Meta.Runs.Post)
+
+		err := cmd.Execute(ctx)
+		if err != nil && !s.Step.ContinueOnError {
+			return core.ConclusionFailure, err
+		}
+
+		return core.ConclusionSuccess, nil
 	}
 }
 
@@ -121,10 +143,12 @@ var _ Step = new(StepRun)
 
 // StepRun is a step that runs a job.
 type StepRun struct {
-	runner *Runner
-	ac     *actions.ExprContext
-	Step   core.Step
-	Path   string // Path is the script path to run.
+	runner    *Runner
+	ac        *actions.ExprContext
+	Step      core.Step
+	Shell     string   // Shell is the shell to use to run the script.
+	ShellArgs []string // ShellArgs are the arguments to pass to the shell.
+	Path      string   // Path is the script path to run.
 
 }
 
@@ -140,6 +164,8 @@ func (s *StepRun) setup() TaskExecutorFn {
 		}
 
 		s.Path = path
+		s.Shell = "bash"
+		s.ShellArgs = []string{"--noprofile", "--norc", "-e", "-o", "pipefail"}
 
 		// make it debug level because it's not really important and it's visible in Github Actions logs
 		log.Debug(fmt.Sprintf("Write script to '%s' for step '%s'", path, s.Step.ID))
@@ -169,7 +195,14 @@ func (s *StepRun) mainCondition() TaskConditionalFn {
 
 func (s *StepRun) main() TaskExecutorFn {
 	return func(ctx context.Context) (core.Conclusion, error) {
-		return core.ConclusionFailure, fmt.Errorf("main run is not implemented yet")
+		cmd := NewCmdExecutorFromStepRun(s)
+
+		err := cmd.Execute(ctx)
+		if err != nil && !s.Step.ContinueOnError {
+			return core.ConclusionFailure, err
+		}
+
+		return core.ConclusionSuccess, nil
 	}
 }
 
