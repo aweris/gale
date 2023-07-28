@@ -65,3 +65,44 @@ END
 		}
 	}
 }
+
+func TestEnvironmentFile_RawData(t *testing.T) {
+	// Prepare a temporary test file.
+	// Note: test data contains single key and key value pairs in a same file, however, this is happening in a real.
+	testData := `
+# This is a markdown
+
+Some text here
+
+## This is a header
+
+More text here`
+
+	dir := os.TempDir()
+	defer os.RemoveAll(dir)
+
+	file := filepath.Join(dir, "test_env_file.txt")
+
+	// Test ensuring the file exists
+	envFile, err := core.NewEnvironmentFile(file)
+	if err != nil {
+		t.Fatalf("Failed to create environment file: %v", err)
+	}
+
+	// Write test data to the file
+	err = os.WriteFile(file, []byte(testData), 0600)
+	if err != nil {
+		t.Fatalf("Failed to write test data to file: %v", err)
+	}
+
+	// Test reading raw data from the file
+	rawData, err := envFile.RawData()
+	if err != nil {
+		t.Fatalf("Failed to read raw data from environment file: %v", err)
+	}
+
+	// Compare the expected data with the actual data
+	if string(rawData) != testData {
+		t.Errorf("Expected raw data to be '%s', but got '%s'", testData, string(rawData))
+	}
+}

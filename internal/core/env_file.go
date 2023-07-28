@@ -36,6 +36,15 @@ func NewEnvironmentFile(path string) (*EnvironmentFile, error) {
 	return &EnvironmentFile{Path: path}, nil
 }
 
+func (f EnvironmentFile) RawData() (string, error) {
+	data, err := os.ReadFile(f.Path)
+	if err != nil {
+		return "", err
+	}
+
+	return string(data), nil
+}
+
 func (f EnvironmentFile) ReadData() (map[string]string, error) {
 	keyValues := make(map[string]string)
 
