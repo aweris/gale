@@ -12,7 +12,8 @@ import (
 var _ expression.VariableProvider = new(ExprContext)
 
 type ExprContext struct {
-	Github GithubContext // Github context
+	Github GithubContext               // Github context
+	Steps  map[string]core.StepContext // Steps context
 
 	// TODO: add other contexts when needed.
 	// - runner context
@@ -49,6 +50,7 @@ func NewExprContext() *ExprContext {
 			},
 			GithubFilesContext: core.GithubFilesContext{ /* No initial values */ },
 		},
+		Steps: make(map[string]core.StepContext),
 	}
 }
 
@@ -84,7 +86,7 @@ func (c *ExprContext) GetVariable(name string) (interface{}, error) {
 	case "job":
 		return map[string]string{}, nil
 	case "steps":
-		return map[string]string{}, nil
+		return c.Steps, nil
 	case "secrets":
 		return map[string]string{}, nil
 	case "strategy":
@@ -127,5 +129,70 @@ func (c *ExprContext) WithGithubPath(ef *core.EnvironmentFile) *ExprContext {
 // WithoutGithubPath removes `github.path` from the context.
 func (c *ExprContext) WithoutGithubPath() *ExprContext {
 	c.Github.GithubFilesContext.Path = ""
+	return c
+}
+
+// SetStepOutput sets the output of the given step.
+func (c *ExprContext) SetStepOutput(stepID, key, value string) *ExprContext {
+	sc, ok := c.Steps[stepID]
+	if !ok {
+		sc = core.StepContext{}
+	}
+
+	if sc.Outputs == nil {
+		sc.Outputs = make(map[string]string)
+	}
+
+	sc.Outputs[key] = value
+
+	c.Steps[stepID] = sc
+
+	return c
+}
+
+// SetStepResult sets the result of the given step.
+func (c *ExprContext) SetStepResult(stepID string, outcome, conclusion core.Conclusion) *ExprContext {
+	sc, ok := c.Steps[stepID]
+	if !ok {
+		sc = core.StepContext{}
+	}
+
+	sc.Outcome = outcome
+	sc.Conclusion = conclusion
+
+	c.Steps[stepID] = sc
+
+	return c
+}
+
+// SetStepSummary sets the summary of the given step.
+func (c *ExprContext) SetStepSummary(stepID, summary string) *ExprContext {
+	sc, ok := c.Steps[stepID]
+	if !ok {
+		sc = core.StepContext{}
+	}
+
+	sc.Summary = summary
+
+	c.Steps[stepID] = sc
+
+	return c
+}
+
+// SetStepState sets the state of the given step.
+func (c *ExprContext) SetStepState(stepID, key, value string) *ExprContext {
+	sc, ok := c.Steps[stepID]
+	if !ok {
+		sc = core.StepContext{}
+	}
+
+	if sc.State == nil {
+		sc.State = make(map[string]string)
+	}
+
+	sc.State[key] = value
+
+	c.Steps[stepID] = sc
+
 	return c
 }
