@@ -62,8 +62,17 @@ func Run(ctx context.Context, workflow, job string, opts ...RunOpts) dagger.With
 			return fail(container, err)
 		}
 
-		container = container.With(core.NewGithubRepositoryContext(repo).Apply)
+		token, err := core.GetToken()
+		if err != nil {
+			return fail(container, err)
+		}
+
+		// context configuration
 		container = container.With(core.NewRunnerContext().Apply)
+		container = container.With(core.NewGithubRepositoryContext(repo).Apply)
+		container = container.With(core.NewGithubSecretsContext(token).Apply)
+
+		// job run configuration
 		container = container.WithDirectory(config.GhxRunDir(runID), dir)
 		container = container.WithExec([]string{"/usr/local/bin/ghx", "run", runID})
 

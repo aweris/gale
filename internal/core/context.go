@@ -4,6 +4,8 @@ import (
 	"fmt"
 
 	"dagger.io/dagger"
+
+	"github.com/aweris/gale/internal/config"
 )
 
 type RunnerContext struct {
@@ -40,13 +42,13 @@ func (c RunnerContext) Apply(container *dagger.Container) *dagger.Container {
 
 // GithubRepositoryContext is a context that contains information about the repository.
 type GithubRepositoryContext struct {
-	Repository        string            // Repository is the combination of owner and name of the repository. e.g. octocat/hello-world
-	RepositoryID      string            // RepositoryID is the id of the repository. e.g. 1296269. Note that this is different from the repository name.
-	RepositoryOwner   string            // RepositoryOwner is the owner of the repository. e.g. octocat
-	RepositoryOwnerID string            // RepositoryOwnerID is the id of the repository owner. e.g. 1234567. Note that this is different from the repository owner name.
-	RepositoryURL     string            // RepositoryURL is the git url of the repository. e.g. git://github.com/octocat/hello-world.git.
-	Workspace         string            // Workspace is the path of a directory that contains a checkout of the repository.
-	Dir               *dagger.Directory // Dir is the directory where the repository is checked out
+	Repository        string            `json:"repository"`          // Repository is the combination of owner and name of the repository. e.g. octocat/hello-world
+	RepositoryID      string            `json:"repository_id"`       // RepositoryID is the id of the repository. e.g. 1296269. Note that this is different from the repository name.
+	RepositoryOwner   string            `json:"repository_owner"`    // RepositoryOwner is the owner of the repository. e.g. octocat
+	RepositoryOwnerID string            `json:"repository_owner_id"` // RepositoryOwnerID is the id of the repository owner. e.g. 1234567. Note that this is different from the repository owner name.
+	RepositoryURL     string            `json:"repository_url"`      // RepositoryURL is the git url of the repository. e.g. git://github.com/octocat/hello-world.git.
+	Workspace         string            `json:"workspace"`           // Workspace is the path of a directory that contains a checkout of the repository.
+	Dir               *dagger.Directory `json:"-"`                   // Dir is the directory where the repository is checked out
 }
 
 // NewGithubRepositoryContext creates a new GithubRepositoryContext from the given repository.
@@ -73,4 +75,21 @@ func (c GithubRepositoryContext) Apply(container *dagger.Container) *dagger.Cont
 		WithEnvVariable("GITHUB_WORKSPACE", c.Workspace).
 		WithMountedDirectory(c.Workspace, c.Dir).
 		WithWorkdir(c.Workspace)
+}
+
+// GithubSecretsContext is a context that contains information about the secrets.
+type GithubSecretsContext struct {
+	Token string `json:"token"` // Token is the GitHub token to use for authentication.
+}
+
+// NewGithubSecretsContext creates a new GithubSecretsContext from the given token.
+func NewGithubSecretsContext(token string) GithubSecretsContext {
+	return GithubSecretsContext{
+		Token: token,
+	}
+}
+
+// Apply applies the GithubSecretsContext to the given container.
+func (c GithubSecretsContext) Apply(container *dagger.Container) *dagger.Container {
+	return container.WithSecretVariable("GITHUB_TOKEN", config.Client().SetSecret("GITHUB_TOKEN", c.Token))
 }
