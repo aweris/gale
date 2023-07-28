@@ -12,6 +12,7 @@ import (
 
 	"github.com/aweris/gale/internal/core"
 	"github.com/aweris/gale/tools/ghx/actions"
+	"github.com/aweris/gale/tools/ghx/log"
 )
 
 type CmdExecutor struct {
@@ -81,8 +82,12 @@ func (c *CmdExecutor) Execute(_ context.Context) error {
 		// evaluate the expression
 		res, err := str.Eval(c.ec)
 		if err != nil {
+			log.Errorf("failed to evaluate value", "error", err.Error(), "key", k, "value", v)
+
 			return fmt.Errorf("failed to evaluate default value for input %s: %v", k, err)
 		}
+
+		log.Debugf("Environment variable evaluated", "key", k, "value", v, "evaluated", res)
 
 		env = append(env, fmt.Sprintf("%s=%s", k, res))
 	}
