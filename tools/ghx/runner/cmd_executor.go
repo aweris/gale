@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/aweris/gale/internal/core"
@@ -20,6 +21,15 @@ type CmdExecutor struct {
 	env      map[string]string       // env to pass to the command as environment variables
 	ec       *actions.ExprContext    // ec is the expression context to evaluate the github expressions
 	commands []*core.WorkflowCommand // commands is the list of commands that are executed in the step
+	envFiles *EnvironmentFiles       // envFiles contains temporary files that can be used to perform certain actions
+
+}
+
+type EnvironmentFiles struct {
+	Env         *core.EnvironmentFile // Env is the environment file that holds the environment variables
+	Path        *core.EnvironmentFile // Path is the environment file that holds the path variables
+	Outputs     *core.EnvironmentFile // Outputs is the environment file that holds the outputs
+	StepSummary *core.EnvironmentFile // StepSummary is the environment file that holds the step summary
 }
 
 func NewCmdExecutorFromStepAction(sa *StepAction, entrypoint string) *CmdExecutor {
@@ -70,6 +80,13 @@ func (c *CmdExecutor) Execute(_ context.Context) error {
 	rawout := bytes.NewBuffer(nil)
 
 	cmd.Stderr = io.MultiWriter(stderr, os.Stderr)
+
+	// load environment files - this will create env files and load it to the environment. That's why we need to do this
+	// before setting the environment variables
+	err := c.loadEnvFiles()
+	if err != nil {
+		return err
+	}
 
 	// add environment variables
 
@@ -132,4 +149,50 @@ func (c *CmdExecutor) Execute(_ context.Context) error {
 	}()
 
 	return cmd.Wait()
+}
+
+func (c *CmdExecutor) loadEnvFiles() error {
+	if c.envFiles == nil {
+		c.envFiles = &EnvironmentFiles{}
+	}
+
+	// TODO: move this to a better place. No need read os env directly here
+	dir, err := os.MkdirTemp(os.Getenv("RUNNER_TEMP"), "env_files")
+	if err != nil {
+		return err
+	}
+
+	env, err := core.NewEnvironmentFile(filepath.Join(dir, "env"))
+	if err != nil {
+		return err
+	}
+
+	c.env[core.EnvFileNameGithubEnv] = env.Path
+	c.envFiles.Env = env
+
+	path, err := core.NewEnvironmentFile(filepath.Join(dir, "path"))
+	if err != nil {
+		return err
+	}
+
+	c.env[core.EnvFileNameGithubPath] = path.Path
+	c.envFiles.Path = path
+
+	outputs, err := core.NewEnvironmentFile(filepath.Join(dir, "outputs"))
+	if err != nil {
+		return err
+	}
+
+	c.env[core.EnvFileNameGithubActionOutput] = outputs.Path
+	c.envFiles.Outputs = outputs
+
+	stepSummary, err := core.NewEnvironmentFile(filepath.Join(dir, "step_summary"))
+	if err != nil {
+		return err
+	}
+
+	c.env[core.EnvFileNameGithubStepSummary] = stepSummary.Path
+	c.envFiles.StepSummary = stepSummary
+
+	return nil
 }
