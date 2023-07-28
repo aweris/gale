@@ -55,7 +55,7 @@ func NewCmdExecutorFromStepAction(sa *StepAction, entrypoint string) *CmdExecuto
 	return &CmdExecutor{
 		args: []string{"node", fmt.Sprintf("%s/%s", sa.Action.Path, entrypoint)},
 		env:  env,
-		ec:   actions.NewExprContext(),
+		ec:   sa.runner.context,
 	}
 }
 
@@ -68,7 +68,7 @@ func NewCmdExecutorFromStepRun(sr *StepRun) *CmdExecutor {
 	return &CmdExecutor{
 		args: args,
 		env:  make(map[string]string),
-		ec:   actions.NewExprContext(),
+		ec:   sr.runner.context,
 	}
 }
 

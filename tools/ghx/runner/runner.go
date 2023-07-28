@@ -5,17 +5,22 @@ import (
 	"fmt"
 
 	"github.com/aweris/gale/internal/core"
+	"github.com/aweris/gale/tools/ghx/actions"
 	"github.com/aweris/gale/tools/ghx/log"
 )
 
 type Runner struct {
-	jr        *core.JobRun   // jr is the job run configuration.
-	executor  TaskExecutor   // executor is the main task executor that executes the job and keeps the execution information.
-	stepTasks []TaskExecutor // stepTasks are the step task executors that execute the steps and keep the execution information.
+	jr        *core.JobRun         // jr is the job run configuration.
+	context   *actions.ExprContext // context is the expression context for the job run.
+	executor  TaskExecutor         // executor is the main task executor that executes the job and keeps the execution information.
+	stepTasks []TaskExecutor       // stepTasks are the step task executors that execute the steps and keep the execution information.
 }
 
 func Plan(jr *core.JobRun) (*Runner, error) {
-	runner := &Runner{jr: jr}
+	runner := &Runner{
+		jr:      jr,
+		context: actions.NewExprContext(),
+	}
 
 	// main task executor that executes the job
 	runner.executor = NewTaskExecutor(jr.Job.Name, run(runner))

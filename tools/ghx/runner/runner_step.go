@@ -52,7 +52,6 @@ var _ Step = new(StepAction)
 // StepAction is a step that runs an action.
 type StepAction struct {
 	runner *Runner
-	ac     *actions.ExprContext
 	Step   core.Step
 	Action core.CustomAction
 }
@@ -79,7 +78,7 @@ func (s *StepAction) preCondition() TaskConditionalFn {
 			return false, "", nil
 		}
 
-		return evalStepCondition(s.Action.Meta.Runs.PreIf, s.ac)
+		return evalStepCondition(s.Action.Meta.Runs.PreIf, s.runner.context)
 	}
 }
 
@@ -98,7 +97,7 @@ func (s *StepAction) pre() TaskExecutorFn {
 
 func (s *StepAction) mainCondition() TaskConditionalFn {
 	return func(ctx context.Context) (bool, core.Conclusion, error) {
-		return evalStepCondition(s.Step.If, s.ac)
+		return evalStepCondition(s.Step.If, s.runner.context)
 	}
 }
 
@@ -122,7 +121,7 @@ func (s *StepAction) postCondition() TaskConditionalFn {
 			return false, "", nil
 		}
 
-		return evalStepCondition(s.Action.Meta.Runs.PostIf, s.ac)
+		return evalStepCondition(s.Action.Meta.Runs.PostIf, s.runner.context)
 	}
 }
 
@@ -144,7 +143,6 @@ var _ Step = new(StepRun)
 // StepRun is a step that runs a job.
 type StepRun struct {
 	runner    *Runner
-	ac        *actions.ExprContext
 	Step      core.Step
 	Shell     string   // Shell is the shell to use to run the script.
 	ShellArgs []string // ShellArgs are the arguments to pass to the shell.
@@ -189,7 +187,7 @@ func (s *StepRun) pre() TaskExecutorFn {
 
 func (s *StepRun) mainCondition() TaskConditionalFn {
 	return func(ctx context.Context) (bool, core.Conclusion, error) {
-		return evalStepCondition(s.Step.If, s.ac)
+		return evalStepCondition(s.Step.If, s.runner.context)
 	}
 }
 
