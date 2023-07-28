@@ -47,6 +47,7 @@ func NewExprContext() *ExprContext {
 				GraphqlURL: os.Getenv("GITHUB_GRAPHQL_URL"),
 				ServerURL:  os.Getenv("GITHUB_SERVER_URL"),
 			},
+			GithubFilesContext: core.GithubFilesContext{ /* No initial values */ },
 		},
 	}
 }
@@ -59,9 +60,13 @@ func NewExprContext() *ExprContext {
 //
 // See: https://docs.github.com/en/actions/learn-github-actions/contexts#github-context
 type GithubContext struct {
+	// Global contexts - these are applied to container and available to all steps.
 	core.GithubRepositoryContext
 	core.GithubSecretsContext
 	core.GithubURLContext
+
+	// Local contexts - these contexts changes at course of the workflow run.
+	core.GithubFilesContext
 
 	// TODO: add missing contexts when needed.
 }
@@ -95,4 +100,32 @@ func (c *ExprContext) GetVariable(name string) (interface{}, error) {
 	default:
 		return nil, fmt.Errorf("unknown variable: %s", name)
 	}
+}
+
+// WithGithubEnv sets `github.env` from the given environment file. This is path of the temporary file that holds the
+// environment variables
+func (c *ExprContext) WithGithubEnv(ef *core.EnvironmentFile) *ExprContext {
+	c.Github.GithubFilesContext.Env = ef.Path
+
+	return c
+}
+
+// WithoutGithubEnv removes `github.env` from the context.
+func (c *ExprContext) WithoutGithubEnv() *ExprContext {
+	c.Github.GithubFilesContext.Env = ""
+
+	return c
+}
+
+// WithGithubPath sets `github.path` from the given environment file. This is path of the temporary file that holds the
+func (c *ExprContext) WithGithubPath(ef *core.EnvironmentFile) *ExprContext {
+	c.Github.GithubFilesContext.Path = ef.Path
+
+	return c
+}
+
+// WithoutGithubPath removes `github.path` from the context.
+func (c *ExprContext) WithoutGithubPath() *ExprContext {
+	c.Github.GithubFilesContext.Path = ""
+	return c
 }

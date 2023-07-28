@@ -117,3 +117,12 @@ func (c GithubURLContext) Apply(container *dagger.Container) *dagger.Container {
 		WithEnvVariable("GITHUB_GRAPHQL_URL", c.GraphqlURL).
 		WithEnvVariable("GITHUB_SERVER_URL", c.ServerURL)
 }
+
+// GithubFilesContext is a context that contains paths for files and directories useful to Github Actions.
+//
+// This context changes per step. It'll be used on ghx level to create a temporary file that sets environment variables
+// from workflow commands. It won't be used or applied to the container.
+type GithubFilesContext struct {
+	Env  string // Env is the path to a temporary file that sets environment variables from workflow commands.
+	Path string // Path is the path to a temporary file that sets the system PATH variable from workflow commands.
+}

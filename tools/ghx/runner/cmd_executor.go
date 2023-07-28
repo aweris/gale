@@ -87,6 +87,7 @@ func (c *CmdExecutor) Execute(_ context.Context) error {
 	if err != nil {
 		return err
 	}
+	defer c.unloadEnvFiles()
 
 	// add environment variables
 
@@ -194,5 +195,17 @@ func (c *CmdExecutor) loadEnvFiles() error {
 	c.env[core.EnvFileNameGithubStepSummary] = stepSummary.Path
 	c.envFiles.StepSummary = stepSummary
 
+	// update the expression context with the environment files
+	c.ec.WithGithubEnv(env).WithGithubPath(path)
+
 	return nil
+}
+
+// unloadEnvFiles removes the environment files from the expression context
+func (c *CmdExecutor) unloadEnvFiles() {
+	if c.envFiles == nil {
+		return
+	}
+
+	c.ec.WithoutGithubEnv().WithoutGithubPath()
 }
