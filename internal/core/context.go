@@ -123,8 +123,8 @@ func (c GithubURLContext) Apply(container *dagger.Container) *dagger.Container {
 // This context changes per step. It'll be used on ghx level to create a temporary file that sets environment variables
 // from workflow commands. It won't be used or applied to the container.
 type GithubFilesContext struct {
-	Env  string // Env is the path to a temporary file that sets environment variables from workflow commands.
-	Path string // Path is the path to a temporary file that sets the system PATH variable from workflow commands.
+	Env  string `json:"env"`  // Env is the path to a temporary file that sets environment variables from workflow commands.
+	Path string `json:"path"` // Path is the path to a temporary file that sets the system PATH variable from workflow commands.
 }
 
 // StepContext is a context that contains information about the step.
