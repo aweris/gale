@@ -71,11 +71,19 @@ func getPropertyValueFromStruct(left reflect.Value, property string) (interface{
 	leftType := left.Type()
 	fieldIndex := findFieldIndexByJSONTag(leftType, property)
 
-	if fieldIndex < 0 {
+	if len(fieldIndex) == 0 {
 		return nil, fmt.Errorf("property '%s' not found in struct", property)
 	}
 
-	fieldValue := left.Field(fieldIndex)
+	var fieldValue reflect.Value
+
+	for i, index := range fieldIndex {
+		if i == 0 {
+			fieldValue = left.Field(index)
+		} else {
+			fieldValue = fieldValue.Field(index)
+		}
+	}
 
 	if fieldValue.Kind() == reflect.Invalid {
 		return nil, nil
@@ -95,14 +103,23 @@ func getPropertyValueFromStruct(left reflect.Value, property string) (interface{
 }
 
 // findFieldIndexByJSONTag finds the index of the field with the specified JSON tag in the given struct type.
-func findFieldIndexByJSONTag(structType reflect.Type, jsonTag string) int {
+func findFieldIndexByJSONTag(structType reflect.Type, jsonTag string) []int {
 	for i := 0; i < structType.NumField(); i++ {
-		if structType.Field(i).Tag.Get("json") == jsonTag {
-			return i
+		field := structType.Field(i)
+
+		if field.Tag.Get("json") == jsonTag {
+			return []int{i}
+		}
+
+		if field.Type.Kind() == reflect.Struct && field.Anonymous {
+			nested := findFieldIndexByJSONTag(field.Type, jsonTag)
+			if len(nested) > 0 {
+				return append([]int{i}, nested...)
+			}
 		}
 	}
 
-	return -1
+	return []int{}
 }
 
 // unwrapValue unwraps the underlying value of the given reflect.Value, de-referencing it if it is a pointer.

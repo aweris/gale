@@ -88,11 +88,48 @@ func TestFindFieldIndexByJSONTag(t *testing.T) {
 
 	structType := reflect.TypeOf(TestStruct{})
 	jsonTag := "field_2"
-	expected := 1
+	expected := []int{1}
 
 	index := findFieldIndexByJSONTag(structType, jsonTag)
 
-	if index != expected {
+	if !reflect.DeepEqual(index, expected) {
+		t.Errorf("Incorrect field index. Expected: %d, Got: %d", expected, index)
+	}
+}
+
+func TestFindFieldIndexByJSONTagNotFound(t *testing.T) {
+	type TestStruct struct {
+		Field1 string `json:"field_1"`
+		Field2 int    `json:"field_2"`
+	}
+
+	structType := reflect.TypeOf(TestStruct{})
+	jsonTag := "field_3"
+
+	index := findFieldIndexByJSONTag(structType, jsonTag)
+
+	if len(index) != 0 {
+		t.Errorf("index should be empty. Got: %d", index)
+	}
+}
+
+func TestFindFieldIndexByJSONTagAnonymous(t *testing.T) {
+	type TestStruct struct {
+		Field1 string `json:"field_1"`
+		Field2 int    `json:"field_2"`
+	}
+
+	type TestStruct2 struct {
+		TestStruct
+	}
+
+	structType := reflect.TypeOf(TestStruct2{})
+	jsonTag := "field_2"
+	expected := []int{0, 1}
+
+	index := findFieldIndexByJSONTag(structType, jsonTag)
+
+	if !reflect.DeepEqual(index, expected) {
 		t.Errorf("Incorrect field index. Expected: %d, Got: %d", expected, index)
 	}
 }
