@@ -71,6 +71,7 @@ func Run(ctx context.Context, workflow, job string, opts ...RunOpts) dagger.With
 		container = container.With(core.NewRunnerContext().Apply)
 		container = container.With(core.NewGithubRepositoryContext(repo).Apply)
 		container = container.With(core.NewGithubSecretsContext(token).Apply)
+		container = container.With(core.NewGithubURLContext().Apply)
 
 		// job run configuration
 		container = container.WithDirectory(config.GhxRunDir(runID), dir)

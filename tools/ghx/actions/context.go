@@ -42,6 +42,11 @@ func NewExprContext() *ExprContext {
 			GithubSecretsContext: core.GithubSecretsContext{
 				Token: os.Getenv("GITHUB_TOKEN"),
 			},
+			GithubURLContext: core.GithubURLContext{
+				ApiURL:     os.Getenv("GITHUB_API_URL"),
+				GraphqlURL: os.Getenv("GITHUB_GRAPHQL_URL"),
+				ServerURL:  os.Getenv("GITHUB_SERVER_URL"),
+			},
 		},
 	}
 }
@@ -56,6 +61,7 @@ func NewExprContext() *ExprContext {
 type GithubContext struct {
 	core.GithubRepositoryContext
 	core.GithubSecretsContext
+	core.GithubURLContext
 
 	// TODO: add missing contexts when needed.
 }

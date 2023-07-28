@@ -93,3 +93,27 @@ func NewGithubSecretsContext(token string) GithubSecretsContext {
 func (c GithubSecretsContext) Apply(container *dagger.Container) *dagger.Container {
 	return container.WithSecretVariable("GITHUB_TOKEN", config.Client().SetSecret("GITHUB_TOKEN", c.Token))
 }
+
+// GithubURLContext is a context that contains URLs for the Github server and API.
+type GithubURLContext struct {
+	ApiURL     string `json:"api_url"`     // ApiURL is the URL of the Github API. e.g. https://api.github.com
+	GraphqlURL string `json:"graphql_url"` // GraphqlURL is the URL of the Github GraphQL API. e.g. https://api.github.com/graphql
+	ServerURL  string `json:"server_url"`  // ServerURL is the URL of the Github server. e.g. https://github.com
+}
+
+// NewGithubURLContext creates a new GithubURLContext from the given urls.
+func NewGithubURLContext() GithubURLContext {
+	return GithubURLContext{
+		ApiURL:     "https://api.github.com",
+		GraphqlURL: "https://api.github.com/graphql",
+		ServerURL:  "https://github.com",
+	}
+}
+
+// Apply applies the GithubURLContext to the given container.
+func (c GithubURLContext) Apply(container *dagger.Container) *dagger.Container {
+	return container.
+		WithEnvVariable("GITHUB_API_URL", c.ApiURL).
+		WithEnvVariable("GITHUB_GRAPHQL_URL", c.GraphqlURL).
+		WithEnvVariable("GITHUB_SERVER_URL", c.ServerURL)
+}
