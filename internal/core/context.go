@@ -127,6 +127,15 @@ type GithubFilesContext struct {
 	Path string `json:"path"` // Path is the path to a temporary file that sets the system PATH variable from workflow commands.
 }
 
+// JobContext contains information about the currently running job.
+//
+// See: https://docs.github.com/en/actions/learn-github-actions/contexts#job-context
+type JobContext struct {
+	Status Conclusion `json:"status"` // Status is the current status of the job. Possible values are success, failure, or cancelled.
+
+	// TODO: add other fields when needed.
+}
+
 // StepContext is a context that contains information about the step.
 //
 // This context created per step execution. It won't be used or applied to the container level.

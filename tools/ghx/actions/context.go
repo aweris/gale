@@ -13,6 +13,7 @@ var _ expression.VariableProvider = new(ExprContext)
 
 type ExprContext struct {
 	Github GithubContext               // Github context
+	Job    core.JobContext             // Job context
 	Steps  map[string]core.StepContext // Steps context
 
 	// TODO: add other contexts when needed.
@@ -50,6 +51,9 @@ func NewExprContext() *ExprContext {
 			},
 			GithubFilesContext: core.GithubFilesContext{ /* No initial values */ },
 		},
+		Job: core.JobContext{
+			Status: core.ConclusionSuccess, // start with success status
+		},
 		Steps: make(map[string]core.StepContext),
 	}
 }
@@ -84,7 +88,7 @@ func (c *ExprContext) GetVariable(name string) (interface{}, error) {
 	case "vars":
 		return map[string]string{}, nil
 	case "job":
-		return map[string]string{}, nil
+		return c.Job, nil
 	case "steps":
 		return c.Steps, nil
 	case "secrets":
@@ -193,6 +197,13 @@ func (c *ExprContext) SetStepState(stepID, key, value string) *ExprContext {
 	sc.State[key] = value
 
 	c.Steps[stepID] = sc
+
+	return c
+}
+
+// SetJobStatus sets the status of the job.
+func (c *ExprContext) SetJobStatus(status core.Conclusion) *ExprContext {
+	c.Job.Status = status
 
 	return c
 }

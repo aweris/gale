@@ -85,13 +85,13 @@ func run(r *Runner) TaskExecutorFn {
 				continue
 			}
 
-			// only fail if the step failed and the conclusion is not success.
-			if err != nil && conclusion != core.ConclusionSuccess {
-				// TODO: handle error, remaining steps should have always() or failure() conditions to run
-				//  otherwise they should be cancelled.
+			if err != nil {
+				log.Errorf(te.Name, "error", err.Error())
+			}
 
-				// TODO: re-add this later. it is removed for now to make the to run all steps. otherwise it will stop
-				// return "", err
+			// set the job status to the conclusion of the job status is success and the conclusion is not success.
+			if r.context.Job.Status == core.ConclusionSuccess && conclusion != r.context.Job.Status {
+				r.context.SetJobStatus(conclusion)
 			}
 		}
 
@@ -118,7 +118,7 @@ func setup(r *Runner, setupFns ...TaskExecutorFn) TaskExecutorFn {
 // complete returns a task executor function that will be executed by the task executor for the complete step.
 func complete(r *Runner) TaskExecutorFn {
 	return func(ctx context.Context) (core.Conclusion, error) {
-		log.Info(fmt.Sprintf("Complete job name: %s", r.jr.Job.Name))
+		log.Infof(fmt.Sprintf("Complete job name: %s", r.jr.Job.Name), "conclusion", r.context.Job.Status)
 
 		return core.ConclusionSuccess, nil
 	}
