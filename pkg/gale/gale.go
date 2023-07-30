@@ -50,6 +50,11 @@ func Run(ctx context.Context, workflow, job string, opts ...RunOpts) dagger.With
 			return fail(container, ErrJobNotFound)
 		}
 
+		// ensure job name is set
+		if jm.Name == "" {
+			jm.Name = job
+		}
+
 		runID := uuid.New().String()
 
 		jr := &core.JobRun{
