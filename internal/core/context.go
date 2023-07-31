@@ -24,8 +24,8 @@ func NewRunnerContext() RunnerContext {
 		OS:        "linux",
 		Arch:      "x64",
 		Temp:      "/home/runner/_temp",
-		ToolCache: "/opt/hostedtoolcache",
-		Debug:     "0", // TODO: This should be configurable. Read from config.Debug()
+		ToolCache: "/home/runner/hostedtoolcache", // /opt/hostedtoolcache is used by our base runner image and if we mount it we'll lose the tools installed by the base image.
+		Debug:     "0",                            // TODO: This should be configurable. Read from config.Debug()
 	}
 }
 
@@ -37,6 +37,7 @@ func (c RunnerContext) Apply(container *dagger.Container) *dagger.Container {
 		WithEnvVariable("RUNNER_OS", c.OS).
 		WithEnvVariable("RUNNER_ARCH", c.Arch).
 		WithEnvVariable("RUNNER_TOOL_CACHE", c.ToolCache).
+		WithMountedCache(c.ToolCache, config.Client().CacheVolume("RUNNER_TOOL_CACHE")).
 		WithEnvVariable("RUNNER_DEBUG", c.Debug)
 }
 
