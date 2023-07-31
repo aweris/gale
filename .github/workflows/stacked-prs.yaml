@@ -1,0 +1,21 @@
+on:
+  issues:
+    types: [ opened, edited, reopened, closed ]
+  pull_request_target:
+    types: [ opened, edited, reopened, synchronize, closed ]
+
+jobs:
+  check-for-stacked-prs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: z0al/dependent-issues@v1
+        env:
+          # (Required) The token to use to make API calls to GitHub.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # (Optional) The label to use to mark dependent issues
+          label: stacked
+
+          # (Optional) A comma-separated list of keywords. Default
+          # "depends on, blocked by"
+          keywords: depends on, blocked by

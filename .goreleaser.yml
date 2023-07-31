@@ -1,0 +1,57 @@
+project_name: gale
+
+changelog:
+  use: github
+  groups:
+    - title: Features
+      regexp: "^.*feat[(\\w)]*:+.*$"
+      order: 0
+    - title: 'Bug fixes'
+      regexp: "^.*fix[(\\w)]*:+.*$"
+      order: 1
+  filters:
+    exclude:
+      - '^docs:'
+      - '^chore:'
+      - '^build:'
+
+release:
+  footer: |
+    ### Summary
+    **Full Changelog**: https://github.com/aweris/gale/compare/{{ .PreviousTag }}...{{ .Tag }}
+
+builds:
+  - id: gale
+    binary: gale
+    dir: cmd/gale
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s
+      - -w
+      - -X 'github.com/aweris/gale/internal/version.commitDate={{ .CommitDate }}'
+      - -X 'github.com/aweris/gale/internal/version.gitCommit={{ .FullCommit }}'
+      - -X 'github.com/aweris/gale/internal/version.gitVersion=v{{ trimprefix .Version "v" }}'
+      - -X 'github.com/aweris/gale/internal/version.major={{ .Major }}'
+      - -X 'github.com/aweris/gale/internal/version.minor={{ .Minor }}'
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    mod_timestamp: '{{ .CommitTimestamp }}'
+
+# package only the binary
+archives:
+  - format: gz
+    files:
+      - none*
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  name_template: '{{ incpatch .Version }}-snapshot'
