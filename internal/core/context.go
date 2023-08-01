@@ -97,6 +97,7 @@ func (c GithubSecretsContext) Apply(container *dagger.Container) *dagger.Contain
 
 // GithubURLContext is a context that contains URLs for the Github server and API.
 type GithubURLContext struct {
+	//nolint:revive,stylecheck // ApiURL is more readable than APIURL
 	ApiURL     string `json:"api_url"`     // ApiURL is the URL of the Github API. e.g. https://api.github.com
 	GraphqlURL string `json:"graphql_url"` // GraphqlURL is the URL of the Github GraphQL API. e.g. https://api.github.com/graphql
 	ServerURL  string `json:"server_url"`  // ServerURL is the URL of the Github server. e.g. https://github.com

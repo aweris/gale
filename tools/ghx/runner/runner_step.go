@@ -103,7 +103,6 @@ func (s *StepAction) mainCondition() TaskConditionalFn {
 
 func (s *StepAction) main() TaskExecutorFn {
 	return func(ctx context.Context) (core.Conclusion, error) {
-
 		cmd := NewCmdExecutorFromStepAction(s, s.Action.Meta.Runs.Main)
 
 		err := cmd.Execute(ctx)

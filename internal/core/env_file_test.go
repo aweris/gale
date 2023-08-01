@@ -22,7 +22,11 @@ This is a multi-line
 value for key6.
 END
 `
-	dir := os.TempDir()
+
+	dir, err := os.MkdirTemp("", "test_env_file")
+	if err != nil {
+		t.Fatalf("Failed to create temporary directory: %v", err)
+	}
 	defer os.RemoveAll(dir)
 
 	file := filepath.Join(dir, "test_env_file.txt")
@@ -78,7 +82,10 @@ Some text here
 
 More text here`
 
-	dir := os.TempDir()
+	dir, err := os.MkdirTemp("", "test_env_file")
+	if err != nil {
+		t.Fatalf("Failed to create temporary directory: %v", err)
+	}
 	defer os.RemoveAll(dir)
 
 	file := filepath.Join(dir, "test_env_file.txt")
@@ -102,7 +109,7 @@ More text here`
 	}
 
 	// Compare the expected data with the actual data
-	if string(rawData) != testData {
-		t.Errorf("Expected raw data to be '%s', but got '%s'", testData, string(rawData))
+	if rawData != testData {
+		t.Errorf("Expected raw data to be '%s', but got '%s'", testData, rawData)
 	}
 }

@@ -10,7 +10,6 @@ import (
 
 // NewCommand  creates a new root command.
 func NewCommand() *cobra.Command {
-
 	// TODO: improve DX here. It expects run-id as the first argument and config file should be stored in a specific location with a specific name
 	return &cobra.Command{
 		Use:   "run <run-id> [flags]",
@@ -33,11 +32,7 @@ func NewCommand() *cobra.Command {
 				return err
 			}
 
-			if err := runner.Run(cmd.Context()); err != nil {
-				return err
-			}
-
-			return nil
+			return runner.Run(cmd.Context())
 		},
 	}
 }

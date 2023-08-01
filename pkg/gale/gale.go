@@ -87,7 +87,7 @@ func Run(ctx context.Context, workflow, job string, opts ...RunOpts) dagger.With
 }
 
 // ExecutionEnv returns a dagger function that sets the execution environment of the gale to the given container.
-func ExecutionEnv(ctx context.Context) dagger.WithContainerFunc {
+func ExecutionEnv(_ context.Context) dagger.WithContainerFunc {
 	return func(container *dagger.Container) *dagger.Container {
 		// pass dagger context to the container
 		container = container.With(core.NewDaggerContextFromEnv().Apply)

@@ -78,7 +78,7 @@ func (t *TaskExecutor) Run(ctx context.Context) (run bool, conclusion core.Concl
 				log.Info(fmt.Sprintf("%s (%s)", t.Name, conclusion))
 			}
 
-			return
+			return run, conclusion, err
 		}
 	}
 
@@ -94,5 +94,5 @@ func (t *TaskExecutor) Run(ctx context.Context) (run bool, conclusion core.Concl
 	t.CompletedAt = time.Now()
 	t.Status = core.StatusCompleted
 
-	return
+	return run, conclusion, err
 }

@@ -10,7 +10,6 @@ import (
 
 // NewCommand  creates a new root command.
 func NewCommand() *cobra.Command {
-
 	var (
 		repo     string
 		getOpts  core.GetRepositoryOpts

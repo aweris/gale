@@ -27,8 +27,8 @@ func Plan(jr *core.JobRun) (*Runner, error) {
 
 	// step task executors that execute the steps
 
-	var setupFns []TaskExecutorFn
-
+	// pre allocate the slices to avoid reallocation.
+	setupFns := make([]TaskExecutorFn, 0, len(jr.Job.Steps))
 	tasks := make([]TaskExecutor, len(jr.Job.Steps)*3)
 
 	for idx, step := range jr.Job.Steps {

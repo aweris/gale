@@ -62,7 +62,7 @@ func TestCustomActionManager_GetCustomAction(t *testing.T) {
 		}
 
 		// create the action metadata file
-		err := os.WriteFile(filepath.Join(target, "action.yml"), []byte("name: some-action"), 0700)
+		err := os.WriteFile(filepath.Join(target, "action.yml"), []byte("name: some-action"), 0600)
 		if err != nil {
 			t.Fatal(err)
 		}

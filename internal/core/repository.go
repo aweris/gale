@@ -80,15 +80,16 @@ func GetRepository(name string, opts ...GetRepositoryOpts) (*Repository, error) 
 	git := config.Client().Git(repo.URL, dagger.GitOpts{KeepGitDir: true})
 
 	// load repo tree based on the options precedence
-	if opt.Commit != "" {
+	switch {
+	case opt.Commit != "":
 		dir = git.Commit(opt.Commit).Tree()
-	} else if opt.Tag != "" {
+	case opt.Tag != "":
 		dir = git.Tag(opt.Tag).Tree()
-	} else if opt.Branch != "" {
+	case opt.Branch != "":
 		dir = git.Branch(opt.Branch).Tree()
-	} else if name != "" {
+	case name != "":
 		dir = git.Branch(repo.DefaultBranchRef.Name).Tree()
-	} else {
+	default:
 		// TODO: current directory could be a subdirectory of the repository. Should we handle this case?
 		dir = config.Client().Host().Directory(".")
 	}

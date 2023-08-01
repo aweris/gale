@@ -51,8 +51,8 @@ func TestGetCurrentRepository(t *testing.T) {
 		t.Fatalf("Failed to get file contents: %s", err)
 	}
 
-	if string(data) != "Hello World" {
-		t.Fatalf("Expected file contents to be Hello World but got %s", string(data))
+	if data != "Hello World" {
+		t.Fatalf("Expected file contents to be Hello World but got %s", data)
 	}
 }
 
@@ -126,5 +126,4 @@ func TestLoadWorkflows(t *testing.T) {
 	if _, ok := workflows["testdata/workflows/test-workflow-without-name.yml"]; !ok {
 		t.Fatalf("Expected workflow example-golangci-lint to be loaded but not found")
 	}
-
 }

@@ -98,6 +98,7 @@ func NewCmdExecutorFromStepRun(sr *StepRun) *CmdExecutor {
 }
 
 func (c *CmdExecutor) Execute(_ context.Context) error {
+	//nolint:gosec // this is a command executor, we need to execute the command as it is
 	cmd := exec.Command(c.args[0], c.args[1:]...)
 
 	stdout := bytes.NewBuffer(nil)
@@ -169,7 +170,10 @@ func (c *CmdExecutor) Execute(_ context.Context) error {
 				continue
 			}
 
-			c.processWorkflowCommands(command)
+			err := c.processWorkflowCommands(command)
+			if err != nil {
+				log.Errorf("failed to process workflow command", "error", err.Error(), "output", output)
+			}
 		}
 	}()
 
