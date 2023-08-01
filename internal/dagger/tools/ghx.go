@@ -16,11 +16,6 @@ func Ghx(ctx context.Context) (*dagger.File, error) {
 
 	tag := v.GitVersion
 
-	// If the tag is a dev tag, we'll use the main branch.
-	if tag == "v0.0.0-dev" {
-		tag = "main"
-	}
-
 	file := config.Client().Container().From("ghcr.io/aweris/gale/tools/ghx:" + tag).File("/ghx")
 
 	// check, if the file doesn't exist or is empty
