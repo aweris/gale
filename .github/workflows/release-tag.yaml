@@ -27,7 +27,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  artifact-service:
+  ghx:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -46,4 +46,4 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish artifact-service
-        run: ./hack/mage services:artifact:publish ${{ github.ref }}
+        run: ./hack/mage tools:ghx:publish ${{ github.ref }}

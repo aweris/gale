@@ -8,7 +8,7 @@ permissions:
   packages: write
 
 jobs:
-  artifact-service:
+  ghx:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -27,4 +27,4 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish artifact-service
-        run: ./hack/mage services:artifact:publish main
+        run: ./hack/mage tools:ghx:publish main

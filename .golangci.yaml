@@ -1,0 +1,46 @@
+linters:
+  disable-all: true
+  enable:
+    - bodyclose
+    - depguard
+    - dogsled
+    - dupl
+    - exportloopref
+    - goconst
+    - gocritic
+    - gocyclo
+    - gofmt
+    - goimports
+    - goprintffuncname
+    - gosec
+    - gosimple
+    - govet
+    - ineffassign
+    - misspell
+    - nakedret
+    - prealloc
+    - revive
+    - rowserrcheck
+    - staticcheck
+    - stylecheck
+    - typecheck
+    - unconvert
+    - unparam
+    - unused
+    - unused
+    - whitespace
+
+linters-settings:
+  depguard:
+    rules:
+      main:
+        allow:
+          - $gostd
+          - dagger.io/dagger
+          - github.com/aweris/gale
+          - github.com/spf13/cobra
+          - github.com/spf13/pflag
+          - github.com/cli/go-gh/v2
+          - github.com/Masterminds/semver/v3
+          - github.com/google/uuid
+          - github.com/rhysd/actionlint

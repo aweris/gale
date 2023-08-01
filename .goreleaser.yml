@@ -23,7 +23,7 @@ release:
 builds:
   - id: gale
     binary: gale
-    dir: .
+    dir: cmd/gale
     env:
       - CGO_ENABLED=0
     flags:
