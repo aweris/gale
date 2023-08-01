@@ -27,6 +27,11 @@ func (_ Ghx) Publish(ctx context.Context, version string) error {
 
 	image := fmt.Sprintf("ghcr.io/aweris/gale/tools/ghx:%s", version)
 
+	// If the registry is set, we'll use that instead of the default one. This is useful for testing and development.
+	if registry := os.Getenv("_GALE_DOCKER_REGISTRY"); registry != "" {
+		image = fmt.Sprintf("%s/aweris/gale/tools/ghx:%s", registry, version)
+	}
+
 	client, err := dagger.Connect(ctx, dagger.WithLogOutput(os.Stdout))
 	if err != nil {
 		return err
