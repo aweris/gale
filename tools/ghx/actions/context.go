@@ -13,6 +13,7 @@ var _ expression.VariableProvider = new(ExprContext)
 
 type ExprContext struct {
 	Github GithubContext               // Github context
+	Runner core.RunnerContext          // Runner context
 	Job    core.JobContext             // Job context
 	Steps  map[string]core.StepContext // Steps context
 
@@ -59,6 +60,14 @@ func NewExprContext() *ExprContext {
 			},
 			GithubFilesContext: core.GithubFilesContext{ /* No initial values */ },
 		},
+		Runner: core.RunnerContext{
+			Name:      os.Getenv("RUNNER_NAME"),
+			OS:        os.Getenv("RUNNER_OS"),
+			Arch:      os.Getenv("RUNNER_ARCH"),
+			Temp:      os.Getenv("RUNNER_TEMP"),
+			ToolCache: os.Getenv("RUNNER_TOOL_CACHE"),
+			Debug:     os.Getenv("RUNNER_DEBUG"),
+		},
 		Job: core.JobContext{
 			Status: core.ConclusionSuccess, // start with success status
 		},
@@ -92,7 +101,7 @@ func (c *ExprContext) GetVariable(name string) (interface{}, error) {
 	case "github":
 		return c.Github, nil
 	case "runner":
-		return map[string]string{}, nil
+		return c.Runner, nil
 	case "env":
 		return map[string]string{}, nil
 	case "vars":
