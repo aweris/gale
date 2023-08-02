@@ -18,7 +18,7 @@ import (
 
 type Artifact mg.Namespace
 
-// Publish publishes the artifact service to ghcr.io/aweris/gale/services/artifact with the given version.
+// Publish publishes the artifact service with the given version.
 func (_ Artifact) Publish(ctx context.Context, version string) error {
 	if version != "main" {
 		if ok := semver.IsValid(version); !ok {
