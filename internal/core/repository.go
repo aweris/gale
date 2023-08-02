@@ -12,6 +12,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/cli/go-gh/v2"
+	"github.com/magefile/mage/sh"
 
 	"github.com/aweris/gale/internal/config"
 )
@@ -24,6 +25,7 @@ type Repository struct {
 	URL              string
 	Owner            RepositoryOwner
 	DefaultBranchRef RepositoryBranchRef
+	CurrentRef       string
 	Dir              *dagger.Directory // Dir is the directory where the repository is checked out
 }
 
@@ -70,7 +72,10 @@ func GetRepository(name string, opts ...GetRepositoryOpts) (*Repository, error) 
 		return nil, fmt.Errorf("failed to unmarshal current repository: %s err: %w", stdout.String(), err)
 	}
 
-	var dir *dagger.Directory
+	var (
+		ref string
+		dir *dagger.Directory
+	)
 
 	opt := GetRepositoryOpts{}
 	if len(opts) > 0 {
@@ -83,18 +88,31 @@ func GetRepository(name string, opts ...GetRepositoryOpts) (*Repository, error) 
 	switch {
 	case opt.Commit != "":
 		dir = git.Commit(opt.Commit).Tree()
+
 	case opt.Tag != "":
 		dir = git.Tag(opt.Tag).Tree()
+		ref = fmt.Sprintf("refs/tags/%s", opt.Tag)
 	case opt.Branch != "":
 		dir = git.Branch(opt.Branch).Tree()
+		ref = fmt.Sprintf("refs/heads/%s", opt.Branch)
 	case name != "":
 		dir = git.Branch(repo.DefaultBranchRef.Name).Tree()
+		ref = fmt.Sprintf("refs/heads/%s", repo.DefaultBranchRef.Name)
 	default:
 		// TODO: current directory could be a subdirectory of the repository. Should we handle this case?
 		dir = config.Client().Host().Directory(".")
+
+		// get current ref name
+		rev, err := sh.Output("git", "rev-parse", "--symbolic-full-name", "HEAD")
+		if err != nil {
+			return nil, err
+		}
+
+		ref = strings.TrimSpace(rev)
 	}
 
 	repo.Dir = dir
+	repo.CurrentRef = ref
 
 	return &repo, nil
 }
@@ -127,7 +145,7 @@ func (r *Repository) LoadWorkflows(ctx context.Context, opts ...RepositoryLoadWo
 		if strings.HasSuffix(entry, ".yaml") || strings.HasSuffix(entry, ".yml") {
 			file := dir.File(entry)
 
-			workflow, err := loadWorkflow(ctx, filepath.Join(path, entry), file)
+			workflow, err := r.loadWorkflow(ctx, filepath.Join(path, entry), file)
 			if err != nil {
 				return nil, err
 			}
@@ -141,7 +159,7 @@ func (r *Repository) LoadWorkflows(ctx context.Context, opts ...RepositoryLoadWo
 
 // loadWorkflow loads a workflow from a file. If the workflow name is not provided, the relative path to the workflow
 // file will be used as the workflow name.
-func loadWorkflow(ctx context.Context, path string, file *dagger.File) (*Workflow, error) {
+func (r *Repository) loadWorkflow(ctx context.Context, path string, file *dagger.File) (*Workflow, error) {
 	content, err := file.Contents(ctx)
 	if err != nil {
 		return nil, err
@@ -159,6 +177,17 @@ func loadWorkflow(ctx context.Context, path string, file *dagger.File) (*Workflo
 	if workflow.Name == "" {
 		workflow.Name = path
 	}
+
+	// TODO: this is an expensive operation. We should move this to a separate method and call it only when needed.
+
+	api := fmt.Sprintf("repos/%s/contents/%s?ref=%s", r.NameWithOwner, path, r.CurrentRef)
+
+	stdout, stderr, err := gh.Exec("api", api, "--jq", ".sha")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get current repository: %w stderr: %s", err, stderr.String())
+	}
+
+	workflow.SHA = strings.TrimSpace(stdout.String())
 
 	return &workflow, nil
 }

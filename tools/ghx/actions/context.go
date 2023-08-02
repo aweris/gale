@@ -13,6 +13,7 @@ var _ expression.VariableProvider = new(ExprContext)
 
 type ExprContext struct {
 	Github GithubContext               // Github context
+	Runner core.RunnerContext          // Runner context
 	Job    core.JobContext             // Job context
 	Steps  map[string]core.StepContext // Steps context
 
@@ -49,7 +50,23 @@ func NewExprContext() *ExprContext {
 				GraphqlURL: os.Getenv("GITHUB_GRAPHQL_URL"),
 				ServerURL:  os.Getenv("GITHUB_SERVER_URL"),
 			},
+			GithubWorkflowContext: core.GithubWorkflowContext{
+				Workflow:    os.Getenv("GITHUB_WORKFLOW"),
+				WorkflowRef: os.Getenv("GITHUB_WORKFLOW_REF"),
+				WorkflowSHA: os.Getenv("GITHUB_WORKFLOW_SHA"),
+			},
+			GithubJobInfoContext: core.GithubJobInfoContext{
+				Job: os.Getenv("GITHUB_JOB"),
+			},
 			GithubFilesContext: core.GithubFilesContext{ /* No initial values */ },
+		},
+		Runner: core.RunnerContext{
+			Name:      os.Getenv("RUNNER_NAME"),
+			OS:        os.Getenv("RUNNER_OS"),
+			Arch:      os.Getenv("RUNNER_ARCH"),
+			Temp:      os.Getenv("RUNNER_TEMP"),
+			ToolCache: os.Getenv("RUNNER_TOOL_CACHE"),
+			Debug:     os.Getenv("RUNNER_DEBUG"),
 		},
 		Job: core.JobContext{
 			Status: core.ConclusionSuccess, // start with success status
@@ -70,6 +87,8 @@ type GithubContext struct {
 	core.GithubRepositoryContext
 	core.GithubSecretsContext
 	core.GithubURLContext
+	core.GithubWorkflowContext
+	core.GithubJobInfoContext
 
 	// Local contexts - these contexts changes at course of the workflow run.
 	core.GithubFilesContext
@@ -82,7 +101,7 @@ func (c *ExprContext) GetVariable(name string) (interface{}, error) {
 	case "github":
 		return c.Github, nil
 	case "runner":
-		return map[string]string{}, nil
+		return c.Runner, nil
 	case "env":
 		return map[string]string{}, nil
 	case "vars":
