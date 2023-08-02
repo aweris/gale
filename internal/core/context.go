@@ -131,17 +131,25 @@ type GithubFilesContext struct {
 
 // GithubWorkflowContext is a context that contains information about the workflow.
 type GithubWorkflowContext struct {
-	Workflow    string `json:"workflow"`     // Workflow is the name of the workflow. If the workflow file doesn't specify a name, the value of this property is the full path of the workflow file in the repository.
-	WorkflowRef string `json:"workflow_ref"` // WorkflowRef is the ref path to the workflow. For example, octocat/hello-world/.github/workflows/my-workflow.yml@refs/heads/my_branch.
-	WorkflowSHA string `json:"workflow_sha"` // WorkflowSHA is the commit SHA for the workflow file.
+	Workflow      string `json:"workflow"`       // Workflow is the name of the workflow. If the workflow file doesn't specify a name, the value of this property is the full path of the workflow file in the repository.
+	WorkflowRef   string `json:"workflow_ref"`   // WorkflowRef is the ref path to the workflow. For example, octocat/hello-world/.github/workflows/my-workflow.yml@refs/heads/my_branch.
+	WorkflowSHA   string `json:"workflow_sha"`   // WorkflowSHA is the commit SHA for the workflow file.
+	RunID         string `json:"run_id"`         // RunID is a unique number for each workflow run within a repository. This number does not change if you re-run the workflow run.
+	RunNumber     string `json:"run_number"`     // RunNumber is a unique number for each run of a particular workflow in a repository. This number begins at 1 for the workflow's first run, and increments with each new run. This number does not change if you re-run the workflow run.
+	RunAttempt    string `json:"run_attempt"`    // RunAttempt is a unique number for each attempt of a particular workflow run in a repository. This number begins at 1 for the workflow run's first attempt, and increments with each re-run.
+	RetentionDays string `json:"retention_days"` // RetentionDays is the number of days that workflow run logs and artifacts are kept.
 }
 
 // NewGithubWorkflowContext creates a new GithubWorkflowContext from the given workflow.
-func NewGithubWorkflowContext(repo *Repository, workflow *Workflow) GithubWorkflowContext {
+func NewGithubWorkflowContext(repo *Repository, workflow *Workflow, runID string) GithubWorkflowContext {
 	return GithubWorkflowContext{
-		Workflow:    workflow.Name,
-		WorkflowRef: fmt.Sprintf("%s/%s@%s", repo.NameWithOwner, workflow.Path, repo.CurrentRef),
-		WorkflowSHA: workflow.SHA,
+		Workflow:      workflow.Name,
+		WorkflowRef:   fmt.Sprintf("%s/%s@%s", repo.NameWithOwner, workflow.Path, repo.CurrentRef),
+		WorkflowSHA:   workflow.SHA,
+		RunID:         runID,
+		RunNumber:     "1", // TODO: fill this value
+		RunAttempt:    "1", // TODO: fill this value
+		RetentionDays: "0", // TODO: fill this value
 	}
 }
 
@@ -150,7 +158,11 @@ func (c GithubWorkflowContext) Apply(container *dagger.Container) *dagger.Contai
 	return container.
 		WithEnvVariable("GITHUB_WORKFLOW", c.Workflow).
 		WithEnvVariable("GITHUB_WORKFLOW_REF", c.WorkflowRef).
-		WithEnvVariable("GITHUB_WORKFLOW_SHA", c.WorkflowSHA)
+		WithEnvVariable("GITHUB_WORKFLOW_SHA", c.WorkflowSHA).
+		WithEnvVariable("GITHUB_RUN_ID", c.RunID).
+		WithEnvVariable("GITHUB_RUN_NUMBER", c.RunNumber).
+		WithEnvVariable("GITHUB_RUN_ATTEMPT", c.RunAttempt).
+		WithEnvVariable("GITHUB_RETENTION_DAYS", c.RetentionDays)
 }
 
 // GithubJobInfoContext is a context that contains information about the job.
