@@ -129,6 +129,47 @@ type GithubFilesContext struct {
 	Path string `json:"path"` // Path is the path to a temporary file that sets the system PATH variable from workflow commands.
 }
 
+// GithubWorkflowContext is a context that contains information about the workflow.
+type GithubWorkflowContext struct {
+	Workflow    string `json:"workflow"`     // Workflow is the name of the workflow. If the workflow file doesn't specify a name, the value of this property is the full path of the workflow file in the repository.
+	WorkflowRef string `json:"workflow_ref"` // WorkflowRef is the ref path to the workflow. For example, octocat/hello-world/.github/workflows/my-workflow.yml@refs/heads/my_branch.
+	WorkflowSHA string `json:"workflow_sha"` // WorkflowSHA is the commit SHA for the workflow file.
+}
+
+// NewGithubWorkflowContext creates a new GithubWorkflowContext from the given workflow.
+func NewGithubWorkflowContext(repo *Repository, workflow *Workflow) GithubWorkflowContext {
+	return GithubWorkflowContext{
+		Workflow:    workflow.Name,
+		WorkflowRef: fmt.Sprintf("%s/%s@%s", repo.NameWithOwner, workflow.Path, repo.CurrentRef),
+		WorkflowSHA: workflow.SHA,
+	}
+}
+
+// Apply applies the GithubWorkflowContext to the given container.
+func (c GithubWorkflowContext) Apply(container *dagger.Container) *dagger.Container {
+	return container.
+		WithEnvVariable("GITHUB_WORKFLOW", c.Workflow).
+		WithEnvVariable("GITHUB_WORKFLOW_REF", c.WorkflowRef).
+		WithEnvVariable("GITHUB_WORKFLOW_SHA", c.WorkflowSHA)
+}
+
+// GithubJobInfoContext is a context that contains information about the job.
+type GithubJobInfoContext struct {
+	Job string `json:"job"` // Job is the job_id of the current job. Note: This context property is set by the Actions runner, and is only available within the execution steps of a job. Otherwise, the value of this property will be null.
+
+	// TODO: enable these fields when reusable workflows are supported.
+	// JobWorkflowSHA string // JobWorkflowSHA is for jobs using a reusable workflow, the commit SHA for the reusable workflow file.
+}
+
+func NewGithubJobInfoContext(jobID string) GithubJobInfoContext {
+	return GithubJobInfoContext{Job: jobID}
+}
+
+// Apply applies the GithubJobInfoContext to the given container.
+func (c GithubJobInfoContext) Apply(container *dagger.Container) *dagger.Container {
+	return container.WithEnvVariable("GITHUB_JOB", c.Job)
+}
+
 // JobContext contains information about the currently running job.
 //
 // See: https://docs.github.com/en/actions/learn-github-actions/contexts#job-context

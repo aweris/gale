@@ -49,6 +49,14 @@ func NewExprContext() *ExprContext {
 				GraphqlURL: os.Getenv("GITHUB_GRAPHQL_URL"),
 				ServerURL:  os.Getenv("GITHUB_SERVER_URL"),
 			},
+			GithubWorkflowContext: core.GithubWorkflowContext{
+				Workflow:    os.Getenv("GITHUB_WORKFLOW"),
+				WorkflowRef: os.Getenv("GITHUB_WORKFLOW_REF"),
+				WorkflowSHA: os.Getenv("GITHUB_WORKFLOW_SHA"),
+			},
+			GithubJobInfoContext: core.GithubJobInfoContext{
+				Job: os.Getenv("GITHUB_JOB"),
+			},
 			GithubFilesContext: core.GithubFilesContext{ /* No initial values */ },
 		},
 		Job: core.JobContext{
@@ -70,6 +78,8 @@ type GithubContext struct {
 	core.GithubRepositoryContext
 	core.GithubSecretsContext
 	core.GithubURLContext
+	core.GithubWorkflowContext
+	core.GithubJobInfoContext
 
 	// Local contexts - these contexts changes at course of the workflow run.
 	core.GithubFilesContext
