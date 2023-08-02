@@ -10,6 +10,7 @@ import (
 
 	"github.com/aweris/gale/internal/config"
 	"github.com/aweris/gale/internal/core"
+	"github.com/aweris/gale/internal/dagger/services"
 	"github.com/aweris/gale/internal/dagger/tools"
 )
 
@@ -104,6 +105,10 @@ func ExecutionEnv(_ context.Context) dagger.WithContainerFunc {
 		container = container.WithFile("/usr/local/bin/ghx", ghx)
 		container = container.WithEnvVariable("GHX_HOME", config.GhxHome())
 		container = container.WithMountedCache(config.GhxActionsDir(), config.Client().CacheVolume("actions"))
+
+		// services
+
+		container = container.With(services.NewArtifactService().ServiceBinding)
 
 		return container
 	}

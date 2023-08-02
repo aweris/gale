@@ -8,4 +8,7 @@ import (
 
 	//mage:import tools
 	_ "github.com/aweris/gale/internal/mage/tools"
+
+	//mage:import services
+	_ "github.com/aweris/gale/internal/mage/services"
 )
