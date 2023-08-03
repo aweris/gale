@@ -16,7 +16,7 @@ const (
 	RegistryContainerName           = "registry"
 	RegistryContainerPort           = "5000"
 	DaggerEngineContainerNamePrefix = "dagger-engine"
-	DaggerEngineVersion             = "v0.6.4"
+	DaggerEngineVersion             = "v0.8.0"
 	EngineToml                      = `debug = true
 
 insecure-entitlements = ["security.insecure"]
