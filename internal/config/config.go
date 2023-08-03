@@ -4,6 +4,8 @@ import (
 	"path/filepath"
 
 	"dagger.io/dagger"
+
+	"github.com/adrg/xdg"
 )
 
 // cfg is the global configuration for ghx. No other package should access it directly.
@@ -14,8 +16,8 @@ func init() {
 }
 
 type config struct {
-	client  *dagger.Client // dagger client for the config.
-	ghxHome string         // ghx home directory where all the data is stored.
+	client  *dagger.Client // client is the dagger client for the config.
+	ghxHome string         // ghxHome directory where all the data is stored.
 }
 
 // SetClient sets the dagger client for the config.
@@ -51,4 +53,9 @@ func GhxRunsDir() string {
 // GhxRunDir returns the directory where the run with the given ID is stored.
 func GhxRunDir(runID string) string {
 	return filepath.Join(GhxRunsDir(), runID)
+}
+
+// GaleDataHome returns the path for local data.
+func GaleDataHome() string {
+	return filepath.Join(xdg.DataHome, "gale")
 }

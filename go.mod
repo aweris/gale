@@ -4,8 +4,8 @@ go 1.20
 
 require (
 	dagger.io/dagger v0.7.4
+	github.com/adrg/xdg v0.4.0
 	github.com/cli/go-gh/v2 v2.1.0
-	github.com/google/uuid v1.3.0
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/magefile/mage v1.15.0
 	github.com/rhysd/actionlint v1.6.25
@@ -17,7 +17,6 @@ require (
 require (
 	github.com/99designs/gqlgen v0.17.33 // indirect
 	github.com/Khan/genqlient v0.6.0 // indirect
-	github.com/adrg/xdg v0.4.0 // indirect
 	github.com/cli/safeexec v1.0.0 // indirect
 	github.com/fatih/color v1.15.0 // indirect
 	github.com/iancoleman/strcase v0.3.0 // indirect
