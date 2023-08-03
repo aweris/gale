@@ -10,6 +10,7 @@ import (
 
 	"github.com/aweris/gale/internal/config"
 	"github.com/aweris/gale/internal/core"
+	"github.com/aweris/gale/internal/dagger/services"
 	"github.com/aweris/gale/internal/dagger/tools"
 )
 
@@ -77,7 +78,7 @@ func Run(ctx context.Context, workflow, job string, opts ...RunOpts) dagger.With
 		container = container.With(core.NewGithubRepositoryContext(repo).Apply)
 		container = container.With(core.NewGithubSecretsContext(token).Apply)
 		container = container.With(core.NewGithubURLContext().Apply)
-		container = container.With(core.NewGithubWorkflowContext(repo, wf).Apply)
+		container = container.With(core.NewGithubWorkflowContext(repo, wf, runID).Apply) // TODO: RunID here is workflow run id, not job run id. It's ok for now, but we need to fix it.
 		container = container.With(core.NewGithubJobInfoContext(job).Apply)
 
 		// job run configuration
@@ -104,6 +105,10 @@ func ExecutionEnv(_ context.Context) dagger.WithContainerFunc {
 		container = container.WithFile("/usr/local/bin/ghx", ghx)
 		container = container.WithEnvVariable("GHX_HOME", config.GhxHome())
 		container = container.WithMountedCache(config.GhxActionsDir(), config.Client().CacheVolume("actions"))
+
+		// services
+
+		container = container.With(services.NewArtifactService().ServiceBinding)
 
 		return container
 	}

@@ -1,8 +1,9 @@
-package tools
+package services
 
 import (
 	"context"
 	"fmt"
+
 	"os"
 
 	"dagger.io/dagger"
@@ -15,21 +16,20 @@ import (
 	"github.com/aweris/gale/internal/dagger/images"
 )
 
-type Ghx mg.Namespace
+type Artifact mg.Namespace
 
-// Publish publishes the ghx binary with the given version.
-func (_ Ghx) Publish(ctx context.Context, version string) error {
+// Publish publishes the artifact service with the given version.
+func (_ Artifact) Publish(ctx context.Context, version string) error {
 	if version != "main" {
 		if ok := semver.IsValid(version); !ok {
 			return fmt.Errorf("invalid semver tag: %s", version)
 		}
 	}
 
-	image := fmt.Sprintf("ghcr.io/aweris/gale/tools/ghx:%s", version)
-
+	image := fmt.Sprintf("ghcr.io/aweris/gale/services/artifact:%s", version)
 	// If the registry is set, we'll use that instead of the default one. This is useful for testing and development.
 	if registry := os.Getenv("_GALE_DOCKER_REGISTRY"); registry != "" {
-		image = fmt.Sprintf("%s/aweris/gale/tools/ghx:%s", registry, version)
+		image = fmt.Sprintf("%s/aweris/gale/services/artifact:%s", registry, version)
 	}
 
 	client, err := dagger.Connect(ctx, dagger.WithLogOutput(os.Stdout))
@@ -43,15 +43,15 @@ func (_ Ghx) Publish(ctx context.Context, version string) error {
 
 	file := images.GoBase().
 		WithMountedDirectory("/src", client.Host().Directory(".")).
-		WithWorkdir("/src/tools/ghx").
+		WithWorkdir("/src/services/artifact").
 		WithEnvVariable("CGO_ENABLED", "0").
-		WithExec([]string{"go", "build", "-o", "/src/out/ghx", "./cmd/ghx"}).
-		File("/src/out/ghx")
+		WithExec([]string{"go", "build", "-o", "/src/out/artifact-service", "."}).
+		File("/src/out/artifact-service")
 
-	addr, err := config.Client().Container().
+	addr, err := client.Container().
 		From("gcr.io/distroless/static").
-		WithFile("/ghx", file).
-		WithEntrypoint([]string{"/ghx"}).
+		WithFile("/entrypoint", file).
+		WithEntrypoint([]string{"/entrypoint"}).
 		Publish(ctx, image)
 	if err != nil {
 		return err

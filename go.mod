@@ -6,6 +6,8 @@ require (
 	dagger.io/dagger v0.7.4
 	github.com/cli/go-gh/v2 v2.1.0
 	github.com/google/uuid v1.3.0
+	github.com/julienschmidt/httprouter v1.3.0
+	github.com/magefile/mage v1.15.0
 	github.com/rhysd/actionlint v1.6.25
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/pflag v1.0.5

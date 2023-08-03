@@ -51,9 +51,13 @@ func NewExprContext() *ExprContext {
 				ServerURL:  os.Getenv("GITHUB_SERVER_URL"),
 			},
 			GithubWorkflowContext: core.GithubWorkflowContext{
-				Workflow:    os.Getenv("GITHUB_WORKFLOW"),
-				WorkflowRef: os.Getenv("GITHUB_WORKFLOW_REF"),
-				WorkflowSHA: os.Getenv("GITHUB_WORKFLOW_SHA"),
+				Workflow:      os.Getenv("GITHUB_WORKFLOW"),
+				WorkflowRef:   os.Getenv("GITHUB_WORKFLOW_REF"),
+				WorkflowSHA:   os.Getenv("GITHUB_WORKFLOW_SHA"),
+				RunID:         os.Getenv("GITHUB_RUN_ID"),
+				RunNumber:     os.Getenv("GITHUB_RUN_NUMBER"),
+				RunAttempt:    os.Getenv("GITHUB_RUN_ATTEMPT"),
+				RetentionDays: os.Getenv("GITHUB_RETENTION_DAYS"),
 			},
 			GithubJobInfoContext: core.GithubJobInfoContext{
 				Job: os.Getenv("GITHUB_JOB"),
