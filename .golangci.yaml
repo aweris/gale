@@ -45,3 +45,4 @@ linters-settings:
           - github.com/google/uuid
           - github.com/rhysd/actionlint
           - github.com/magefile/mage/sh
+          - github.com/julienschmidt/httprouter

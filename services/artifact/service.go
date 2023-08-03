@@ -85,7 +85,8 @@ func (s *LocalService) ListArtifacts(runID string) (string, []string, error) {
 		return "", nil, err
 	}
 
-	var artifacts []string
+	// pre-allocate the slice to avoid reallocation
+	artifacts := make([]string, 0, len(entries))
 
 	for _, entry := range entries {
 		artifacts = append(artifacts, entry.Name())
@@ -104,6 +105,10 @@ func (s *LocalService) GetContainerItems(containerID, path string) ([]string, er
 	var files []string
 
 	err := filepath.WalkDir(artifactPath, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
 		if d.IsDir() {
 			return nil
 		}
@@ -118,7 +123,6 @@ func (s *LocalService) GetContainerItems(containerID, path string) ([]string, er
 
 		return nil
 	})
-
 	if err != nil {
 		return nil, err
 	}

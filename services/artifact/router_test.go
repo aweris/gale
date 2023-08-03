@@ -15,27 +15,30 @@ var _ Service = new(mockService)
 
 type mockService struct{}
 
-func (m *mockService) CreateArtifactInNameContainer(runID string) (string, error) {
+func (m *mockService) CreateArtifactInNameContainer(_ string) (string, error) {
+	//nolint:goconst // this is a mock service for testing, it's ok to have hardcoded values
 	return "testContainerID", nil
 }
 
-func (m *mockService) PatchArtifactSize(runID string) {
+func (m *mockService) PatchArtifactSize(_ string) {
 	// do nothing
 }
 
-func (m *mockService) ListArtifacts(runID string) (string, []string, error) {
+func (m *mockService) ListArtifacts(_ string) (string, []string, error) {
+	//nolint:goconst // this is a mock service for testing, it's ok to have hardcoded values
 	return "testContainerID", []string{"file1.txt", "file2.txt"}, nil
 }
 
-func (m *mockService) UploadArtifactToFileContainer(containerID string, itemPath string, offset int, reader io.Reader) error {
+func (m *mockService) UploadArtifactToFileContainer(_ string, _ string, _ int, _ io.Reader) error {
 	return nil
 }
 
-func (m *mockService) GetContainerItems(containerID string, itemPath string) ([]string, error) {
+func (m *mockService) GetContainerItems(_ string, _ string) ([]string, error) {
 	return []string{"foo", "bar"}, nil
 }
 
-func (m *mockService) DownloadSingleArtifact(path string) (string, error) {
+func (m *mockService) DownloadSingleArtifact(_ string) (string, error) {
+	//nolint:goconst // this is a mock service for testing, it's ok to have hardcoded values
 	return "test content", nil
 }
 
@@ -50,6 +53,7 @@ func TestHandler_HandleCreateArtifactInNameContainer(t *testing.T) {
 	}
 
 	// Set the host to test the url in the response body
+	//nolint:goconst // this is a mock service for testing, it's ok to have hardcoded values
 	req.Host = "example.com"
 
 	rr := httptest.NewRecorder()

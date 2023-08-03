@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/julienschmidt/httprouter"
 )
@@ -55,7 +56,13 @@ func Serve(port string, srv Service) error {
 	router.GET("/artifact/*path", handler.HandleDownloadSingleArtifact)
 	router.GET("/healthz", handler.HandleHealthz)
 
-	return http.ListenAndServe(fmt.Sprintf(":%s", port), router)
+	server := &http.Server{
+		Addr:              fmt.Sprintf(":%s", port),
+		Handler:           router,
+		ReadHeaderTimeout: 5 * time.Second,
+	}
+
+	return server.ListenAndServe()
 }
 
 const (
@@ -102,7 +109,8 @@ func (h *handler) HandleListArtifacts(w http.ResponseWriter, r *http.Request, pa
 		return
 	}
 
-	var artifacts []ArtifactResponse
+	// pre-allocate the slice to avoid reallocation
+	artifacts := make([]ArtifactResponse, 0, len(entries))
 
 	// Download client only interested in these fields, others are not used
 	// source: https://github.com/actions/toolkit/blob/91d3933eb52b351f437151400a88ba7d57442a9b/packages/artifact/src/internal/artifact-client.ts#L164-L181
@@ -158,13 +166,12 @@ func (h *handler) HandleGetContainerItems(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	var files []ContainerEntry
+	// pre-allocate the slice to avoid reallocation
+	files := make([]ContainerEntry, 0, len(items))
 
 	for _, item := range items {
 		// Remove the .gz extension from the item path while listing container items
-		if strings.HasSuffix(item, ExtGzip) {
-			item = strings.TrimSuffix(item, ExtGzip)
-		}
+		item = strings.TrimSuffix(item, ExtGzip)
 
 		files = append(files, ContainerEntry{
 			Path:            item,

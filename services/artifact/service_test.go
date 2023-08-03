@@ -9,7 +9,10 @@ import (
 
 func TestLocalService_CreateArtifactInNameContainer(t *testing.T) {
 	// Create a temporary directory for testing
-	tmpDir := os.TempDir()
+	tmpDir, err := os.MkdirTemp("", "test")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
 	defer os.RemoveAll(tmpDir)
 
 	service := NewLocalService(tmpDir)
@@ -34,7 +37,10 @@ func TestLocalService_CreateArtifactInNameContainer(t *testing.T) {
 
 func TestLocalService_UploadArtifactToFileContainer(t *testing.T) {
 	// Create a temporary directory for testing
-	tmpDir := os.TempDir()
+	tmpDir, err := os.MkdirTemp("", "test")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
 	defer os.RemoveAll(tmpDir)
 
 	service := NewLocalService(tmpDir)
@@ -43,7 +49,7 @@ func TestLocalService_UploadArtifactToFileContainer(t *testing.T) {
 	filePath := "test/path/file.txt"
 	content := "test content"
 
-	_, err := service.CreateArtifactInNameContainer(containerID)
+	_, err = service.CreateArtifactInNameContainer(containerID)
 	if err != nil {
 		t.Errorf("Failed to create artifact container: %v", err)
 	}
@@ -72,7 +78,10 @@ func TestLocalService_UploadArtifactToFileContainer(t *testing.T) {
 
 func TestLocalService_ListArtifacts(t *testing.T) {
 	// Create a temporary directory for testing
-	tmpDir := os.TempDir()
+	tmpDir, err := os.MkdirTemp("", "test")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
 	defer os.RemoveAll(tmpDir)
 
 	service := NewLocalService(tmpDir)
@@ -87,7 +96,7 @@ func TestLocalService_ListArtifacts(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to create artifact directory: %v", err)
 		}
-		err = os.WriteFile(artifactPath, []byte("test content"), 0644)
+		err = os.WriteFile(artifactPath, []byte("test content"), 0600)
 		if err != nil {
 			t.Fatalf("Failed to write artifact file: %v", err)
 		}
@@ -126,7 +135,10 @@ func TestLocalService_ListArtifacts(t *testing.T) {
 
 func TestLocalService_GetContainerItems(t *testing.T) {
 	// Create a temporary directory for testing
-	tmpDir := os.TempDir()
+	tmpDir, err := os.MkdirTemp("", "test")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
 	defer os.RemoveAll(tmpDir)
 
 	service := NewLocalService(tmpDir)
@@ -141,7 +153,7 @@ func TestLocalService_GetContainerItems(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to create artifact directory: %v", err)
 		}
-		err = os.WriteFile(artifactPath, []byte("test content"), 0644)
+		err = os.WriteFile(artifactPath, []byte("test content"), 0600)
 		if err != nil {
 			t.Fatalf("Failed to write artifact file: %v", err)
 		}
@@ -176,7 +188,10 @@ func TestLocalService_GetContainerItems(t *testing.T) {
 
 func TestLocalService_DownloadSingleArtifact(t *testing.T) {
 	// Create a temporary directory for testing
-	tmpDir := os.TempDir()
+	tmpDir, err := os.MkdirTemp("", "test")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
 	defer os.RemoveAll(tmpDir)
 
 	service := NewLocalService(tmpDir)
@@ -185,11 +200,11 @@ func TestLocalService_DownloadSingleArtifact(t *testing.T) {
 
 	// Create the artifact file
 	artifactPath := filepath.Join(tmpDir, filePath)
-	err := os.MkdirAll(filepath.Dir(artifactPath), 0755)
+	err = os.MkdirAll(filepath.Dir(artifactPath), 0755)
 	if err != nil {
 		t.Fatalf("Failed to create artifact directory: %v", err)
 	}
-	err = os.WriteFile(artifactPath, []byte(content), 0644)
+	err = os.WriteFile(artifactPath, []byte(content), 0600)
 	if err != nil {
 		t.Fatalf("Failed to write artifact file: %v", err)
 	}
