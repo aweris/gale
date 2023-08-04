@@ -3,7 +3,7 @@ module github.com/aweris/gale
 go 1.20
 
 require (
-	dagger.io/dagger v0.8.0
+	dagger.io/dagger v0.8.1
 	github.com/adrg/xdg v0.4.0
 	github.com/cli/go-gh/v2 v2.1.0
 	github.com/julienschmidt/httprouter v1.3.0
@@ -17,7 +17,7 @@ require (
 require (
 	github.com/99designs/gqlgen v0.17.36 // indirect
 	github.com/Khan/genqlient v0.6.0 // indirect
-	github.com/cli/safeexec v1.0.0 // indirect
+	github.com/cli/safeexec v1.0.1 // indirect
 	github.com/fatih/color v1.15.0 // indirect
 	github.com/iancoleman/strcase v0.3.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
@@ -30,7 +30,7 @@ require (
 	github.com/vektah/gqlparser/v2 v2.5.8 // indirect
 	golang.org/x/mod v0.12.0 // indirect
 	golang.org/x/sync v0.3.0 // indirect
-	golang.org/x/sys v0.10.0 // indirect
+	golang.org/x/sys v0.11.0 // indirect
 	golang.org/x/term v0.10.0 // indirect
 	golang.org/x/text v0.11.0 // indirect
 	golang.org/x/tools v0.11.1 // indirect
