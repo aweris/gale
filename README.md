@@ -31,7 +31,7 @@ With these prerequisites in place, you'll be ready to set up and run `gale` on y
 You can install `gale` by using:
 
 ```bash
-go install github.com/aweris/gale@latest
+go install github.com/aweris/gale/cmd/gale@latest
 ```
 
 ### List workflows and jobs
