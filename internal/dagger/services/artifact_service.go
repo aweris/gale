@@ -7,8 +7,11 @@ import (
 	"dagger.io/dagger"
 
 	"github.com/aweris/gale/internal/config"
+	"github.com/aweris/gale/internal/dagger/helpers"
 	"github.com/aweris/gale/internal/version"
 )
+
+var _ helpers.WithContainerFuncHook = new(ArtifactService)
 
 // ArtifactService is the dagger service definitions for the services/artifact directory.
 type ArtifactService struct {
@@ -49,15 +52,13 @@ func (a *ArtifactService) Container() *dagger.Container {
 	return a.container
 }
 
-// ServiceBinding returns a container with the artifact service binding and all necessary configurations. The method
-// signature is compatible with the dagger.WithContainerFunc type. It can be used to as
-// container.With(service.ServiceBinding) to bind the service to the container.
-func (a *ArtifactService) ServiceBinding(container *dagger.Container) *dagger.Container {
-	container = container.WithServiceBinding(a.alias, a.container)
-	container = container.WithEnvVariable("ACTIONS_RUNTIME_URL", fmt.Sprintf("http://%s:%s/", a.alias, a.port))
-	container = container.WithEnvVariable("ACTIONS_RUNTIME_TOKEN", "token") // dummy token, not used by service
-
-	return container
+func (a *ArtifactService) WithContainerFunc() dagger.WithContainerFunc {
+	return func(container *dagger.Container) *dagger.Container {
+		return container.
+			WithServiceBinding(a.alias, a.container).
+			WithEnvVariable("ACTIONS_RUNTIME_URL", fmt.Sprintf("http://%s:%s/", a.alias, a.port)).
+			WithEnvVariable("ACTIONS_RUNTIME_TOKEN", "token") // dummy token, not used by service
+	}
 }
 
 // Artifacts returns a artifact directory for the given run ID.

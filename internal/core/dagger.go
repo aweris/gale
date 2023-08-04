@@ -7,7 +7,10 @@ import (
 	"dagger.io/dagger"
 
 	"github.com/aweris/gale/internal/config"
+	"github.com/aweris/gale/internal/dagger/helpers"
 )
+
+var _ helpers.WithContainerFuncHook = new(DaggerContext)
 
 // DaggerContext represents the dagger engine connection information should be passed to the container
 type DaggerContext struct {
@@ -32,20 +35,21 @@ func NewDaggerContextFromEnv() *DaggerContext {
 	}
 }
 
-// Apply applies the dagger context to the container
-func (d *DaggerContext) Apply(container *dagger.Container) *dagger.Container {
-	if d.RunnerHost != "" {
-		container = container.WithEnvVariable("_EXPERIMENTAL_DAGGER_RUNNER_HOST", d.RunnerHost)
-	}
+func (d *DaggerContext) WithContainerFunc() dagger.WithContainerFunc {
+	return func(container *dagger.Container) *dagger.Container {
+		if d.RunnerHost != "" {
+			container = container.WithEnvVariable("_EXPERIMENTAL_DAGGER_RUNNER_HOST", d.RunnerHost)
+		}
 
-	if d.Session != "" {
-		container = container.WithEnvVariable("DAGGER_SESSION", d.Session)
-	}
+		if d.Session != "" {
+			container = container.WithEnvVariable("DAGGER_SESSION", d.Session)
+		}
 
-	// as a fallback, we're loading docker socket from the host.
-	if d.RunnerHost == "" || d.Session == "" {
-		container = container.WithUnixSocket("/var/run/docker.sock", config.Client().Host().UnixSocket(d.DockerSock))
-	}
+		// as a fallback, we're loading docker socket from the host.
+		if d.RunnerHost == "" || d.Session == "" {
+			container = container.WithUnixSocket("/var/run/docker.sock", config.Client().Host().UnixSocket(d.DockerSock))
+		}
 
-	return container
+		return container
+	}
 }

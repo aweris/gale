@@ -3,10 +3,12 @@ package core
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"dagger.io/dagger"
 
 	"github.com/aweris/gale/internal/config"
+	"github.com/aweris/gale/internal/dagger/helpers"
 )
 
 // Job represents a single job in a GitHub Actions workflow
@@ -20,23 +22,39 @@ type Job struct {
 	// TBD: add more fields when needed
 }
 
+var _ helpers.WithContainerFuncHook = new(JobRun)
+
+// JobRun represents a job run configuration that is passed to the container
 type JobRun struct {
 	RunID string `json:"runID"` // RunID is the ID of the run
 	Job   Job    `json:"job"`   // Job is the job to run
 }
 
-// MarshalJobRunToDir marshals the job run to a dagger directory
-func MarshalJobRunToDir(_ context.Context, jobRun *JobRun) (*dagger.Directory, error) {
-	data, err := json.Marshal(jobRun)
-	if err != nil {
-		return nil, err
+// NewJobRun creates a new job run
+func NewJobRun(runID string, job Job) JobRun {
+	return JobRun{
+		RunID: runID,
+		Job:   job,
 	}
+}
 
-	dir := config.Client().Directory()
+func (j JobRun) WithContainerFunc() dagger.WithContainerFunc {
+	return func(container *dagger.Container) *dagger.Container {
+		data, err := json.Marshal(j)
+		if err != nil {
+			return helpers.FailPipeline(container, err)
+		}
 
-	dir = dir.WithNewFile("job_run.json", string(data))
+		if len(data) == 0 {
+			return helpers.FailPipeline(container, fmt.Errorf("job run is empty"))
+		}
 
-	return dir, nil
+		dir := config.Client().Directory()
+
+		dir = dir.WithNewFile("job_run.json", string(data))
+
+		return container.WithDirectory(config.GhxRunDir(j.RunID), dir)
+	}
 }
 
 // UnmarshalJobRunFromDir unmarshal the job run from a dagger directory

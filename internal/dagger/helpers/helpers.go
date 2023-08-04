@@ -17,3 +17,9 @@ func FailPipeline(container *dagger.Container, err error) *dagger.Container {
 
 	return container
 }
+
+// WithContainerFuncHook is an interface that ensures that implementers have a WithContainerFunc method.
+type WithContainerFuncHook interface {
+	// WithContainerFunc returns a dagger function that allows the user to modify the container.
+	WithContainerFunc() dagger.WithContainerFunc
+}

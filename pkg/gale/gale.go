@@ -2,11 +2,9 @@ package gale
 
 import (
 	"context"
-	"fmt"
 
 	"dagger.io/dagger"
 
-	"github.com/aweris/gale/internal/config"
 	"github.com/aweris/gale/internal/core"
 	"github.com/aweris/gale/internal/dagger/helpers"
 	"github.com/aweris/gale/internal/dagger/services"
@@ -66,31 +64,22 @@ func Run(ctx context.Context, workflow, job string, opts ...RunOpts) dagger.With
 			return helpers.FailPipeline(container, err)
 		}
 
-		jr := &core.JobRun{
-			RunID: jobRunID,
-			Job:   jm,
-		}
-
-		dir, err := core.MarshalJobRunToDir(ctx, jr)
-		if err != nil {
-			return helpers.FailPipeline(container, err)
-		}
-
 		token, err := core.GetToken()
 		if err != nil {
 			return helpers.FailPipeline(container, err)
 		}
 
 		// context configuration
-		container = container.With(core.NewRunnerContext().Apply)
-		container = container.With(core.NewGithubRepositoryContext(repo).Apply)
-		container = container.With(core.NewGithubSecretsContext(token).Apply)
-		container = container.With(core.NewGithubURLContext().Apply)
-		container = container.With(core.NewGithubWorkflowContext(repo, wf, workflowRunID).Apply)
-		container = container.With(core.NewGithubJobInfoContext(job).Apply)
+		container = container.With(core.NewRunnerContext().WithContainerFunc())
+		container = container.With(core.NewGithubRepositoryContext(repo).WithContainerFunc())
+		container = container.With(core.NewGithubSecretsContext(token).WithContainerFunc())
+		container = container.With(core.NewGithubURLContext().WithContainerFunc())
+		container = container.With(core.NewGithubWorkflowContext(repo, wf, workflowRunID).WithContainerFunc())
+		container = container.With(core.NewGithubJobInfoContext(job).WithContainerFunc())
 
 		// job run configuration
-		container = container.WithDirectory(config.GhxRunDir(jobRunID), dir)
+		container = container.With(core.NewJobRun(jobRunID, jm).WithContainerFunc())
+
 		container = container.WithExec([]string{"/usr/local/bin/ghx", "run", jobRunID})
 
 		return container
@@ -101,22 +90,13 @@ func Run(ctx context.Context, workflow, job string, opts ...RunOpts) dagger.With
 func ExecutionEnv(_ context.Context) dagger.WithContainerFunc {
 	return func(container *dagger.Container) *dagger.Container {
 		// pass dagger context to the container
-		container = container.With(core.NewDaggerContextFromEnv().Apply)
+		container = container.With(core.NewDaggerContextFromEnv().WithContainerFunc())
 
 		// tools
-
-		ghx, err := tools.Ghx(context.Background())
-		if err != nil {
-			helpers.FailPipeline(container, fmt.Errorf("error getting ghx: %w", err))
-		}
-
-		container = container.WithFile("/usr/local/bin/ghx", ghx)
-		container = container.WithEnvVariable("GHX_HOME", config.GhxHome())
-		container = container.WithMountedCache(config.GhxActionsDir(), config.Client().CacheVolume("actions"))
+		container = container.With(tools.NewGhxBinary().WithContainerFunc())
 
 		// services
-
-		container = container.With(services.NewArtifactService().ServiceBinding)
+		container = container.With(services.NewArtifactService().WithContainerFunc()) // TODO: move service to context or outside to be able to use it later to get artifacts
 
 		return container
 	}

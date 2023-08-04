@@ -6,7 +6,10 @@ import (
 	"dagger.io/dagger"
 
 	"github.com/aweris/gale/internal/config"
+	"github.com/aweris/gale/internal/dagger/helpers"
 )
+
+var _ helpers.WithContainerFuncHook = new(RunnerContext)
 
 type RunnerContext struct {
 	Name      string `json:"name"`       // Name is the name of the runner.
@@ -29,17 +32,20 @@ func NewRunnerContext() RunnerContext {
 	}
 }
 
-// Apply applies the RunnerContext to the given container.
-func (c RunnerContext) Apply(container *dagger.Container) *dagger.Container {
-	return container.
-		WithEnvVariable("RUNNER_NAME", c.Name).
-		WithEnvVariable("RUNNER_TEMP", c.Temp).
-		WithEnvVariable("RUNNER_OS", c.OS).
-		WithEnvVariable("RUNNER_ARCH", c.Arch).
-		WithEnvVariable("RUNNER_TOOL_CACHE", c.ToolCache).
-		WithMountedCache(c.ToolCache, config.Client().CacheVolume("RUNNER_TOOL_CACHE")).
-		WithEnvVariable("RUNNER_DEBUG", c.Debug)
+func (c RunnerContext) WithContainerFunc() dagger.WithContainerFunc {
+	return func(container *dagger.Container) *dagger.Container {
+		return container.
+			WithEnvVariable("RUNNER_NAME", c.Name).
+			WithEnvVariable("RUNNER_TEMP", c.Temp).
+			WithEnvVariable("RUNNER_OS", c.OS).
+			WithEnvVariable("RUNNER_ARCH", c.Arch).
+			WithEnvVariable("RUNNER_TOOL_CACHE", c.ToolCache).
+			WithMountedCache(c.ToolCache, config.Client().CacheVolume("RUNNER_TOOL_CACHE")).
+			WithEnvVariable("RUNNER_DEBUG", c.Debug)
+	}
 }
+
+var _ helpers.WithContainerFuncHook = new(GithubRepositoryContext)
 
 // GithubRepositoryContext is a context that contains information about the repository.
 type GithubRepositoryContext struct {
@@ -65,18 +71,21 @@ func NewGithubRepositoryContext(repo *Repository) GithubRepositoryContext {
 	}
 }
 
-// Apply applies the GithubRepositoryContext to the given container.
-func (c GithubRepositoryContext) Apply(container *dagger.Container) *dagger.Container {
-	return container.
-		WithEnvVariable("GITHUB_REPOSITORY", c.Repository).
-		WithEnvVariable("GITHUB_REPOSITORY_ID", c.RepositoryID).
-		WithEnvVariable("GITHUB_REPOSITORY_OWNER", c.RepositoryOwner).
-		WithEnvVariable("GITHUB_REPOSITORY_OWNER_ID", c.RepositoryOwnerID).
-		WithEnvVariable("GITHUB_REPOSITORY_URL", c.RepositoryURL).
-		WithEnvVariable("GITHUB_WORKSPACE", c.Workspace).
-		WithMountedDirectory(c.Workspace, c.Dir).
-		WithWorkdir(c.Workspace)
+func (c GithubRepositoryContext) WithContainerFunc() dagger.WithContainerFunc {
+	return func(container *dagger.Container) *dagger.Container {
+		return container.
+			WithEnvVariable("GITHUB_REPOSITORY", c.Repository).
+			WithEnvVariable("GITHUB_REPOSITORY_ID", c.RepositoryID).
+			WithEnvVariable("GITHUB_REPOSITORY_OWNER", c.RepositoryOwner).
+			WithEnvVariable("GITHUB_REPOSITORY_OWNER_ID", c.RepositoryOwnerID).
+			WithEnvVariable("GITHUB_REPOSITORY_URL", c.RepositoryURL).
+			WithEnvVariable("GITHUB_WORKSPACE", c.Workspace).
+			WithMountedDirectory(c.Workspace, c.Dir).
+			WithWorkdir(c.Workspace)
+	}
 }
+
+var _ helpers.WithContainerFuncHook = new(GithubSecretsContext)
 
 // GithubSecretsContext is a context that contains information about the secrets.
 type GithubSecretsContext struct {
@@ -90,10 +99,13 @@ func NewGithubSecretsContext(token string) GithubSecretsContext {
 	}
 }
 
-// Apply applies the GithubSecretsContext to the given container.
-func (c GithubSecretsContext) Apply(container *dagger.Container) *dagger.Container {
-	return container.WithSecretVariable("GITHUB_TOKEN", config.Client().SetSecret("GITHUB_TOKEN", c.Token))
+func (c GithubSecretsContext) WithContainerFunc() dagger.WithContainerFunc {
+	return func(container *dagger.Container) *dagger.Container {
+		return container.WithSecretVariable("GITHUB_TOKEN", config.Client().SetSecret("GITHUB_TOKEN", c.Token))
+	}
 }
+
+var _ helpers.WithContainerFuncHook = new(GithubURLContext)
 
 // GithubURLContext is a context that contains URLs for the Github server and API.
 type GithubURLContext struct {
@@ -112,12 +124,13 @@ func NewGithubURLContext() GithubURLContext {
 	}
 }
 
-// Apply applies the GithubURLContext to the given container.
-func (c GithubURLContext) Apply(container *dagger.Container) *dagger.Container {
-	return container.
-		WithEnvVariable("GITHUB_API_URL", c.ApiURL).
-		WithEnvVariable("GITHUB_GRAPHQL_URL", c.GraphqlURL).
-		WithEnvVariable("GITHUB_SERVER_URL", c.ServerURL)
+func (c GithubURLContext) WithContainerFunc() dagger.WithContainerFunc {
+	return func(container *dagger.Container) *dagger.Container {
+		return container.
+			WithEnvVariable("GITHUB_API_URL", c.ApiURL).
+			WithEnvVariable("GITHUB_GRAPHQL_URL", c.GraphqlURL).
+			WithEnvVariable("GITHUB_SERVER_URL", c.ServerURL)
+	}
 }
 
 // GithubFilesContext is a context that contains paths for files and directories useful to Github Actions.
@@ -128,6 +141,8 @@ type GithubFilesContext struct {
 	Env  string `json:"env"`  // Env is the path to a temporary file that sets environment variables from workflow commands.
 	Path string `json:"path"` // Path is the path to a temporary file that sets the system PATH variable from workflow commands.
 }
+
+var _ helpers.WithContainerFuncHook = new(GithubWorkflowContext)
 
 // GithubWorkflowContext is a context that contains information about the workflow.
 type GithubWorkflowContext struct {
@@ -153,17 +168,20 @@ func NewGithubWorkflowContext(repo *Repository, workflow *Workflow, runID string
 	}
 }
 
-// Apply applies the GithubWorkflowContext to the given container.
-func (c GithubWorkflowContext) Apply(container *dagger.Container) *dagger.Container {
-	return container.
-		WithEnvVariable("GITHUB_WORKFLOW", c.Workflow).
-		WithEnvVariable("GITHUB_WORKFLOW_REF", c.WorkflowRef).
-		WithEnvVariable("GITHUB_WORKFLOW_SHA", c.WorkflowSHA).
-		WithEnvVariable("GITHUB_RUN_ID", c.RunID).
-		WithEnvVariable("GITHUB_RUN_NUMBER", c.RunNumber).
-		WithEnvVariable("GITHUB_RUN_ATTEMPT", c.RunAttempt).
-		WithEnvVariable("GITHUB_RETENTION_DAYS", c.RetentionDays)
+func (c GithubWorkflowContext) WithContainerFunc() dagger.WithContainerFunc {
+	return func(container *dagger.Container) *dagger.Container {
+		return container.
+			WithEnvVariable("GITHUB_WORKFLOW", c.Workflow).
+			WithEnvVariable("GITHUB_WORKFLOW_REF", c.WorkflowRef).
+			WithEnvVariable("GITHUB_WORKFLOW_SHA", c.WorkflowSHA).
+			WithEnvVariable("GITHUB_RUN_ID", c.RunID).
+			WithEnvVariable("GITHUB_RUN_NUMBER", c.RunNumber).
+			WithEnvVariable("GITHUB_RUN_ATTEMPT", c.RunAttempt).
+			WithEnvVariable("GITHUB_RETENTION_DAYS", c.RetentionDays)
+	}
 }
+
+var _ helpers.WithContainerFuncHook = new(GithubJobInfoContext)
 
 // GithubJobInfoContext is a context that contains information about the job.
 type GithubJobInfoContext struct {
@@ -177,9 +195,10 @@ func NewGithubJobInfoContext(jobID string) GithubJobInfoContext {
 	return GithubJobInfoContext{Job: jobID}
 }
 
-// Apply applies the GithubJobInfoContext to the given container.
-func (c GithubJobInfoContext) Apply(container *dagger.Container) *dagger.Container {
-	return container.WithEnvVariable("GITHUB_JOB", c.Job)
+func (c GithubJobInfoContext) WithContainerFunc() dagger.WithContainerFunc {
+	return func(container *dagger.Container) *dagger.Container {
+		return container.WithEnvVariable("GITHUB_JOB", c.Job)
+	}
 }
 
 // JobContext contains information about the currently running job.
