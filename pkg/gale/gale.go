@@ -8,6 +8,7 @@ import (
 
 	"github.com/aweris/gale/internal/config"
 	"github.com/aweris/gale/internal/core"
+	"github.com/aweris/gale/internal/dagger/helpers"
 	"github.com/aweris/gale/internal/dagger/services"
 	"github.com/aweris/gale/internal/dagger/tools"
 	"github.com/aweris/gale/internal/idgen"
@@ -32,22 +33,22 @@ func Run(ctx context.Context, workflow, job string, opts ...RunOpts) dagger.With
 
 		repo, err := core.GetRepository(opt.Repo, core.GetRepositoryOpts{Branch: opt.Branch, Tag: opt.Tag, Commit: opt.Commit})
 		if err != nil {
-			return fail(container, err)
+			return helpers.FailPipeline(container, err)
 		}
 
 		workflows, err := repo.LoadWorkflows(ctx, core.RepositoryLoadWorkflowOpts{WorkflowsDir: opt.WorkflowsDir})
 		if err != nil {
-			return fail(container, err)
+			return helpers.FailPipeline(container, err)
 		}
 
 		wf, ok := workflows[workflow]
 		if !ok {
-			return fail(container, ErrWorkflowNotFound)
+			return helpers.FailPipeline(container, ErrWorkflowNotFound)
 		}
 
 		jm, ok := wf.Jobs[job]
 		if !ok {
-			return fail(container, ErrJobNotFound)
+			return helpers.FailPipeline(container, ErrJobNotFound)
 		}
 
 		// ensure job name is set
@@ -57,12 +58,12 @@ func Run(ctx context.Context, workflow, job string, opts ...RunOpts) dagger.With
 
 		workflowRunID, err := idgen.GenerateWorkflowRunID(repo)
 		if err != nil {
-			return fail(container, err)
+			return helpers.FailPipeline(container, err)
 		}
 
 		jobRunID, err := idgen.GenerateJobRunID(repo)
 		if err != nil {
-			return fail(container, err)
+			return helpers.FailPipeline(container, err)
 		}
 
 		jr := &core.JobRun{
@@ -72,12 +73,12 @@ func Run(ctx context.Context, workflow, job string, opts ...RunOpts) dagger.With
 
 		dir, err := core.MarshalJobRunToDir(ctx, jr)
 		if err != nil {
-			return fail(container, err)
+			return helpers.FailPipeline(container, err)
 		}
 
 		token, err := core.GetToken()
 		if err != nil {
-			return fail(container, err)
+			return helpers.FailPipeline(container, err)
 		}
 
 		// context configuration
@@ -106,7 +107,7 @@ func ExecutionEnv(_ context.Context) dagger.WithContainerFunc {
 
 		ghx, err := tools.Ghx(context.Background())
 		if err != nil {
-			fail(container, fmt.Errorf("error getting ghx: %w", err))
+			helpers.FailPipeline(container, fmt.Errorf("error getting ghx: %w", err))
 		}
 
 		container = container.WithFile("/usr/local/bin/ghx", ghx)
@@ -119,16 +120,4 @@ func ExecutionEnv(_ context.Context) dagger.WithContainerFunc {
 
 		return container
 	}
-}
-
-// fail returns a container that immediately fails with the given error. This useful for forcing a pipeline to fail
-// inside chaining operations.
-func fail(container *dagger.Container, err error) *dagger.Container {
-	// fail the container with the given error
-	container = container.WithExec([]string{"sh", "-c", "echo " + err.Error() + " && exit 1"})
-
-	// forced evaluation of the pipeline to immediately fail
-	container, _ = container.Sync(context.Background())
-
-	return container
 }
