@@ -1,7 +1,9 @@
 package core
 
 import (
+	"encoding/json"
 	"fmt"
+	"path/filepath"
 
 	"dagger.io/dagger"
 
@@ -219,4 +221,33 @@ type StepContext struct {
 	Outputs    map[string]string `json:"outputs"`    // Outputs is a map of output name to output value
 	State      map[string]string `json:"-"`          // State is a map of step state variables. This is not available to expressions so that's why json tag is set to "-" to ignore it.
 	Summary    string            `json:"-"`          // Summary is the summary of the step. This is not available to expressions so that's why json tag is set to "-" to ignore it.
+}
+
+var _ helpers.WithContainerFuncHook = new(SecretsContext)
+
+// SecretsContext is a context that contains secrets.
+type SecretsContext map[string]string
+
+// NewSecretsContext creates a new SecretsContext from the given secrets.
+func NewSecretsContext(token string, secrets map[string]string) SecretsContext {
+	if secrets == nil {
+		secrets = make(map[string]string)
+	}
+
+	secrets["GITHUB_TOKEN"] = token // GITHUB_TOKEN is a special secret that is always available to the workflow.
+
+	return secrets
+}
+
+func (c SecretsContext) WithContainerFunc() dagger.WithContainerFunc {
+	return func(container *dagger.Container) *dagger.Container {
+		data, err := json.Marshal(c)
+		if err != nil {
+			helpers.FailPipeline(container, err)
+		}
+
+		secret := config.Client().SetSecret("secrets-context", string(data))
+
+		return container.WithMountedSecret(filepath.Join(config.GhxHome(), "secrets", "secrets.json"), secret)
+	}
 }

@@ -19,6 +19,7 @@ type RunOpts struct {
 	Tag          string
 	Commit       string
 	WorkflowsDir string
+	Secrets      map[string]string
 }
 
 // Run runs a job from a workflow.
@@ -76,6 +77,7 @@ func Run(ctx context.Context, workflow, job string, opts ...RunOpts) dagger.With
 		container = container.With(core.NewGithubURLContext().WithContainerFunc())
 		container = container.With(core.NewGithubWorkflowContext(repo, wf, workflowRunID).WithContainerFunc())
 		container = container.With(core.NewGithubJobInfoContext(job).WithContainerFunc())
+		container = container.With(core.NewSecretsContext(token, opt.Secrets).WithContainerFunc())
 
 		// job run configuration
 		container = container.With(core.NewJobRun(jobRunID, jm).WithContainerFunc())

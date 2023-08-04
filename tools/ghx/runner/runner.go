@@ -17,10 +17,15 @@ type Runner struct {
 }
 
 func Plan(jr *core.JobRun) (*Runner, error) {
-	runner := &Runner{
-		jr:      jr,
-		context: actions.NewExprContext(),
+	runner := &Runner{jr: jr}
+
+	// initialize the expression context
+	ec, err := actions.NewExprContext()
+	if err != nil {
+		return nil, err
 	}
+
+	runner.context = ec
 
 	// main task executor that executes the job
 	runner.executor = NewTaskExecutor(jr.Job.Name, run(runner))
