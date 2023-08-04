@@ -27,7 +27,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish artifact-service
-        run: ./hack/mage tools:ghx:publish main
+        run: ./hack/mage tools:ghx:publish ${{ github.ref_name }}
 
   artifact-service:
     runs-on: ubuntu-latest
@@ -48,4 +48,4 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish artifact-service
-        run: ./hack/mage services:artifact:publish main
+        run: ./hack/mage services:artifact:publish ${{ github.ref_name }}
