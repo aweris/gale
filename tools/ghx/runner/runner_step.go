@@ -153,9 +153,15 @@ func (s *StepRun) setup() TaskExecutorFn {
 	return func(ctx context.Context) (core.Conclusion, error) {
 		path := filepath.Join(config.GhxRunDir(s.runner.jr.RunID), "scripts", s.Step.ID, "run.sh")
 
-		content := []byte(fmt.Sprintf("#!/bin/bash\n%s", s.Step.Run))
+		// evaluate run script against the expressions
+		run, err := evalString(s.Step.Run, s.runner.context)
+		if err != nil {
+			return core.ConclusionFailure, err
+		}
 
-		err := fs.WriteFile(path, content, 0755)
+		content := []byte(fmt.Sprintf("#!/bin/bash\n%s", run))
+
+		err = fs.WriteFile(path, content, 0755)
 		if err != nil {
 			return core.ConclusionFailure, err
 		}
