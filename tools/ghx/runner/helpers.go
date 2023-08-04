@@ -47,3 +47,13 @@ func evalStepCondition(condition string, ac *actions.ExprContext) (bool, core.Co
 
 	return run, conclusion, nil
 }
+
+// evalString evaluates the given expression and returns the result as string.
+func evalString(expr string, ac *actions.ExprContext) (string, error) {
+	val, err := actions.NewString(expr).Eval(ac)
+	if err != nil {
+		return "", err
+	}
+
+	return val, nil
+}

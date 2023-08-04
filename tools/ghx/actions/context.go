@@ -4,6 +4,10 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"path/filepath"
+
+	"github.com/aweris/gale/internal/config"
+	"github.com/aweris/gale/internal/fs"
 
 	"github.com/aweris/gale/internal/core"
 	"github.com/aweris/gale/tools/ghx/expression"
@@ -12,18 +16,15 @@ import (
 var _ expression.VariableProvider = new(ExprContext)
 
 type ExprContext struct {
-	Github GithubContext               // Github context
-	Runner core.RunnerContext          // Runner context
-	Job    core.JobContext             // Job context
-	Steps  map[string]core.StepContext // Steps context
+	Github  GithubContext
+	Runner  core.RunnerContext
+	Job     core.JobContext
+	Steps   map[string]core.StepContext
+	Secrets core.SecretsContext
 
 	// TODO: add other contexts when needed.
-	// - runner context
-	// - env context
-	// - job context
-	// - steps context
+	//  - env context
 	//  - vars context
-	//  - secrets context
 	//  - strategy context
 	//  - matrix context
 	//  - needs context
@@ -31,7 +32,21 @@ type ExprContext struct {
 	//  - inputs context
 }
 
-func NewExprContext() *ExprContext {
+func NewExprContext() (*ExprContext, error) {
+	path := filepath.Join(config.GhxHome(), "secrets", "secrets.json")
+
+	err := fs.EnsureFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to ensure secrets file exist: %w", err)
+	}
+
+	var secrets core.SecretsContext
+
+	err = fs.ReadJSONFile(path, &secrets)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read secrets file: %w", err)
+	}
+
 	return &ExprContext{
 		Github: GithubContext{
 			GithubRepositoryContext: core.GithubRepositoryContext{
@@ -75,8 +90,9 @@ func NewExprContext() *ExprContext {
 		Job: core.JobContext{
 			Status: core.ConclusionSuccess, // start with success status
 		},
-		Steps: make(map[string]core.StepContext),
-	}
+		Steps:   make(map[string]core.StepContext),
+		Secrets: secrets,
+	}, nil
 }
 
 // GithubContext contains information about the workflow run and the event that triggered the run and event that
@@ -115,7 +131,7 @@ func (c *ExprContext) GetVariable(name string) (interface{}, error) {
 	case "steps":
 		return c.Steps, nil
 	case "secrets":
-		return map[string]string{}, nil
+		return c.Secrets, nil
 	case "strategy":
 		return map[string]string{}, nil
 	case "matrix":
