@@ -28,11 +28,10 @@ With these prerequisites in place, you'll be ready to set up and run `gale` on y
 
 ### Installation
 
-You can install `gale` by using:
+You can download the latest release of `gale` from the [releases page](https://github.com/aweris/gale/releases). 
 
-```bash
-go install github.com/aweris/gale/cmd/gale@latest
-```
+**Note:** It's not possible install `gale` using `go install` because `gale` requires the version information to be 
+embedded in the binary and `go install` doesn't compile the binary with version information.
 
 ### List workflows and jobs
 

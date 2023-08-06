@@ -46,7 +46,7 @@ builds:
 
 # package only the binary
 archives:
-  - format: gz
+  - name_template: '{{ .ProjectName }}_v{{ .Version }}_{{ .Os }}_{{ .Arch }}'
     files:
       - none*
 
