@@ -30,6 +30,21 @@ With these prerequisites in place, you'll be ready to set up and run `gale` on y
 
 You can download the latest release of `gale` from the [releases page](https://github.com/aweris/gale/releases). 
 
+or you can install `gale` using:
+
+```bash!
+curl https://raw.githubusercontent.com/aweris/gale/main/hack/install_gale.sh | sh
+```
+
+The following command will install latest version of `gale` to your current directory. You can also specify following environment variables,
+
+- `VERSION` to specify the version of `gale` to install, e.g. `VERSION=v0.0.1` default is `latest`
+- `INSTALL_DIR` to specify the directory to install `gale` to, e.g. `INSTALL_DIR=/usr/local/bin` default is current directory
+
+```bash!
+curl https://raw.githubusercontent.com/aweris/gale/main/hack/install_gale.sh | sudo VERSION=v0.0.1 INSTALL_DIR=/usr/local/bin sh
+```
+
 **Note:** It's not possible install `gale` using `go install` because `gale` requires the version information to be 
 embedded in the binary and `go install` doesn't compile the binary with version information.
 
