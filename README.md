@@ -33,13 +33,13 @@ You can download the latest release of `gale` from the [releases page](https://g
 or you can install `gale` using:
 
 ```bash!
-curl https://raw.githubusercontent.com/aweris/gale/main/hack/install_gale.sh | sh
+curl -sfLo install.sh https://raw.githubusercontent.com/aweris/gale/main/hack/install.sh; sh ./install.sh
 ```
 
 The following command will install latest version of `gale` to your current directory. You can also specify following environment variables,
 
-- `VERSION` to specify the version of `gale` to install, e.g. `VERSION=v0.0.1` default is `latest`
-- `INSTALL_DIR` to specify the directory to install `gale` to, e.g. `INSTALL_DIR=/usr/local/bin` default is current directory
+- `GALE_VERSION` to specify the version of `gale` to install, e.g. `GALE_VERSION=v0.0.1` default is `latest`
+- `BIN_DIR` to specify the directory to install `gale` to, e.g. `BIN_DIR=/usr/local/bin` default is current directory
 
 ```bash!
 curl https://raw.githubusercontent.com/aweris/gale/main/hack/install_gale.sh | sudo VERSION=v0.0.1 INSTALL_DIR=/usr/local/bin sh
