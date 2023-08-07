@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 RELEASE=$(curl -s "https://api.github.com/repos/aweris/gale/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
-VERSION="${VERSION:-${RELEASE}}"
-INSTALL_DIR="${INSTALL_DIR:-.}"
+GALE_VERSION="${GALE_VERSION:-${RELEASE}}"
+BIN_DIR="${BIN_DIR:-.}"
 
 function install_gale() {
     local version=$1
@@ -13,11 +13,11 @@ function install_gale() {
 
     echo "Downloading ${download_url}"
 
-    curl -sL "${download_url}" | tar xz -C "${INSTALL_DIR}"
+    curl -sL "${download_url}" | tar xz -C "${BIN_DIR}"
 
-    echo "Installed gale ${version} to ${INSTALL_DIR}"
+    echo "Installed gale ${version} to ${BIN_DIR}"
 
-    "${INSTALL_DIR}/gale" version
+    "${BIN_DIR}/gale" version
 
     echo "Done."
 }
@@ -29,12 +29,12 @@ function main() {
     local arch
     arch=$(uname -m | tr '[:upper:]' '[:lower:]')
 
-    if [[ -z "${VERSION}" ]]; then
+    if [[ -z "${GALE_VERSION}" ]]; then
         echo "failed to get latest version from GitHub API"
         exit 1
     fi
 
-    install_gale "${VERSION}" "${os}" "${arch}"
+    install_gale "${GALE_VERSION}" "${os}" "${arch}"
 }
 
 main "$@"
