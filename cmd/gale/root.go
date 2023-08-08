@@ -4,14 +4,11 @@ import (
 	"fmt"
 	"os"
 
-	"dagger.io/dagger"
-
 	"github.com/spf13/cobra"
 
 	"github.com/aweris/gale/cmd/gale/list"
 	"github.com/aweris/gale/cmd/gale/run"
 	"github.com/aweris/gale/cmd/gale/version"
-	"github.com/aweris/gale/internal/config"
 )
 
 // NewCommand  creates a new root command.
@@ -19,20 +16,6 @@ func NewCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "gale <command> [flags]",
 		Short: "Gale is a tool to run Github Actions locally",
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			client, err := dagger.Connect(cmd.Context(), dagger.WithLogOutput(cmd.OutOrStdout()))
-			if err != nil {
-				return err
-			}
-
-			config.SetClient(client)
-
-			return nil
-		},
-		PersistentPostRunE: func(cmd *cobra.Command, args []string) error {
-			// Close the client connection when the command is done.
-			return config.Client().Close()
-		},
 	}
 
 	return cmd

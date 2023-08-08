@@ -42,7 +42,7 @@ The following command will install latest version of `gale` to your current dire
 - `BIN_DIR` to specify the directory to install `gale` to, e.g. `BIN_DIR=/usr/local/bin` default is current directory
 
 ```bash!
-curl https://raw.githubusercontent.com/aweris/gale/main/hack/install_gale.sh | sudo VERSION=v0.0.1 INSTALL_DIR=/usr/local/bin sh
+curl -sfLo install.sh https://raw.githubusercontent.com/aweris/gale/main/hack/install.sh; sudo GALE_VERSION=v0.0.2 BIN_DIR=/usr/local/bin sh ./install.sh
 ```
 
 **Note:** It's not possible install `gale` using `go install` because `gale` requires the version information to be 
