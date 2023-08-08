@@ -18,7 +18,7 @@ func NewCommand() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "list",
-		Short: "List all workflows and jobs under the current repository",
+		Short: "List all workflows and jobs under it",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			repo, err := core.GetRepository(repo, getOpts)
