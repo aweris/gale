@@ -3,8 +3,11 @@ package list
 import (
 	"fmt"
 
+	"dagger.io/dagger"
+
 	"github.com/spf13/cobra"
 
+	"github.com/aweris/gale/internal/config"
 	"github.com/aweris/gale/internal/core"
 )
 
@@ -20,6 +23,20 @@ func NewCommand() *cobra.Command {
 		Use:   "list",
 		Short: "List all workflows and jobs under it",
 		Args:  cobra.NoArgs,
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			client, err := dagger.Connect(cmd.Context(), dagger.WithLogOutput(cmd.OutOrStdout()))
+			if err != nil {
+				return err
+			}
+
+			config.SetClient(client)
+
+			return nil
+		},
+		PersistentPostRunE: func(cmd *cobra.Command, args []string) error {
+			// Close the client connection when the command is done.
+			return config.Client().Close()
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			repo, err := core.GetRepository(repo, getOpts)
 			if err != nil {

@@ -1,9 +1,12 @@
 package run
 
 import (
-	"github.com/aweris/gale/internal/dagger/images"
+	"dagger.io/dagger"
+
 	"github.com/spf13/cobra"
 
+	"github.com/aweris/gale/internal/config"
+	"github.com/aweris/gale/internal/dagger/images"
 	"github.com/aweris/gale/pkg/gale"
 )
 
@@ -16,6 +19,20 @@ func NewCommand() *cobra.Command {
 		Short:        "Run Github Actions by providing workflow and job name",
 		Args:         cobra.ExactArgs(2),
 		SilenceUsage: true, // don't print usage when error occurs
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			client, err := dagger.Connect(cmd.Context(), dagger.WithLogOutput(cmd.OutOrStdout()))
+			if err != nil {
+				return err
+			}
+
+			config.SetClient(client)
+
+			return nil
+		},
+		PersistentPostRunE: func(cmd *cobra.Command, args []string) error {
+			// Close the client connection when the command is done.
+			return config.Client().Close()
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			_, err := images.
 				RunnerBase().
