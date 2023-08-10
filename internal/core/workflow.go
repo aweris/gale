@@ -8,7 +8,6 @@ type Workflow struct {
 	Name string            `yaml:"name"` // Name is the name of the workflow.
 	Env  map[string]string `yaml:"env"`  // Env is the environment variables used in the workflow
 	Jobs map[string]Job    `yaml:"jobs"` // Jobs is the list of jobs in the workflow.
-	SHA  string            `yaml:"-"`    // SHA is the commit SHA for the workflow file. Set by gale when loading the workflow.
 
 	// TBD: add more fields when needed
 }
