@@ -178,16 +178,5 @@ func (r *Repository) loadWorkflow(ctx context.Context, path string, file *dagger
 		workflow.Name = path
 	}
 
-	// TODO: this is an expensive operation. We should move this to a separate method and call it only when needed.
-
-	api := fmt.Sprintf("repos/%s/contents/%s?ref=%s", r.NameWithOwner, path, r.CurrentRef)
-
-	stdout, stderr, err := gh.Exec("api", api, "--jq", ".sha")
-	if err != nil {
-		return nil, fmt.Errorf("failed to get current repository: %w stderr: %s", err, stderr.String())
-	}
-
-	workflow.SHA = strings.TrimSpace(stdout.String())
-
 	return &workflow, nil
 }

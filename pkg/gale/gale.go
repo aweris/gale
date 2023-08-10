@@ -2,9 +2,11 @@ package gale
 
 import (
 	"context"
+	"strings"
 
 	"dagger.io/dagger"
 
+	"github.com/aweris/gale/internal/config"
 	"github.com/aweris/gale/internal/core"
 	"github.com/aweris/gale/internal/dagger/helpers"
 	"github.com/aweris/gale/internal/dagger/services"
@@ -70,12 +72,24 @@ func Run(ctx context.Context, workflow, job string, opts ...RunOpts) dagger.With
 			return helpers.FailPipeline(container, err)
 		}
 
+		//TODO: not sure if this is the best way to get the sha, probably we're missing some scenarios. However, it works for now.
+
+		sha, err := config.Client().Container().
+			From("alpine/git").
+			WithMountedDirectory("/workdir", repo.Dir).
+			WithWorkdir("/workdir").
+			WithExec([]string{"log", "-1", "--follow", "--format=%H", "--", wf.Path}).
+			Stdout(ctx)
+		if err != nil {
+			return helpers.FailPipeline(container, err)
+		}
+
 		// context configuration
 		container = container.With(core.NewRunnerContext().WithContainerFunc())
 		container = container.With(core.NewGithubRepositoryContext(repo).WithContainerFunc())
 		container = container.With(core.NewGithubSecretsContext(token).WithContainerFunc())
 		container = container.With(core.NewGithubURLContext().WithContainerFunc())
-		container = container.With(core.NewGithubWorkflowContext(repo, wf, workflowRunID).WithContainerFunc())
+		container = container.With(core.NewGithubWorkflowContext(repo, wf, workflowRunID, strings.TrimSpace(sha)).WithContainerFunc())
 		container = container.With(core.NewGithubJobInfoContext(job).WithContainerFunc())
 		container = container.With(core.NewSecretsContext(token, opt.Secrets).WithContainerFunc())
 

@@ -158,11 +158,11 @@ type GithubWorkflowContext struct {
 }
 
 // NewGithubWorkflowContext creates a new GithubWorkflowContext from the given workflow.
-func NewGithubWorkflowContext(repo *Repository, workflow *Workflow, runID string) GithubWorkflowContext {
+func NewGithubWorkflowContext(repo *Repository, workflow *Workflow, runID, workflowSHA string) GithubWorkflowContext {
 	return GithubWorkflowContext{
 		Workflow:      workflow.Name,
 		WorkflowRef:   fmt.Sprintf("%s/%s@%s", repo.NameWithOwner, workflow.Path, repo.CurrentRef),
-		WorkflowSHA:   workflow.SHA,
+		WorkflowSHA:   workflowSHA,
 		RunID:         runID,
 		RunNumber:     "1", // TODO: fill this value
 		RunAttempt:    "1", // TODO: fill this value
