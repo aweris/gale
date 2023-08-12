@@ -77,6 +77,14 @@ func NewExprContext() (*ExprContext, error) {
 			GithubJobInfoContext: core.GithubJobInfoContext{
 				Job: os.Getenv("GITHUB_JOB"),
 			},
+			GithubRefContext: core.GithubRefContext{
+				Ref:          os.Getenv("GITHUB_REF"),
+				RefName:      os.Getenv("GITHUB_REF_NAME"),
+				RefType:      os.Getenv("GITHUB_REF_TYPE"),
+				RefProtected: os.Getenv("GITHUB_REF_PROTECTED") == "true",
+				HeadRef:      os.Getenv("GITHUB_HEAD_REF"),
+				BaseRef:      os.Getenv("GITHUB_BASE_REF"),
+			},
 			GithubFilesContext: core.GithubFilesContext{ /* No initial values */ },
 		},
 		Runner: core.RunnerContext{
@@ -109,6 +117,7 @@ type GithubContext struct {
 	core.GithubURLContext
 	core.GithubWorkflowContext
 	core.GithubJobInfoContext
+	core.GithubRefContext
 
 	// Local contexts - these contexts changes at course of the workflow run.
 	core.GithubFilesContext
