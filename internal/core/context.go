@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
+	"strconv"
 
 	"dagger.io/dagger"
 
@@ -200,6 +201,40 @@ func NewGithubJobInfoContext(jobID string) GithubJobInfoContext {
 func (c GithubJobInfoContext) WithContainerFunc() dagger.WithContainerFunc {
 	return func(container *dagger.Container) *dagger.Container {
 		return container.WithEnvVariable("GITHUB_JOB", c.Job)
+	}
+}
+
+// GithubRefContext is a context that contains information about the Git ref that triggered the workflow.
+type GithubRefContext struct {
+	Ref          string `json:"ref"`           // Ref is the branch or tag ref that triggered the workflow. If neither a branch or tag is available for the event type, the variable will not exist.
+	RefName      string `json:"ref_name"`      // RefName is the short name (without refs/heads/ prefix) of the branch or tag ref that triggered the workflow. If neither a branch or tag is available for the event type, the variable will not exist.
+	RefType      string `json:"ref_type"`      // RefType is the type of ref that triggered the workflow. Possible values are branch, tag, or empty, if neither a branch or tag is available for the event type.
+	RefProtected bool   `json:"ref_protected"` // RefProtected is true if branch protections are enabled and the base ref for the pull request matches the branch protection rule.
+	BaseRef      string `json:"base_ref"`      // BaseRef is the branch of the base repository. This property is only available when the event that triggered the workflow is a pull request. Otherwise the property will not exist.
+	HeadRef      string `json:"head_ref"`      // HeadRef is the branch of the head repository. This property is only available when the event that triggered the workflow is a pull request. Otherwise the property will not exist.
+}
+
+// NewGithubRefContext creates a new GithubRefContext from the given repository and ref.
+func NewGithubRefContext(ref *RepositoryGitRef) GithubRefContext {
+	return GithubRefContext{
+		Ref:          ref.Ref,
+		RefName:      ref.RefName,
+		RefType:      string(ref.RefType),
+		RefProtected: false, // TODO: fill this value when needed, not supported yet.
+		BaseRef:      "",    // TODO: fill this value when needed, not supported yet.
+		HeadRef:      "",    // TODO: fill this value when needed, not supported yet.
+	}
+}
+
+func (c GithubRefContext) WithContainerFunc() dagger.WithContainerFunc {
+	return func(container *dagger.Container) *dagger.Container {
+		return container.
+			WithEnvVariable("GITHUB_REF", c.Ref).
+			WithEnvVariable("GITHUB_REF_NAME", c.RefName).
+			WithEnvVariable("GITHUB_REF_TYPE", c.RefType).
+			WithEnvVariable("GITHUB_REF_PROTECTED", strconv.FormatBool(c.RefProtected)).
+			WithEnvVariable("GITHUB_BASE_REF", c.BaseRef).
+			WithEnvVariable("GITHUB_HEAD_REF", c.HeadRef)
 	}
 }
 
