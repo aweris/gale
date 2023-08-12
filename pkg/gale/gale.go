@@ -19,7 +19,6 @@ type RunOpts struct {
 	Repo         string
 	Branch       string
 	Tag          string
-	Commit       string
 	WorkflowsDir string
 	Secrets      map[string]string
 }
@@ -32,7 +31,7 @@ func Run(ctx context.Context, workflow, job string, opts ...RunOpts) dagger.With
 			opt = opts[0]
 		}
 
-		repo, err := core.GetRepository(opt.Repo, core.GetRepositoryOpts{Branch: opt.Branch, Tag: opt.Tag, Commit: opt.Commit})
+		repo, err := core.GetRepository(opt.Repo, core.GetRepositoryOpts{Branch: opt.Branch, Tag: opt.Tag})
 		if err != nil {
 			return helpers.FailPipeline(container, err)
 		}

@@ -79,10 +79,9 @@ Since `dagger run` is an optional command, it's omitted in the example above. So
 
 For commands described above all parameters are optional. Available command flags for `list` and `run` commands are:
 ```
-  --branch string          branch to load workflows from. Only one of branch, tag or commit can be used. Precedence is as follows: commit, tag, branch.
-  --commit string          commit to load workflows from. Only one of branch, tag or commit can be used. Precedence is as follows: commit, tag, branch.
   --repo string            owner/repo to load workflows from. If empty, repository information of the current directory will be used.
-  --tag string             tag to load workflows from. Only one of branch, tag or commit can be used. Precedence is as follows: commit, tag, branch.
+  --branch string          branch to load workflows from. Only one of branch or tag can be used. Precedence is as follows: tag, branch.
+  --tag string             tag to load workflows from. Only one of branch or tag can be used. Precedence is as follows: tag, branch.
   --workflows-dir string   directory to load workflows from. If empty, workflows will be loaded from the default directory.
 ```
 
