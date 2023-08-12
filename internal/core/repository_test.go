@@ -37,7 +37,7 @@ func TestGetCurrentRepository(t *testing.T) {
 		t.Fatalf("Expected repository name with owner to be aweris/gale but got %s", repo.NameWithOwner)
 	}
 
-	entries, err := repo.Dir.Entries(ctx)
+	entries, err := repo.GitRef.Dir.Entries(ctx)
 	if err != nil {
 		t.Fatalf("Failed to get directory entries: %s", err)
 	}
@@ -46,7 +46,7 @@ func TestGetCurrentRepository(t *testing.T) {
 		t.Fatalf("Expected directory entries to be more than 0 but got %d", len(entries))
 	}
 
-	data, err := repo.Dir.File("testdata/content.txt").Contents(ctx)
+	data, err := repo.GitRef.Dir.File("testdata/content.txt").Contents(ctx)
 	if err != nil {
 		t.Fatalf("Failed to get file contents: %s", err)
 	}
@@ -82,7 +82,7 @@ func TestGetRepository(t *testing.T) {
 		t.Fatalf("Expected repository name with owner to be aweris/gale but got %s", repo.NameWithOwner)
 	}
 
-	entries, err := repo.Dir.Entries(ctx)
+	entries, err := repo.GitRef.Dir.Entries(ctx)
 	if err != nil {
 		t.Fatalf("Failed to get directory entries: %s", err)
 	}
