@@ -47,6 +47,14 @@ func NewExprContext() (*ExprContext, error) {
 		return nil, fmt.Errorf("failed to read secrets file: %w", err)
 	}
 
+	// event data
+	var event map[string]interface{}
+
+	err = fs.ReadJSONFile(os.Getenv("GITHUB_EVENT_PATH"), &event)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read event file: %w", err)
+	}
+
 	return &ExprContext{
 		Github: GithubContext{
 			GithubRepositoryContext: core.GithubRepositoryContext{
@@ -85,6 +93,12 @@ func NewExprContext() (*ExprContext, error) {
 				HeadRef:      os.Getenv("GITHUB_HEAD_REF"),
 				BaseRef:      os.Getenv("GITHUB_BASE_REF"),
 			},
+			GithubEventContext: core.GithubEventContext{
+				EventName: os.Getenv("GITHUB_EVENT_NAME"),
+				EventPath: os.Getenv("GITHUB_EVENT_PATH"),
+				Event:     event,
+				SHA:       os.Getenv("GITHUB_SHA"),
+			},
 			GithubFilesContext: core.GithubFilesContext{ /* No initial values */ },
 		},
 		Runner: core.RunnerContext{
@@ -118,6 +132,7 @@ type GithubContext struct {
 	core.GithubWorkflowContext
 	core.GithubJobInfoContext
 	core.GithubRefContext
+	core.GithubEventContext
 
 	// Local contexts - these contexts changes at course of the workflow run.
 	core.GithubFilesContext

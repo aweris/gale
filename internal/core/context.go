@@ -238,6 +238,39 @@ func (c GithubRefContext) WithContainerFunc() dagger.WithContainerFunc {
 	}
 }
 
+// GithubEventContext is a context that contains information about the event that triggered the workflow.
+type GithubEventContext struct {
+	EventName string                 `json:"event_name"` // EventName is the name of the event that triggered the workflow. e.g. push
+	EventPath string                 `json:"event_path"` // EventPath is the path of the file with the complete webhook event payload. e.g. /github/workflow/event.json
+	Event     map[string]interface{} `json:"event"`      // Event is the full event webhook payload.
+	SHA       string                 `json:"sha"`        // SHA is the commit SHA that triggered the workflow. The value of this commit SHA depends on the event that triggered the workflow.
+}
+
+// NewGithubEventContext creates a new GithubEventContext from the given event.
+func NewGithubEventContext(runID string, ref *RepositoryGitRef) GithubEventContext {
+	return GithubEventContext{
+		EventName: "push", // TODO: this is only supported event type for now. Make it configurable when we support events properly.
+		EventPath: filepath.Join(config.GhxRunDir(runID), "event.json"),
+		Event:     make(map[string]interface{}),
+		SHA:       ref.SHA,
+	}
+}
+
+func (c GithubEventContext) WithContainerFunc() dagger.WithContainerFunc {
+	return func(container *dagger.Container) *dagger.Container {
+		data, err := json.Marshal(c.Event)
+		if err != nil {
+			helpers.FailPipeline(container, err)
+		}
+
+		return container.
+			WithEnvVariable("GITHUB_EVENT_NAME", c.EventName).
+			WithEnvVariable("GITHUB_EVENT_PATH", c.EventPath).
+			WithNewFile(c.EventPath, dagger.ContainerWithNewFileOpts{Contents: string(data)}).
+			WithEnvVariable("GITHUB_SHA", c.SHA)
+	}
+}
+
 // JobContext contains information about the currently running job.
 //
 // See: https://docs.github.com/en/actions/learn-github-actions/contexts#job-context
