@@ -46,11 +46,10 @@ type RepositoryBranchRef struct {
 // If none of the options are set, the default branch will be used. Default branch or remote repositories is configured
 // in the GitHub repository settings. For local repositories, it's the branch that is currently checked out.
 //
-// If multiple options are set, the precedence is as follows: commit, tag, branch.
+// If multiple options are set, the precedence is as follows: tag, branch.
 type GetRepositoryOpts struct {
 	Branch string
 	Tag    string
-	Commit string
 }
 
 // GetCurrentRepository returns current repository information. This is a wrapper around GetRepository with empty name.
@@ -86,9 +85,6 @@ func GetRepository(name string, opts ...GetRepositoryOpts) (*Repository, error) 
 
 	// load repo tree based on the options precedence
 	switch {
-	case opt.Commit != "":
-		dir = git.Commit(opt.Commit).Tree()
-
 	case opt.Tag != "":
 		dir = git.Tag(opt.Tag).Tree()
 		ref = fmt.Sprintf("refs/tags/%s", opt.Tag)

@@ -73,9 +73,8 @@ func NewCommand() *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&repo, "repo", "", "owner/repo to load workflows from. If empty, repository information of the current directory will be used.")
-	cmd.Flags().StringVar(&getOpts.Branch, "branch", "", "branch to load workflows from. Only one of branch, tag or commit can be used. Precedence is as follows: commit, tag, branch.")
-	cmd.Flags().StringVar(&getOpts.Tag, "tag", "", "tag to load workflows from. Only one of branch, tag or commit can be used. Precedence is as follows: commit, tag, branch.")
-	cmd.Flags().StringVar(&getOpts.Commit, "commit", "", "commit to load workflows from. Only one of branch, tag or commit can be used. Precedence is as follows: commit, tag, branch.")
+	cmd.Flags().StringVar(&getOpts.Branch, "branch", "", "branch to load workflows from. Only one of branch or tag can be used. Precedence is as follows: tag, branch.")
+	cmd.Flags().StringVar(&getOpts.Tag, "tag", "", "tag to load workflows from. Only one of branch or tag can be used. Precedence is as follows: tag, branch.")
 	cmd.Flags().StringVar(&loadOpts.WorkflowsDir, "workflows-dir", "", "directory to load workflows from. If empty, workflows will be loaded from the default directory.")
 
 	return cmd
