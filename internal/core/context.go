@@ -69,7 +69,7 @@ func NewGithubRepositoryContext(repo *Repository) GithubRepositoryContext {
 		RepositoryOwnerID: repo.Owner.ID,
 		RepositoryURL:     repo.URL,
 		Workspace:         fmt.Sprintf("/home/runner/work/%s/%s", repo.Name, repo.Name),
-		Dir:               repo.Dir,
+		Dir:               repo.GitRef.Dir,
 	}
 }
 
@@ -161,7 +161,7 @@ type GithubWorkflowContext struct {
 func NewGithubWorkflowContext(repo *Repository, workflow *Workflow, runID, workflowSHA string) GithubWorkflowContext {
 	return GithubWorkflowContext{
 		Workflow:      workflow.Name,
-		WorkflowRef:   fmt.Sprintf("%s/%s@%s", repo.NameWithOwner, workflow.Path, repo.CurrentRef),
+		WorkflowRef:   fmt.Sprintf("%s/%s@%s", repo.NameWithOwner, workflow.Path, repo.GitRef.Ref),
 		WorkflowSHA:   workflowSHA,
 		RunID:         runID,
 		RunNumber:     "1", // TODO: fill this value

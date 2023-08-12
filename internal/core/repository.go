@@ -12,7 +12,6 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/cli/go-gh/v2"
-	"github.com/magefile/mage/sh"
 
 	"github.com/aweris/gale/internal/config"
 )
@@ -25,8 +24,7 @@ type Repository struct {
 	URL              string
 	Owner            RepositoryOwner
 	DefaultBranchRef RepositoryBranchRef
-	CurrentRef       string
-	Dir              *dagger.Directory // Dir is the directory where the repository is checked out
+	GitRef           *RepositoryGitRef
 }
 
 // RepositoryOwner represents a GitHub repository owner
@@ -71,44 +69,35 @@ func GetRepository(name string, opts ...GetRepositoryOpts) (*Repository, error) 
 		return nil, fmt.Errorf("failed to unmarshal current repository: %s err: %w", stdout.String(), err)
 	}
 
-	var (
-		ref string
-		dir *dagger.Directory
-	)
-
 	opt := GetRepositoryOpts{}
 	if len(opts) > 0 {
 		opt = opts[0]
 	}
 
-	git := config.Client().Git(repo.URL, dagger.GitOpts{KeepGitDir: true})
-
 	// load repo tree based on the options precedence
 	switch {
 	case opt.Tag != "":
-		dir = git.Tag(opt.Tag).Tree()
-		ref = fmt.Sprintf("refs/tags/%s", opt.Tag)
-	case opt.Branch != "":
-		dir = git.Branch(opt.Branch).Tree()
-		ref = fmt.Sprintf("refs/heads/%s", opt.Branch)
-	case name != "":
-		dir = git.Branch(repo.DefaultBranchRef.Name).Tree()
-		ref = fmt.Sprintf("refs/heads/%s", repo.DefaultBranchRef.Name)
-	default:
-		// TODO: current directory could be a subdirectory of the repository. Should we handle this case?
-		dir = config.Client().Host().Directory(".")
-
-		// get current ref name
-		rev, err := sh.Output("git", "rev-parse", "--symbolic-full-name", "HEAD")
+		repo.GitRef, err = GetRepositoryGitRef(context.Background(), repo.URL, RefTypeTag, opt.Tag)
 		if err != nil {
 			return nil, err
 		}
-
-		ref = strings.TrimSpace(rev)
+	case opt.Branch != "":
+		repo.GitRef, err = GetRepositoryGitRef(context.Background(), repo.URL, RefTypeBranch, opt.Branch)
+		if err != nil {
+			return nil, err
+		}
+	case name != "":
+		repo.GitRef, err = GetRepositoryGitRef(context.Background(), repo.URL, RefTypeBranch, repo.DefaultBranchRef.Name)
+		if err != nil {
+			return nil, err
+		}
+	default:
+		// TODO: current directory could be a subdirectory of the repository. Should we handle this case?
+		repo.GitRef, err = GetRepositoryRefFromDir(context.Background(), config.Client().Host().Directory("."))
+		if err != nil {
+			return nil, err
+		}
 	}
-
-	repo.Dir = dir
-	repo.CurrentRef = ref
 
 	return &repo, nil
 }
@@ -127,7 +116,7 @@ func (r *Repository) LoadWorkflows(ctx context.Context, opts ...RepositoryLoadWo
 		}
 	}
 
-	dir := r.Dir.Directory(path)
+	dir := r.GitRef.Dir.Directory(path)
 
 	entries, err := dir.Entries(ctx)
 	if err != nil {

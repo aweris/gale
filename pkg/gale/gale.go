@@ -75,7 +75,7 @@ func Run(ctx context.Context, workflow, job string, opts ...RunOpts) dagger.With
 
 		sha, err := config.Client().Container().
 			From("alpine/git").
-			WithMountedDirectory("/workdir", repo.Dir).
+			WithMountedDirectory("/workdir", repo.GitRef.Dir).
 			WithWorkdir("/workdir").
 			WithExec([]string{"log", "-1", "--follow", "--format=%H", "--", wf.Path}).
 			Stdout(ctx)
