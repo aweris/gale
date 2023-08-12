@@ -22,11 +22,12 @@ type RepositoryGitRef struct {
 	Ref     string
 	RefName string
 	RefType RefType
+	SHA     string
 	Dir     *dagger.Directory
 }
 
 // GetRepositoryGitRef returns a Git ref (branch or tag) in a repository. If name is empty, the current repository will be used.
-func GetRepositoryGitRef(_ context.Context, url string, refType RefType, refName string) (*RepositoryGitRef, error) {
+func GetRepositoryGitRef(ctx context.Context, url string, refType RefType, refName string) (*RepositoryGitRef, error) {
 	var (
 		ref string
 		dir *dagger.Directory
@@ -45,7 +46,12 @@ func GetRepositoryGitRef(_ context.Context, url string, refType RefType, refName
 		return nil, fmt.Errorf("invalid ref type: %s", refType)
 	}
 
-	return &RepositoryGitRef{Ref: ref, RefName: refName, RefType: refType, Dir: dir}, nil
+	sha, err := getRepoSHA(ctx, dir)
+	if err != nil {
+		return nil, err
+	}
+
+	return &RepositoryGitRef{Ref: ref, RefName: refName, RefType: refType, SHA: sha, Dir: dir}, nil
 }
 
 // GetRepositoryRefFromDir returns a Git ref (branch or tag) from given directory. If dir is empty or not git repository, it will return an error.
@@ -54,6 +60,7 @@ func GetRepositoryRefFromDir(ctx context.Context, dir *dagger.Directory) (*Repos
 		ref     string
 		refType RefType
 		refName string
+		sha     string
 	)
 
 	out, err := config.Client().
@@ -79,5 +86,25 @@ func GetRepositoryRefFromDir(ctx context.Context, dir *dagger.Directory) (*Repos
 		return nil, fmt.Errorf("invalid ref type: %s", refType)
 	}
 
-	return &RepositoryGitRef{Ref: ref, RefName: refName, RefType: refType, Dir: dir}, nil
+	sha, err = getRepoSHA(ctx, dir)
+	if err != nil {
+		return nil, err
+	}
+
+	return &RepositoryGitRef{Ref: ref, RefName: refName, RefType: refType, SHA: sha, Dir: dir}, nil
+}
+
+func getRepoSHA(ctx context.Context, dir *dagger.Directory) (string, error) {
+	out, err := config.Client().
+		Container().
+		From("alpine/git").
+		WithMountedDirectory("/src", dir).WithWorkdir("/src").
+		WithExec([]string{"rev-parse", "HEAD"}).
+		Stdout(ctx)
+
+	if err != nil {
+		return "", err
+	}
+
+	return strings.TrimSpace(out), nil
 }

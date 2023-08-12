@@ -91,6 +91,7 @@ func Run(ctx context.Context, workflow, job string, opts ...RunOpts) dagger.With
 		container = container.With(core.NewGithubWorkflowContext(repo, wf, workflowRunID, strings.TrimSpace(sha)).WithContainerFunc())
 		container = container.With(core.NewGithubJobInfoContext(job).WithContainerFunc())
 		container = container.With(core.NewGithubRefContext(repo.GitRef).WithContainerFunc())
+		container = container.With(core.NewGithubEventContext(jobRunID, repo.GitRef).WithContainerFunc())
 		container = container.With(core.NewSecretsContext(token, opt.Secrets).WithContainerFunc())
 
 		// job run configuration
