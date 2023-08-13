@@ -114,6 +114,7 @@ func ExecutionEnv(_ context.Context) dagger.WithContainerFunc {
 
 		// services
 		container = container.With(services.NewArtifactService().WithContainerFunc()) // TODO: move service to context or outside to be able to use it later to get artifacts
+		container = container.With(services.NewArtifactCacheService().WithContainerFunc())
 
 		return container
 	}
