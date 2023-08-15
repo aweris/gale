@@ -1,0 +1,21 @@
+on: push
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/cache@v3
+        id: cache
+        with:
+          path: hello.txt
+          key: ${{ runner.os }}-hello.txt
+          restore-keys: |
+            ${{ runner.os }}-hello.txt
+            ${{ runner.os }}-
+
+      - name: Create hello.txt
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: echo "Hello World ${{ github.run_id }}" > hello.txt
+
+      - name: Print hello.txt
+        run: cat hello.txt
