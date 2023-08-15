@@ -25,7 +25,13 @@ func main() {
 
 	pflag.Parse()
 
-	if err := Serve(port); err != nil {
+	srv, err := NewLocalService(cacheDir, externalHostname, port)
+	if err != nil {
+		fmt.Printf("Error starting artifact service: %s\n", err.Error())
+		os.Exit(1)
+	}
+
+	if err := Serve(port, srv); err != nil {
 		fmt.Printf("Error starting artifact service: %s\n", err.Error())
 		os.Exit(1)
 	}
