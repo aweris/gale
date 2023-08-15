@@ -23,14 +23,21 @@ type ArtifactCacheService struct {
 
 // NewArtifactCacheService creates a new artifact service.
 func NewArtifactCacheService() *ArtifactCacheService {
-	v := version.GetVersion()
-
-	tag := v.GitVersion
+	var (
+		tag   = version.GetVersion().GitVersion
+		alias = "artifactcache"
+		port  = 8080
+	)
 
 	container := config.Client().Container().From("ghcr.io/aweris/gale/services/artifactcache:" + tag)
 
+	// external hostname configuration
+
+	container = container.WithEnvVariable("EXTERNAL_HOSTNAME", alias)
+
 	// port configuration
-	container = container.WithEnvVariable("PORT", "8080").WithExposedPort(8080)
+
+	container = container.WithEnvVariable("PORT", fmt.Sprintf("%d", port)).WithExposedPort(port)
 
 	// stateful data configuration
 
@@ -41,8 +48,8 @@ func NewArtifactCacheService() *ArtifactCacheService {
 		client:        config.Client(),
 		container:     container,
 		artifactcache: cache,
-		alias:         "artifactcache",
-		port:          "8080",
+		alias:         alias,
+		port:          fmt.Sprintf("%d", port),
 	}
 }
 

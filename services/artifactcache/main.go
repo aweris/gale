@@ -10,15 +10,18 @@ import (
 
 func main() {
 	var (
-		cacheDir string
-		port     string
+		cacheDir         string
+		port             string
+		externalHostname string
 	)
 
 	pflag.StringVar(&cacheDir, "cache-dir", "/cache", "Directory to store cache")
 	pflag.StringVar(&port, "port", "8080", "Port to artifact service will listen on")
+	pflag.StringVar(&externalHostname, "external-hostname", "", "External hostname to use for download URLs")
 
 	bindEnv(pflag.Lookup("cache-dir"), "CACHE_DIR")
 	bindEnv(pflag.Lookup("port"), "PORT")
+	bindEnv(pflag.Lookup("external-hostname"), "EXTERNAL_HOSTNAME")
 
 	pflag.Parse()
 
