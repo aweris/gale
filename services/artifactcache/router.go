@@ -195,7 +195,7 @@ func (h *handler) loggingMiddleware(next httprouter.Handle) httprouter.Handle {
 		keyvals = append(keyvals, "path", r.URL.Path)
 		keyvals = append(keyvals, "raw_query", r.URL.RawQuery)
 
-		log.Debugf("http request", keyvals...)
+		log.Debugf("Http request", keyvals...)
 
 		next(w, r, params)
 	}

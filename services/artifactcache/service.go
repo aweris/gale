@@ -82,11 +82,11 @@ func (s *LocalService) Close() error {
 func (s *LocalService) Exist(key, version string) (bool, error) {
 	ok, err := s.db.Exists(key, version)
 	if err != nil {
-		log.Errorf("failed to check cache existence", "error", err, "key", key, "version", version)
+		log.Errorf("Failed to check cache existence", "error", err, "key", key, "version", version)
 		return false, err
 	}
 
-	log.Debugf("check cache existence", "key", key, "version", version, "exists", ok)
+	log.Debugf("Check cache existence", "key", key, "version", version, "exists", ok)
 
 	return ok, nil
 }
