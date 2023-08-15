@@ -58,6 +58,8 @@ type LocalService struct {
 	port     string     // port is the external port of the artifact cache service. It is used to construct the artifact cache URL
 }
 
+// TODO: add cache entry expiration / cleanup. Currently, the cache entries are never deleted. Only when dagger cache volume is deleted, the cache entries are deleted.
+
 // NewLocalService creates a new local artifact service.
 func NewLocalService(root, hostname, port string) (*LocalService, error) {
 	db, err := NewBoltStore(filepath.Join(root, "metadata"))
