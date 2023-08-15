@@ -41,7 +41,7 @@ type handler struct {
 }
 
 func (h *handler) HandleGetCacheEntry(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	var keys []string
+	keys := make([]string, 0)
 
 	// parse keys from query string and normalize them
 	for _, key := range strings.Split(r.URL.Query().Get("keys"), ",") {
@@ -188,7 +188,6 @@ func (h *handler) sendJSON(w http.ResponseWriter, code int, data interface{}) {
 // loggingMiddleware logs the request method, path and query string
 func (h *handler) loggingMiddleware(next httprouter.Handle) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
-
 		var keyvals []interface{}
 
 		keyvals = append(keyvals, "method", r.Method)

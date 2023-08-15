@@ -160,7 +160,7 @@ func (s *LocalService) Commit(cacheID int) error {
 	}
 
 	entry.Complete = true
-	entry.LastUsedAt = time.Now().Unix()
+	entry.updateLastUsedAt()
 
 	writer, err := galefs.NewMultipartFileWriter(s.getCacheDir(cacheID))
 	if err != nil {
@@ -242,7 +242,8 @@ func (s *LocalService) GetFilePath(cacheID int) (string, error) {
 		return "", ErrCacheEntryNotComplete
 	}
 
-	entry.LastUsedAt = time.Now().Unix()
+	entry.updateLastUsedAt()
+
 	if err := s.db.Update(entry); err != nil {
 		log.Errorf("Failed to update cache entry", "error", err, "id", cacheID)
 		return "", err

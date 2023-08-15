@@ -52,7 +52,6 @@ func (b *BoltStore) Close() error {
 // initialize creates the buckets needed for the artifact cache.
 func (b *BoltStore) initialize() error {
 	return b.conn.Update(func(tx *bbolt.Tx) error {
-
 		for _, bucket := range [][]byte{dbEntries, idxVersionKey} {
 			_, err := tx.CreateBucketIfNotExists(bucket)
 			if err != nil {
