@@ -22,5 +22,15 @@ func (_ Services) Publish(ctx context.Context) error {
 
 	v := version.GetVersion()
 
-	return services.Artifact{}.Publish(ctx, v.GitVersion)
+	err := services.Artifact{}.Publish(ctx, v.GitVersion)
+	if err != nil {
+		return err
+	}
+
+	err = services.ArtifactCache{}.Publish(ctx, v.GitVersion)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

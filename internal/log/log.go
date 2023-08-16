@@ -87,11 +87,11 @@ func (l *Logger) logf(level, message string, keyvals ...interface{}) {
 
 	for i := 0; i < len(keyvals); i += 2 {
 		if keyvals[i+1] != "" && keyvals[i+1] != nil {
-			args = append(args, fmt.Sprintf("%s=%v", keyvals[i], keyvals[i+1]))
+			args = append(args, fmt.Sprintf("%s=%v", keyvals[i], wrapWithQuotesAndEscape(keyvals[i+1])))
 		}
 	}
 
-	l.log("", level, fmt.Sprintf("%s %s", message, strings.Join(args, ",")))
+	l.log("", level, fmt.Sprintf("%s %s", message, strings.Join(args, " ")))
 }
 
 func (l *Logger) log(prefix, level, message string) {
@@ -109,7 +109,30 @@ func (l *Logger) log(prefix, level, message string) {
 		sb.WriteString(fmt.Sprintf("[%s] ", level))
 	}
 
+	// If the message contains a newline, we need to indent the next lines to keep the group structure
+	if strings.Contains(message, "\n") {
+		group := strings.Join(l.groups, "")
+
+		message = strings.ReplaceAll(message, "\n", fmt.Sprintf("\n%s", group))
+	}
+
 	sb.WriteString(message)
 
 	fmt.Println(sb.String())
+}
+
+// wrapWithQuotesAndEscape wraps value in with `"` if given value is string and not quoted already.
+func wrapWithQuotesAndEscape(s interface{}) interface{} {
+	str, ok := s.(string)
+	if !ok {
+		return s
+	}
+
+	if len(str) >= 2 && str[0] == '"' && str[len(str)-1] == '"' {
+		return s
+	}
+
+	escaped := strings.ReplaceAll(str, `"`, `\"`)
+
+	return `"` + escaped + `"`
 }
