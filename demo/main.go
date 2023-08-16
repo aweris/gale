@@ -12,7 +12,8 @@ func main() {
 	d.Add(list(), "list", "List all workflows and jobs under it for current repositories `main` branch")
 	d.Add(run(), "run", "Run golangci-lint job from ci/workflows/lint workflow for aweris/gale repository default branch")
 	d.Add(lintGoreleaser(), "lint-goreleaser", "Run golangci job from golangci-lint workflow for goreleaser/goreleaser repository tag v1.19.2")
-	d.Add(testDagger(), "test-dagger", "Run sdk-go job from test workflow for dagger/dagger repository tag v0.8.1")
+	d.Add(testDagger(), "test-dagger", "Run sdk-go job from test workflow for dagger/dagger repository branch main")
+	d.Add(testCache(), "test-cache", "Use cache in the workflow")
 
 	d.Cleanup(env.Cleanup)
 
@@ -49,11 +50,23 @@ func lintGoreleaser() *demo.Run {
 }
 
 func testDagger() *demo.Run {
-	r := demo.NewRun("Run sdk-go job from test workflow for dagger v0.8.1")
+	r := demo.NewRun("Run sdk-go job from test workflow for dagger main")
 
-	r.Step([]string{"Contents of the workflow file"}, demo.S("curl https://raw.githubusercontent.com/dagger/dagger/v0.8.1/.github/workflows/test.yml"))
+	r.Step([]string{"Contents of the workflow file"}, demo.S("curl https://raw.githubusercontent.com/dagger/dagger/main/.github/workflows/test.yml"))
 
-	r.Step([]string{"Run the workflow from custom directory for dagger/dagger repository"}, env.RunGaleWithDagger("run --repo dagger/dagger --tag v0.8.1 test sdk-go"))
+	r.Step([]string{"Run the workflow from custom directory for dagger/dagger repository"}, env.RunGaleWithDagger("run --repo dagger/dagger --branch main test sdk-go"))
+
+	return r
+}
+
+func testCache() *demo.Run {
+	r := demo.NewRun("Use cache")
+
+	r.Step([]string{"Contents of the workflow file"}, demo.S("curl https://raw.githubusercontent.com/aweris/gale/main/ci/workflows/artifact-cache.yaml"))
+
+	r.Step([]string{"What we expect to see here", "if cache exist, it'll print contents of the cache file", "if cache doesn't exist, it'll generate a new file, use it then upload it to cache"}, nil)
+
+	r.Step([]string{"Run the workflow"}, env.RunGaleWithDagger("run --repo aweris/gale --workflows-dir ci/workflows ci/workflows/artifact-cache.yaml test"))
 
 	return r
 }
