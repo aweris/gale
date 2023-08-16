@@ -114,8 +114,6 @@ func setup(r *Runner, setupFns ...TaskExecutorFn) TaskExecutorFn {
 			}
 		}
 
-		log.Info(fmt.Sprintf("Complete job name: %s", r.jr.Job.Name))
-
 		return core.ConclusionSuccess, nil
 	}
 }
@@ -123,7 +121,7 @@ func setup(r *Runner, setupFns ...TaskExecutorFn) TaskExecutorFn {
 // complete returns a task executor function that will be executed by the task executor for the complete step.
 func complete(r *Runner) TaskExecutorFn {
 	return func(ctx context.Context) (core.Conclusion, error) {
-		log.Infof(fmt.Sprintf("Complete job name: %s", r.jr.Job.Name), "conclusion", r.context.Job.Status)
+		log.Infof("Complete", "job", r.jr.Job.Name, "conclusion", r.context.Job.Status)
 
 		return core.ConclusionSuccess, nil
 	}
