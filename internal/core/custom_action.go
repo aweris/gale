@@ -103,3 +103,47 @@ type Branding struct {
 	Color string `yaml:"color"` // Color is the color of the action.
 	Icon  string `yaml:"icon"`  // Icon is the icon of the action.
 }
+
+// PreCondition returns if the action has a pre-condition and the pre-if value for supported actions. If action
+// does not have a pre step or the pre step is not supported, the method returns false for the first return value.
+func (c *CustomActionRuns) PreCondition() (bool, string) {
+	var pre string
+
+	switch c.Using {
+	case ActionRunsUsingDocker:
+		pre = c.PreEntrypoint
+	case ActionRunsUsingNode16, ActionRunsUsingNode12:
+		pre = c.Pre
+	default:
+		pre = "" // all other types of actions do not have a pre-condition
+	}
+
+	// if pre is not set, return false
+	if pre == "" {
+		return false, ""
+	}
+
+	return true, c.PreIf
+}
+
+// PostCondition returns if the action has a post-condition and the post-if value for supported actions. If action
+// does not have a post step or the post step is not supported, the method returns false for the first return value.
+func (c *CustomActionRuns) PostCondition() (bool, string) {
+	var post string
+
+	switch c.Using {
+	case ActionRunsUsingDocker:
+		post = c.PostEntrypoint
+	case ActionRunsUsingNode16, ActionRunsUsingNode12:
+		post = c.Post
+	default:
+		post = "" // all other types of actions do not have a post-condition
+	}
+
+	// if post is not set, return false
+	if post == "" {
+		return false, ""
+	}
+
+	return true, c.PostIf
+}

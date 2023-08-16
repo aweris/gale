@@ -74,11 +74,12 @@ func (s *StepAction) setup() TaskExecutorFn {
 
 func (s *StepAction) preCondition() TaskConditionalFn {
 	return func(ctx context.Context) (bool, core.Conclusion, error) {
-		if s.Action.Meta.Runs.Pre == "" {
+		run, condition := s.Action.Meta.Runs.PreCondition()
+		if !run {
 			return false, "", nil
 		}
 
-		return evalStepCondition(s.Action.Meta.Runs.PreIf, s.runner.context)
+		return evalStepCondition(condition, s.runner.context)
 	}
 }
 
@@ -116,11 +117,12 @@ func (s *StepAction) main() TaskExecutorFn {
 
 func (s *StepAction) postCondition() TaskConditionalFn {
 	return func(ctx context.Context) (bool, core.Conclusion, error) {
-		if s.Action.Meta.Runs.Post == "" {
+		run, condition := s.Action.Meta.Runs.PostCondition()
+		if !run {
 			return false, "", nil
 		}
 
-		return evalStepCondition(s.Action.Meta.Runs.PostIf, s.runner.context)
+		return evalStepCondition(condition, s.runner.context)
 	}
 }
 
