@@ -11,8 +11,9 @@ import (
 
 // RunnerBase returns a container with the base image for the runner.
 func RunnerBase() *dagger.Container {
-	// original image is ghcr.io/catthehacker/ubuntu:act-latest-20230801. moved to ghcr.io/aweris/gale/runner/ubuntu:22.04
-	// to work around issues similar to https://github.com/catthehacker/docker_images/issues/102
+	// original image is ghcr.io/catthehacker/ubuntu:act-latest. moved to ghcr.io/aweris/gale/runner/ubuntu:22.04
+	// to work around issues similar to https://github.com/catthehacker/docker_images/issues/102 and updating the
+	// image periodically after testing.
 	return config.Client().Container().From("ghcr.io/aweris/gale/runner/ubuntu:22.04")
 }
 
