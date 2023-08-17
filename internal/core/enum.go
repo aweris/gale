@@ -25,7 +25,21 @@ const (
 type StepType string
 
 const (
-	StepTypeAction  StepType = "action"
-	StepTypeRun     StepType = "run"
+	// StepTypeAction represents a step uses a custom action to run.
+	//
+	// See: https://docs.github.com/en/actions/creating-actions/about-actions#types-of-actions
+	StepTypeAction StepType = "action"
+
+	// StepTypeDocker represents a step uses a docker image to run.
+	//
+	// See: https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#example-using-a-docker-hub-action
+	StepTypeDocker StepType = "docker"
+
+	// StepTypeRun represents a step uses a shell command to run.
+	//
+	// See: https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsrun
+	StepTypeRun StepType = "run"
+
+	// StepTypeUnknown represents a step type that is not supported by the runner.
 	StepTypeUnknown StepType = "unknown"
 )
