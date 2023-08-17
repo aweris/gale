@@ -14,6 +14,7 @@ import (
 	"github.com/aweris/gale/internal/core"
 	"github.com/aweris/gale/internal/log"
 	"github.com/aweris/gale/tools/ghx/actions"
+	"github.com/aweris/gale/tools/ghx/expression"
 )
 
 type CmdExecutor struct {
@@ -121,7 +122,7 @@ func (c *CmdExecutor) Execute(_ context.Context) error {
 
 	for k, v := range c.env {
 		// convert value to Evaluable String type
-		str := actions.NewString(v)
+		str := expression.NewString(v)
 
 		// evaluate the expression
 		res, err := str.Eval(c.ec)

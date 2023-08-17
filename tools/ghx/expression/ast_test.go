@@ -1,20 +1,38 @@
-package actions_test
+package expression_test
 
-// TODO: Re-enable tests after adding support for github context.
-
-/*import (
+import (
+	"fmt"
 	"math"
 	"testing"
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/aweris/gale/internal/model"
-	"github.com/aweris/gale/tools/ghx/actions"
+	"github.com/aweris/gale/internal/core"
+	"github.com/aweris/gale/tools/ghx/expression"
 )
 
+var _ expression.VariableProvider = new(TestContext)
+
+type TestContext struct {
+	Github core.GithubSecretsContext
+}
+
+func (c *TestContext) GetVariable(name string) (interface{}, error) {
+	switch name {
+	case "github":
+		return c.Github, nil
+	case "infinity":
+		return math.Inf(1), nil
+	case "nan":
+		return math.NaN(), nil
+	}
+
+	return nil, fmt.Errorf("unknown variable: %s", name)
+}
+
 func TestString_Eval(t *testing.T) {
-	ctx := actions.ExprContext{
-		Github: model.GithubContext{
+	ctx := TestContext{
+		Github: core.GithubSecretsContext{
 			Token: "1234567890",
 		},
 	}
@@ -33,7 +51,7 @@ func TestString_Eval(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var str actions.String
+			var str expression.String
 
 			err := yaml.Unmarshal([]byte(tt.value), &str)
 			if err != nil {
@@ -53,8 +71,8 @@ func TestString_Eval(t *testing.T) {
 }
 
 func TestBool_Eval(t *testing.T) {
-	ctx := actions.ExprContext{
-		Github: model.GithubContext{
+	ctx := TestContext{
+		Github: core.GithubSecretsContext{
 			Token: "1234567890",
 		},
 	}
@@ -72,7 +90,7 @@ func TestBool_Eval(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var bv actions.Bool
+			var bv expression.Bool
 
 			err := yaml.Unmarshal([]byte(tt.value.(string)), &bv)
 			if err != nil {
@@ -92,8 +110,8 @@ func TestBool_Eval(t *testing.T) {
 }
 
 func TestInt_Eval(t *testing.T) {
-	ctx := actions.Context{
-		Github: model.GithubContext{
+	ctx := TestContext{
+		Github: core.GithubSecretsContext{
 			Token: "1234567890",
 		},
 	}
@@ -109,7 +127,7 @@ func TestInt_Eval(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var bv actions.Int
+			var bv expression.Int
 
 			err := yaml.Unmarshal([]byte(tt.value.(string)), &bv)
 			if err != nil {
@@ -129,8 +147,8 @@ func TestInt_Eval(t *testing.T) {
 }
 
 func TestFloat_Eval(t *testing.T) {
-	ctx := actions.ExprContext{
-		Github: model.GithubContext{
+	ctx := TestContext{
+		Github: core.GithubSecretsContext{
 			Token: "1234567890",
 		},
 	}
@@ -147,7 +165,7 @@ func TestFloat_Eval(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var bv actions.Float
+			var bv expression.Float
 
 			err := yaml.Unmarshal([]byte(tt.value.(string)), &bv)
 			if err != nil {
@@ -165,4 +183,3 @@ func TestFloat_Eval(t *testing.T) {
 		})
 	}
 }
-*/
