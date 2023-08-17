@@ -1,10 +1,8 @@
-package actions
+package expression
 
 import (
 	"fmt"
 	"strings"
-
-	"github.com/aweris/gale/tools/ghx/expression"
 )
 
 // The original source code is from https://github.com/rhysd/actionlint/blob/5656337c1ab1c7022a74181428f6ebb4504d2d25/ast.go
@@ -25,12 +23,12 @@ func NewString(value string) *String {
 }
 
 // Eval evaluates the expression and returns the string value.
-func (s *String) Eval(ctx *ExprContext) (string, error) {
+func (s *String) Eval(provider VariableProvider) (string, error) {
 	if s.Quoted {
 		return s.Value, nil
 	}
 
-	exprs, err := expression.ParseExpressions(s.Value)
+	exprs, err := ParseExpressions(s.Value)
 	if err != nil {
 		return "", err
 	}
@@ -42,7 +40,7 @@ func (s *String) Eval(ctx *ExprContext) (string, error) {
 	str := s.Value
 
 	for _, expr := range exprs {
-		val, err := expr.Evaluate(ctx)
+		val, err := expr.Evaluate(provider)
 		if err != nil {
 			return "", err
 		}
@@ -61,17 +59,17 @@ type value[T bool | int | float64] struct {
 	Expression *String // Expression is a string when expression syntax ${{ }} is used for this section.
 }
 
-func (v *value[T]) Eval(ctx *ExprContext) (T, error) {
+func (v *value[T]) Eval(provider VariableProvider) (T, error) {
 	if v.Expression == nil {
 		return v.Value, nil
 	}
 
-	expr, err := expression.NewExpression(v.Expression.Value)
+	expr, err := NewExpression(v.Expression.Value)
 	if err != nil {
 		return *new(T), err
 	}
 
-	val, err := expr.Evaluate(ctx)
+	val, err := expr.Evaluate(provider)
 	if err != nil {
 		return *new(T), err
 	}

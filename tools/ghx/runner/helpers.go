@@ -6,6 +6,7 @@ import (
 
 	"github.com/aweris/gale/internal/core"
 	"github.com/aweris/gale/tools/ghx/actions"
+	"github.com/aweris/gale/tools/ghx/expression"
 )
 
 // getStepName returns the step name. If step name is not set, it will be generated from the step type.
@@ -33,7 +34,7 @@ func evalStepCondition(condition string, ac *actions.ExprContext) (bool, core.Co
 	}
 
 	// evaluate the condition as boolean expression
-	run, err := actions.NewBoolExpr(condition).Eval(ac)
+	run, err := expression.NewBoolExpr(condition).Eval(ac)
 	if err != nil {
 		return false, "", err
 	}
@@ -50,7 +51,7 @@ func evalStepCondition(condition string, ac *actions.ExprContext) (bool, core.Co
 
 // evalString evaluates the given expression and returns the result as string.
 func evalString(expr string, ac *actions.ExprContext) (string, error) {
-	val, err := actions.NewString(expr).Eval(ac)
+	val, err := expression.NewString(expr).Eval(ac)
 	if err != nil {
 		return "", err
 	}
