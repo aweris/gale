@@ -4,6 +4,9 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"strings"
+
+	"dagger.io/dagger"
 
 	"github.com/aweris/gale/internal/config"
 	"github.com/aweris/gale/internal/core"
@@ -42,6 +45,8 @@ func NewStep(runner *Runner, s core.Step) (Step, error) {
 		return &StepAction{runner: runner, Step: s}, nil
 	case core.StepTypeRun:
 		return &StepRun{runner: runner, Step: s}, nil
+	case core.StepTypeDocker:
+		return &StepDocker{runner: runner, Step: s}, nil
 	default:
 		return nil, fmt.Errorf("unknown step type: %s", s.Type())
 	}
@@ -219,6 +224,88 @@ func (s *StepRun) postCondition() TaskConditionalFn {
 }
 
 func (s *StepRun) post() TaskExecutorFn {
+	return func(ctx context.Context) (core.Conclusion, error) {
+		return core.ConclusionSkipped, nil
+	}
+}
+
+var _ Step = new(StepDocker)
+
+type StepDocker struct {
+	runner    *Runner
+	container *dagger.Container
+	Step      core.Step
+}
+
+func (s *StepDocker) setup() TaskExecutorFn {
+	return func(ctx context.Context) (core.Conclusion, error) {
+		var (
+			image        = strings.TrimPrefix(s.Step.Uses, "docker://")
+			workspace    = s.runner.context.Github.Workspace
+			workspaceDir = config.Client().Host().Directory(workspace)
+		)
+
+		// configure the step container
+		s.container = config.Client().
+			Container().
+			From(image).
+			WithMountedDirectory(workspace, workspaceDir).
+			WithWorkdir(workspace)
+
+		// TODO: This will be print same log line if the image used multiple times. However, this scenario is not really common and no benefit to fix this scenario for now.
+		log.Info(fmt.Sprintf("Pull '%s'", image))
+
+		// sync the container to make sure it's ready to run, this will pull or build the image if needed and cache
+		// it for future use.
+		_, err := s.container.Sync(ctx)
+		if err != nil {
+			return core.ConclusionFailure, err
+		}
+
+		return core.ConclusionSuccess, nil
+	}
+}
+
+// preCondition returns always false because pre run is not supported for StepDocker.
+func (s *StepDocker) preCondition() TaskConditionalFn {
+	return func(ctx context.Context) (bool, core.Conclusion, error) {
+		return false, "", nil
+	}
+}
+
+func (s *StepDocker) pre() TaskExecutorFn {
+	return func(ctx context.Context) (core.Conclusion, error) {
+		return core.ConclusionSkipped, nil
+	}
+}
+
+func (s *StepDocker) mainCondition() TaskConditionalFn {
+	return func(ctx context.Context) (bool, core.Conclusion, error) {
+		return evalStepCondition(s.Step.If, s.runner.context)
+	}
+}
+
+func (s *StepDocker) main() TaskExecutorFn {
+	return func(ctx context.Context) (core.Conclusion, error) {
+		executor := NewContainerExecutorFromStepDocker(s)
+
+		err := executor.Execute(ctx)
+		if err != nil && !s.Step.ContinueOnError {
+			return core.ConclusionFailure, err
+		}
+
+		return core.ConclusionSuccess, nil
+	}
+}
+
+// postCondition returns always false because post run is not supported for StepDocker.
+func (s *StepDocker) postCondition() TaskConditionalFn {
+	return func(ctx context.Context) (bool, core.Conclusion, error) {
+		return false, "", nil
+	}
+}
+
+func (s *StepDocker) post() TaskExecutorFn {
 	return func(ctx context.Context) (core.Conclusion, error) {
 		return core.ConclusionSkipped, nil
 	}

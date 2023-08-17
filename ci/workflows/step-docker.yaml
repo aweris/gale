@@ -1,0 +1,27 @@
+name: docker
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Git log
+        uses: docker://alpine/git:latest
+        with:
+          args: log --pretty=oneline
+
+      - name: Print go.mod
+        uses: docker://alpine:latest
+        with:
+          entrypoint: /bin/cat
+          args: go.mod
+
+      - name: Use env and expression
+        uses: docker://alpine:latest
+        with:
+          entrypoint: /bin/echo
+          args: ${{ github.repository }}
