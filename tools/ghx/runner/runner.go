@@ -105,7 +105,7 @@ func run(r *Runner) TaskExecutorFn {
 }
 
 // setup returns a task executor function that will be executed by the task executor for the setup step.
-func setup(r *Runner, setupFns ...TaskExecutorFn) TaskExecutorFn {
+func setup(_ *Runner, setupFns ...TaskExecutorFn) TaskExecutorFn {
 	return func(ctx context.Context) (core.Conclusion, error) {
 		for _, setupFn := range setupFns {
 			_, err := setupFn(ctx)
