@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 
 	"dagger.io/dagger"
@@ -11,7 +10,10 @@ import (
 	"github.com/spf13/pflag"
 
 	"github.com/aweris/gale/internal/config"
+	"github.com/aweris/gale/internal/core"
 	"github.com/aweris/gale/internal/fs"
+	"github.com/aweris/gale/internal/journal"
+	"github.com/aweris/gale/internal/log"
 	"github.com/aweris/gale/tools/ghx/cmd/ghx/run"
 	"github.com/aweris/gale/tools/ghx/cmd/ghx/version"
 )
@@ -35,9 +37,12 @@ func NewCommand() *cobra.Command {
 			// initialize dagger client and set it to config
 			var opts []dagger.ClientOpt
 
-			if os.Getenv("RUNNER_DEBUG") == "1" {
-				opts = append(opts, dagger.WithLogOutput(os.Stdout))
-			}
+			journalW, journalR := journal.Pipe()
+
+			// Just print the same logger to stdout for now. We'll replace this with something interesting later.
+			go logJournalEntries(journalR)
+
+			opts = append(opts, dagger.WithLogOutput(journalW))
 
 			client, err := dagger.Connect(cmd.Context(), opts...)
 			if err != nil {
@@ -83,7 +88,49 @@ func bindEnv(fn *pflag.Flag, env string) {
 
 	if len(val) > 0 {
 		if err := fn.Value.Set(val); err != nil {
-			log.Fatalf("failed to bind env: %v\n", err)
+			log.Errorf("failed to bind env: %v\n", err)
+			os.Exit(1)
+		}
+	}
+}
+
+func logJournalEntries(reader journal.Reader) {
+	for {
+		entry, ok := reader.ReadEntry()
+		if !ok {
+			break
+		}
+
+		// Skip internal entries if we're not in debug mode
+		if entry.Type == journal.EntryTypeInternal && os.Getenv("RUNNER_DEBUG") != "1" {
+			continue
+		}
+
+		isCmd, cmd := core.ParseCommand(entry.Message)
+		if !isCmd {
+			log.Info(entry.Message)
+			continue
+		}
+
+		// TODO: We should extract these to common place, currently we're duplicating the code when we need to parse the commands
+
+		// process only logging based commands and ignore the rest
+		switch cmd.Name {
+		case "group":
+			log.Info(cmd.Value)
+			log.StartGroup()
+		case "endgroup":
+			log.EndGroup()
+		case "debug":
+			log.Debug(cmd.Value)
+		case "error":
+			log.Errorf(cmd.Value, "file", cmd.Parameters["file"], "line", cmd.Parameters["line"], "col", cmd.Parameters["col"], "endLine", cmd.Parameters["endLine"], "endCol", cmd.Parameters["endCol"], "title", cmd.Parameters["title"])
+		case "warning":
+			log.Warnf(cmd.Value, "file", cmd.Parameters["file"], "line", cmd.Parameters["line"], "col", cmd.Parameters["col"], "endLine", cmd.Parameters["endLine"], "endCol", cmd.Parameters["endCol"], "title", cmd.Parameters["title"])
+		case "notice":
+			log.Noticef(cmd.Value, "file", cmd.Parameters["file"], "line", cmd.Parameters["line"], "col", cmd.Parameters["col"], "endLine", cmd.Parameters["endLine"], "endCol", cmd.Parameters["endCol"], "title", cmd.Parameters["title"])
+		default:
+			// do nothing
 		}
 	}
 }
