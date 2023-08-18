@@ -2,10 +2,8 @@ package runner
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -97,12 +95,6 @@ func (c *CmdExecutor) Execute(ctx context.Context) error {
 	//nolint:gosec // this is a command executor, we need to execute the command as it is
 	cmd := exec.Command(c.args[0], c.args[1:]...)
 
-	stdout := bytes.NewBuffer(nil)
-	stderr := bytes.NewBuffer(nil)
-	rawout := bytes.NewBuffer(nil)
-
-	cmd.Stderr = io.MultiWriter(stderr, os.Stderr)
-
 	// load environment files - this will create env files and load it to the environment. That's why we need to do this
 	// before setting the environment variables
 	err := c.loadEnvFiles()
@@ -149,19 +141,11 @@ func (c *CmdExecutor) Execute(ctx context.Context) error {
 		for scanner.Scan() {
 			output := scanner.Text()
 
-			// write to stdout as it is so we can keep original formatting
-			rawout.WriteString(output)
-			rawout.WriteString("\n") // scanner strips newlines
-
 			isCommand, command := core.ParseCommand(output)
 
 			// print the output if it is a regular output
 			if !isCommand {
 				log.Info(output)
-
-				// write to stdout as it is so we can keep original formatting
-				stdout.WriteString(output)
-				stdout.WriteString("\n") // scanner strips newlines
 
 				continue
 			}

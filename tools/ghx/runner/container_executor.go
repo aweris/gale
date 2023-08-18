@@ -2,7 +2,6 @@ package runner
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -164,27 +163,14 @@ func (c *ContainerExecutor) Execute(ctx context.Context) error {
 		return err
 	}
 
-	stdout := bytes.NewBuffer(nil)
-	rawout := bytes.NewBuffer(nil)
-
 	scanner := bufio.NewScanner(strings.NewReader(out))
 	for scanner.Scan() {
 		output := scanner.Text()
-
-		// write to stdout as it is so we can keep original formatting
-		rawout.WriteString(output)
-		rawout.WriteString("\n") // scanner strips newlines
 
 		isCommand, command := core.ParseCommand(output)
 
 		// print the output if it is a regular output
 		if !isCommand {
-			log.Info(output)
-
-			// write to stdout as it is so we can keep original formatting
-			stdout.WriteString(output)
-			stdout.WriteString("\n") // scanner strips newlines
-
 			continue
 		}
 
