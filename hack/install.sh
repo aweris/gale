@@ -29,6 +29,10 @@ function main() {
     local arch
     arch=$(uname -m | tr '[:upper:]' '[:lower:]')
 
+    if [[ "${arch}" == "x86_64" ]]; then
+        arch="amd64"
+    fi
+
     if [[ -z "${GALE_VERSION}" ]]; then
         echo "failed to get latest version from GitHub API"
         exit 1
