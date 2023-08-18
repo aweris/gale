@@ -173,8 +173,8 @@ func (c *ExprContext) GetVariable(name string) (interface{}, error) {
 
 // WithGithubEnv sets `github.env` from the given environment file. This is path of the temporary file that holds the
 // environment variables
-func (c *ExprContext) WithGithubEnv(ef *core.EnvironmentFile) *ExprContext {
-	c.Github.GithubFilesContext.Env = ef.Path
+func (c *ExprContext) WithGithubEnv(path string) *ExprContext {
+	c.Github.GithubFilesContext.Env = path
 
 	return c
 }
@@ -187,8 +187,8 @@ func (c *ExprContext) WithoutGithubEnv() *ExprContext {
 }
 
 // WithGithubPath sets `github.path` from the given environment file. This is path of the temporary file that holds the
-func (c *ExprContext) WithGithubPath(ef *core.EnvironmentFile) *ExprContext {
-	c.Github.GithubFilesContext.Path = ef.Path
+func (c *ExprContext) WithGithubPath(path string) *ExprContext {
+	c.Github.GithubFilesContext.Path = path
 
 	return c
 }

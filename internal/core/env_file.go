@@ -2,9 +2,13 @@ package core
 
 import (
 	"bufio"
+	"context"
 	"fmt"
+	"io"
 	"os"
 	"strings"
+
+	"dagger.io/dagger"
 
 	"github.com/aweris/gale/internal/fs"
 )
@@ -18,25 +22,34 @@ const (
 	EnvFileNameGithubActionOutput = "GITHUB_ACTION_OUTPUT"
 )
 
-// EnvironmentFile represents an generated temporary file that can be used to perform certain actions. This struct is
-// contains the path of the file and logic to read the content of the file.
+// EnvironmentFile represents a generated temporary file that can be used to perform certain actions. This struct is
+// containing the path of the file and logic to read the content of the file.
 //
 // See: https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#environment-files
-type EnvironmentFile struct {
-	Path string `json:"path"` // Path is the path of the environment file.
+type EnvironmentFile interface {
+	// RawData returns the raw data of the environment file.
+	RawData(ctx context.Context) (string, error)
+
+	// ReadData reads the data of the environment file and returns a map of key value pairs. if the file doesn't contain
+	// a key value pair, line will be considered as a key and value will be empty string.
+	ReadData(ctx context.Context) (map[string]string, error)
 }
 
-// NewEnvironmentFile creates a new environment file from the given path.
-func NewEnvironmentFile(path string) (*EnvironmentFile, error) {
+type LocalEnvironmentFile struct {
+	Path string
+}
+
+// NewLocalEnvironmentFile creates a new environment file from the given path.
+func NewLocalEnvironmentFile(path string) (*LocalEnvironmentFile, error) {
 	// ensure the file exists
 	if err := fs.EnsureFile(path); err != nil {
 		return nil, err
 	}
 
-	return &EnvironmentFile{Path: path}, nil
+	return &LocalEnvironmentFile{Path: path}, nil
 }
 
-func (f EnvironmentFile) RawData() (string, error) {
+func (f LocalEnvironmentFile) RawData(_ context.Context) (string, error) {
 	data, err := os.ReadFile(f.Path)
 	if err != nil {
 		return "", err
@@ -45,16 +58,42 @@ func (f EnvironmentFile) RawData() (string, error) {
 	return string(data), nil
 }
 
-func (f EnvironmentFile) ReadData() (map[string]string, error) {
-	keyValues := make(map[string]string)
-
+func (f LocalEnvironmentFile) ReadData(_ context.Context) (map[string]string, error) {
 	file, err := os.Open(f.Path)
 	if err != nil {
 		return nil, err
 	}
 	defer file.Close()
 
-	scanner := bufio.NewScanner(file)
+	return read(file)
+}
+
+type DaggerEnvironmentFile struct {
+	File *dagger.File // File is the file of the environment file.
+}
+
+// NewDaggerEnvironmentFile creates a new environment file from the given dagger file.
+func NewDaggerEnvironmentFile(file *dagger.File) *DaggerEnvironmentFile {
+	return &DaggerEnvironmentFile{File: file}
+}
+
+func (f DaggerEnvironmentFile) RawData(ctx context.Context) (string, error) {
+	return f.File.Contents(ctx)
+}
+
+func (f DaggerEnvironmentFile) ReadData(ctx context.Context) (map[string]string, error) {
+	raw, err := f.RawData(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return read(strings.NewReader(raw))
+}
+
+func read(r io.Reader) (map[string]string, error) {
+	keyValues := make(map[string]string)
+
+	scanner := bufio.NewScanner(r)
 
 	var (
 		inMultiLineValue bool            // indicates if the scanner is currently processing a multi-line value
