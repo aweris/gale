@@ -56,9 +56,10 @@ var _ Step = new(StepAction)
 
 // StepAction is a step that runs an action.
 type StepAction struct {
-	runner *Runner
-	Step   core.Step
-	Action core.CustomAction
+	runner    *Runner
+	container *dagger.Container
+	Step      core.Step
+	Action    core.CustomAction
 }
 
 func (s *StepAction) setup() TaskExecutorFn {
@@ -72,6 +73,27 @@ func (s *StepAction) setup() TaskExecutorFn {
 		s.Action = *ca
 
 		log.Info(fmt.Sprintf("Download action repository '%s'", s.Step.Uses))
+
+		if s.Action.Meta.Runs.Using == core.ActionRunsUsingDocker {
+			var (
+				image        = ca.Meta.Runs.Image
+				workspace    = s.runner.context.Github.Workspace
+				workspaceDir = config.Client().Host().Directory(workspace)
+			)
+
+			switch {
+			case image == "Dockerfile":
+				s.container = config.Client().Container().Build(ca.Dir)
+			case strings.HasPrefix(image, "docker://"):
+				s.container = config.Client().Container().From(strings.TrimPrefix(image, "docker://"))
+			default:
+				// This should never happen. Adding it for safety.
+				return core.ConclusionFailure, fmt.Errorf("invalid docker image: %s", image)
+			}
+
+			// add repository to the container
+			s.container = s.container.WithMountedDirectory(workspace, workspaceDir).WithWorkdir(workspace)
+		}
 
 		return core.ConclusionSuccess, nil
 	}
@@ -90,11 +112,23 @@ func (s *StepAction) preCondition() TaskConditionalFn {
 
 func (s *StepAction) pre() TaskExecutorFn {
 	return func(ctx context.Context) (core.Conclusion, error) {
-		cmd := NewCmdExecutorFromStepAction(s, s.Action.Meta.Runs.Pre)
+		switch s.Action.Meta.Runs.Using {
+		case core.ActionRunsUsingDocker:
+			cmd := NewContainerExecutorFromStepAction(s, s.Action.Meta.Runs.PreEntrypoint)
 
-		err := cmd.Execute(ctx)
-		if err != nil && !s.Step.ContinueOnError {
-			return core.ConclusionFailure, err
+			err := cmd.Execute(ctx)
+			if err != nil && !s.Step.ContinueOnError {
+				return core.ConclusionFailure, err
+			}
+		case core.ActionRunsUsingNode12, core.ActionRunsUsingNode16:
+			cmd := NewCmdExecutorFromStepAction(s, s.Action.Meta.Runs.Pre)
+
+			err := cmd.Execute(ctx)
+			if err != nil && !s.Step.ContinueOnError {
+				return core.ConclusionFailure, err
+			}
+		default:
+			return core.ConclusionFailure, fmt.Errorf("invalid action runs using: %s", s.Action.Meta.Runs.Using)
 		}
 
 		return core.ConclusionSuccess, nil
@@ -109,11 +143,23 @@ func (s *StepAction) mainCondition() TaskConditionalFn {
 
 func (s *StepAction) main() TaskExecutorFn {
 	return func(ctx context.Context) (core.Conclusion, error) {
-		cmd := NewCmdExecutorFromStepAction(s, s.Action.Meta.Runs.Main)
+		switch s.Action.Meta.Runs.Using {
+		case core.ActionRunsUsingDocker:
+			cmd := NewContainerExecutorFromStepAction(s, s.Action.Meta.Runs.Entrypoint)
 
-		err := cmd.Execute(ctx)
-		if err != nil && !s.Step.ContinueOnError {
-			return core.ConclusionFailure, err
+			err := cmd.Execute(ctx)
+			if err != nil && !s.Step.ContinueOnError {
+				return core.ConclusionFailure, err
+			}
+		case core.ActionRunsUsingNode12, core.ActionRunsUsingNode16:
+			cmd := NewCmdExecutorFromStepAction(s, s.Action.Meta.Runs.Main)
+
+			err := cmd.Execute(ctx)
+			if err != nil && !s.Step.ContinueOnError {
+				return core.ConclusionFailure, err
+			}
+		default:
+			return core.ConclusionFailure, fmt.Errorf("invalid action runs using: %s", s.Action.Meta.Runs.Using)
 		}
 
 		return core.ConclusionSuccess, nil
@@ -133,11 +179,23 @@ func (s *StepAction) postCondition() TaskConditionalFn {
 
 func (s *StepAction) post() TaskExecutorFn {
 	return func(ctx context.Context) (core.Conclusion, error) {
-		cmd := NewCmdExecutorFromStepAction(s, s.Action.Meta.Runs.Post)
+		switch s.Action.Meta.Runs.Using {
+		case core.ActionRunsUsingDocker:
+			cmd := NewContainerExecutorFromStepAction(s, s.Action.Meta.Runs.PostEntrypoint)
 
-		err := cmd.Execute(ctx)
-		if err != nil && !s.Step.ContinueOnError {
-			return core.ConclusionFailure, err
+			err := cmd.Execute(ctx)
+			if err != nil && !s.Step.ContinueOnError {
+				return core.ConclusionFailure, err
+			}
+		case core.ActionRunsUsingNode12, core.ActionRunsUsingNode16:
+			cmd := NewCmdExecutorFromStepAction(s, s.Action.Meta.Runs.Post)
+
+			err := cmd.Execute(ctx)
+			if err != nil && !s.Step.ContinueOnError {
+				return core.ConclusionFailure, err
+			}
+		default:
+			return core.ConclusionFailure, fmt.Errorf("invalid action runs using: %s", s.Action.Meta.Runs.Using)
 		}
 
 		return core.ConclusionSuccess, nil
@@ -158,28 +216,6 @@ type StepRun struct {
 
 func (s *StepRun) setup() TaskExecutorFn {
 	return func(ctx context.Context) (core.Conclusion, error) {
-		path := filepath.Join(config.GhxRunDir(s.runner.jr.RunID), "scripts", s.Step.ID, "run.sh")
-
-		// evaluate run script against the expressions
-		run, err := evalString(s.Step.Run, s.runner.context)
-		if err != nil {
-			return core.ConclusionFailure, err
-		}
-
-		content := []byte(fmt.Sprintf("#!/bin/bash\n%s", run))
-
-		err = fs.WriteFile(path, content, 0755)
-		if err != nil {
-			return core.ConclusionFailure, err
-		}
-
-		s.Path = path
-		s.Shell = "bash"
-		s.ShellArgs = []string{"--noprofile", "--norc", "-e", "-o", "pipefail"}
-
-		// make it debug level because it's not really important and it's visible in Github Actions logs
-		log.Debug(fmt.Sprintf("Write script to '%s' for step '%s'", path, s.Step.ID))
-
 		return core.ConclusionSuccess, nil
 	}
 }
@@ -205,9 +241,28 @@ func (s *StepRun) mainCondition() TaskConditionalFn {
 
 func (s *StepRun) main() TaskExecutorFn {
 	return func(ctx context.Context) (core.Conclusion, error) {
+		path := filepath.Join(config.GhxRunDir(s.runner.jr.RunID), "scripts", s.Step.ID, "run.sh")
+
+		// evaluate run script against the expressions
+		run, err := evalString(s.Step.Run, s.runner.context)
+		if err != nil {
+			return core.ConclusionFailure, err
+		}
+
+		content := []byte(fmt.Sprintf("#!/bin/bash\n%s", run))
+
+		err = fs.WriteFile(path, content, 0755)
+		if err != nil {
+			return core.ConclusionFailure, err
+		}
+
+		s.Path = path
+		s.Shell = "bash"
+		s.ShellArgs = []string{"--noprofile", "--norc", "-e", "-o", "pipefail"}
+
 		cmd := NewCmdExecutorFromStepRun(s)
 
-		err := cmd.Execute(ctx)
+		err = cmd.Execute(ctx)
 		if err != nil && !s.Step.ContinueOnError {
 			return core.ConclusionFailure, err
 		}
@@ -254,13 +309,6 @@ func (s *StepDocker) setup() TaskExecutorFn {
 
 		// TODO: This will be print same log line if the image used multiple times. However, this scenario is not really common and no benefit to fix this scenario for now.
 		log.Info(fmt.Sprintf("Pull '%s'", image))
-
-		// sync the container to make sure it's ready to run, this will pull or build the image if needed and cache
-		// it for future use.
-		_, err := s.container.Sync(ctx)
-		if err != nil {
-			return core.ConclusionFailure, err
-		}
 
 		return core.ConclusionSuccess, nil
 	}
