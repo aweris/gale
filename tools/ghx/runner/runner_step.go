@@ -112,23 +112,19 @@ func (s *StepAction) preCondition() TaskConditionalFn {
 
 func (s *StepAction) pre() TaskExecutorFn {
 	return func(ctx context.Context) (core.Conclusion, error) {
+		var executor Executor
+
 		switch s.Action.Meta.Runs.Using {
 		case core.ActionRunsUsingDocker:
-			cmd := NewContainerExecutorFromStepAction(s, s.Action.Meta.Runs.PreEntrypoint)
-
-			err := cmd.Execute(ctx)
-			if err != nil && !s.Step.ContinueOnError {
-				return core.ConclusionFailure, err
-			}
+			executor = NewContainerExecutorFromStepAction(s, s.Action.Meta.Runs.PreEntrypoint)
 		case core.ActionRunsUsingNode12, core.ActionRunsUsingNode16:
-			cmd := NewCmdExecutorFromStepAction(s, s.Action.Meta.Runs.Pre)
-
-			err := cmd.Execute(ctx)
-			if err != nil && !s.Step.ContinueOnError {
-				return core.ConclusionFailure, err
-			}
+			executor = NewCmdExecutorFromStepAction(s, s.Action.Meta.Runs.Pre)
 		default:
 			return core.ConclusionFailure, fmt.Errorf("invalid action runs using: %s", s.Action.Meta.Runs.Using)
+		}
+
+		if err := executor.Execute(ctx); err != nil && !s.Step.ContinueOnError {
+			return core.ConclusionFailure, err
 		}
 
 		return core.ConclusionSuccess, nil
@@ -143,23 +139,19 @@ func (s *StepAction) mainCondition() TaskConditionalFn {
 
 func (s *StepAction) main() TaskExecutorFn {
 	return func(ctx context.Context) (core.Conclusion, error) {
+		var executor Executor
+
 		switch s.Action.Meta.Runs.Using {
 		case core.ActionRunsUsingDocker:
-			cmd := NewContainerExecutorFromStepAction(s, s.Action.Meta.Runs.Entrypoint)
-
-			err := cmd.Execute(ctx)
-			if err != nil && !s.Step.ContinueOnError {
-				return core.ConclusionFailure, err
-			}
+			executor = NewContainerExecutorFromStepAction(s, s.Action.Meta.Runs.Entrypoint)
 		case core.ActionRunsUsingNode12, core.ActionRunsUsingNode16:
-			cmd := NewCmdExecutorFromStepAction(s, s.Action.Meta.Runs.Main)
-
-			err := cmd.Execute(ctx)
-			if err != nil && !s.Step.ContinueOnError {
-				return core.ConclusionFailure, err
-			}
+			executor = NewCmdExecutorFromStepAction(s, s.Action.Meta.Runs.Main)
 		default:
 			return core.ConclusionFailure, fmt.Errorf("invalid action runs using: %s", s.Action.Meta.Runs.Using)
+		}
+
+		if err := executor.Execute(ctx); err != nil && !s.Step.ContinueOnError {
+			return core.ConclusionFailure, err
 		}
 
 		return core.ConclusionSuccess, nil
@@ -179,23 +171,19 @@ func (s *StepAction) postCondition() TaskConditionalFn {
 
 func (s *StepAction) post() TaskExecutorFn {
 	return func(ctx context.Context) (core.Conclusion, error) {
+		var executor Executor
+
 		switch s.Action.Meta.Runs.Using {
 		case core.ActionRunsUsingDocker:
-			cmd := NewContainerExecutorFromStepAction(s, s.Action.Meta.Runs.PostEntrypoint)
-
-			err := cmd.Execute(ctx)
-			if err != nil && !s.Step.ContinueOnError {
-				return core.ConclusionFailure, err
-			}
+			executor = NewContainerExecutorFromStepAction(s, s.Action.Meta.Runs.PostEntrypoint)
 		case core.ActionRunsUsingNode12, core.ActionRunsUsingNode16:
-			cmd := NewCmdExecutorFromStepAction(s, s.Action.Meta.Runs.Post)
-
-			err := cmd.Execute(ctx)
-			if err != nil && !s.Step.ContinueOnError {
-				return core.ConclusionFailure, err
-			}
+			executor = NewCmdExecutorFromStepAction(s, s.Action.Meta.Runs.Post)
 		default:
 			return core.ConclusionFailure, fmt.Errorf("invalid action runs using: %s", s.Action.Meta.Runs.Using)
+		}
+
+		if err := executor.Execute(ctx); err != nil && !s.Step.ContinueOnError {
+			return core.ConclusionFailure, err
 		}
 
 		return core.ConclusionSuccess, nil

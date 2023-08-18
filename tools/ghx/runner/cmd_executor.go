@@ -17,6 +17,8 @@ import (
 	"github.com/aweris/gale/tools/ghx/expression"
 )
 
+var _ Executor = new(CmdExecutor)
+
 type CmdExecutor struct {
 	stepID   string                  // stepID is the id of the step
 	args     []string                // args to pass to the command
@@ -25,13 +27,6 @@ type CmdExecutor struct {
 	commands []*core.WorkflowCommand // commands is the list of commands that are executed in the step
 	envFiles *EnvironmentFiles       // envFiles contains temporary files that can be used to perform certain actions
 
-}
-
-type EnvironmentFiles struct {
-	Env         core.EnvironmentFile // Env is the environment file that holds the environment variables
-	Path        core.EnvironmentFile // Path is the environment file that holds the path variables
-	Outputs     core.EnvironmentFile // Outputs is the environment file that holds the outputs
-	StepSummary core.EnvironmentFile // StepSummary is the environment file that holds the step summary
 }
 
 func NewCmdExecutorFromStepAction(sa *StepAction, entrypoint string) *CmdExecutor {
@@ -180,7 +175,7 @@ func (c *CmdExecutor) Execute(ctx context.Context) error {
 
 	waitErr := cmd.Wait()
 
-	if err := c.processEnvironmentFiles(ctx); err != nil {
+	if err := processEnvironmentFiles(ctx, c.stepID, c.envFiles, c.ec); err != nil {
 		return err
 	}
 
@@ -282,56 +277,6 @@ func (c *CmdExecutor) processWorkflowCommands(cmd *core.WorkflowCommand) error {
 
 	// add the command to the list of commands to keep it as artifact
 	c.commands = append(c.commands, cmd)
-
-	return nil
-}
-
-func (c *CmdExecutor) processEnvironmentFiles(ctx context.Context) error {
-	if c.envFiles == nil {
-		return nil
-	}
-
-	env, err := c.envFiles.Env.ReadData(ctx)
-	if err != nil {
-		return err
-	}
-
-	for k, v := range env {
-		if err := os.Setenv(k, v); err != nil {
-			return err
-		}
-	}
-
-	paths, err := c.envFiles.Path.ReadData(ctx)
-	if err != nil {
-		return err
-	}
-
-	path := os.Getenv("PATH")
-
-	for p := range paths {
-		path = fmt.Sprintf("%s:%s", path, p)
-	}
-
-	if err := os.Setenv("PATH", path); err != nil {
-		return err
-	}
-
-	outputs, err := c.envFiles.Outputs.ReadData(ctx)
-	if err != nil {
-		return err
-	}
-
-	for k, v := range outputs {
-		c.ec.SetStepOutput(c.stepID, k, v)
-	}
-
-	stepSummary, err := c.envFiles.StepSummary.RawData(ctx)
-	if err != nil {
-		return err
-	}
-
-	c.ec.SetStepSummary(c.stepID, stepSummary)
 
 	return nil
 }

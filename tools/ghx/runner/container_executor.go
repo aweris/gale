@@ -18,6 +18,8 @@ import (
 	"github.com/aweris/gale/tools/ghx/expression"
 )
 
+var _ Executor = new(ContainerExecutor)
+
 type ContainerExecutor struct {
 	container  *dagger.Container       // container is the container to execute
 	stepID     string                  // stepID is the ID of the step
@@ -192,7 +194,7 @@ func (c *ContainerExecutor) Execute(ctx context.Context) error {
 		}
 	}
 
-	return c.processEnvironmentFiles(ctx)
+	return processEnvironmentFiles(ctx, c.stepID, c.envFiles, c.ec)
 }
 
 func (c *ContainerExecutor) loadEnvFiles() error {
@@ -262,56 +264,6 @@ func (c *ContainerExecutor) processWorkflowCommands(cmd *core.WorkflowCommand) e
 
 	// add the command to the list of commands to keep it as artifact
 	c.commands = append(c.commands, cmd)
-
-	return nil
-}
-
-func (c *ContainerExecutor) processEnvironmentFiles(ctx context.Context) error {
-	if c.envFiles == nil {
-		return nil
-	}
-
-	env, err := c.envFiles.Env.ReadData(ctx)
-	if err != nil {
-		return err
-	}
-
-	for k, v := range env {
-		if err := os.Setenv(k, v); err != nil {
-			return err
-		}
-	}
-
-	paths, err := c.envFiles.Path.ReadData(ctx)
-	if err != nil {
-		return err
-	}
-
-	path := os.Getenv("PATH")
-
-	for p := range paths {
-		path = fmt.Sprintf("%s:%s", path, p)
-	}
-
-	if err := os.Setenv("PATH", path); err != nil {
-		return err
-	}
-
-	outputs, err := c.envFiles.Outputs.ReadData(ctx)
-	if err != nil {
-		return err
-	}
-
-	for k, v := range outputs {
-		c.ec.SetStepOutput(c.stepID, k, v)
-	}
-
-	stepSummary, err := c.envFiles.StepSummary.RawData(ctx)
-	if err != nil {
-		return err
-	}
-
-	c.ec.SetStepSummary(c.stepID, stepSummary)
 
 	return nil
 }
