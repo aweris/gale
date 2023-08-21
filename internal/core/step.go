@@ -1,5 +1,7 @@
 package core
 
+import "strings"
+
 // Step represents a single task in a job context at GitHub Actions workflow
 //
 // See: https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idsteps
@@ -19,13 +21,19 @@ type Step struct {
 
 // Type returns the type of the step according to its properties
 func (s *Step) Type() StepType {
-	if s.Uses != "" {
-		return StepTypeAction
+	var st StepType
+
+	// determine the type of the step based on its properties
+	switch {
+	case s.Uses != "" && strings.HasPrefix(s.Uses, "docker://"):
+		st = StepTypeDocker
+	case s.Uses != "":
+		st = StepTypeAction
+	case s.Run != "":
+		st = StepTypeRun
+	default:
+		st = StepTypeUnknown
 	}
 
-	if s.Run != "" {
-		return StepTypeRun
-	}
-
-	return StepTypeUnknown
+	return st
 }

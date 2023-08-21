@@ -21,6 +21,7 @@ type ExprContext struct {
 	Job     core.JobContext
 	Steps   map[string]core.StepContext
 	Secrets core.SecretsContext
+	Inputs  map[string]string
 
 	// TODO: add other contexts when needed.
 	//  - env context
@@ -29,7 +30,6 @@ type ExprContext struct {
 	//  - matrix context
 	//  - needs context
 	//  - jobs context
-	//  - inputs context
 }
 
 func NewExprContext() (*ExprContext, error) {
@@ -114,6 +114,7 @@ func NewExprContext() (*ExprContext, error) {
 		},
 		Steps:   make(map[string]core.StepContext),
 		Secrets: secrets,
+		Inputs:  make(map[string]string),
 	}, nil
 }
 
@@ -162,6 +163,8 @@ func (c *ExprContext) GetVariable(name string) (interface{}, error) {
 		return map[string]string{}, nil
 	case "needs":
 		return map[string]string{}, nil
+	case "inputs":
+		return c.Inputs, nil
 	case "infinity":
 		return math.Inf(1), nil
 	case "nan":
@@ -173,8 +176,8 @@ func (c *ExprContext) GetVariable(name string) (interface{}, error) {
 
 // WithGithubEnv sets `github.env` from the given environment file. This is path of the temporary file that holds the
 // environment variables
-func (c *ExprContext) WithGithubEnv(ef *core.EnvironmentFile) *ExprContext {
-	c.Github.GithubFilesContext.Env = ef.Path
+func (c *ExprContext) WithGithubEnv(path string) *ExprContext {
+	c.Github.GithubFilesContext.Env = path
 
 	return c
 }
@@ -187,8 +190,8 @@ func (c *ExprContext) WithoutGithubEnv() *ExprContext {
 }
 
 // WithGithubPath sets `github.path` from the given environment file. This is path of the temporary file that holds the
-func (c *ExprContext) WithGithubPath(ef *core.EnvironmentFile) *ExprContext {
-	c.Github.GithubFilesContext.Path = ef.Path
+func (c *ExprContext) WithGithubPath(path string) *ExprContext {
+	c.Github.GithubFilesContext.Path = path
 
 	return c
 }

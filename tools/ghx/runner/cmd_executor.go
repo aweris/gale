@@ -2,10 +2,8 @@ package runner
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -17,6 +15,8 @@ import (
 	"github.com/aweris/gale/tools/ghx/expression"
 )
 
+var _ Executor = new(CmdExecutor)
+
 type CmdExecutor struct {
 	stepID   string                  // stepID is the id of the step
 	args     []string                // args to pass to the command
@@ -25,13 +25,6 @@ type CmdExecutor struct {
 	commands []*core.WorkflowCommand // commands is the list of commands that are executed in the step
 	envFiles *EnvironmentFiles       // envFiles contains temporary files that can be used to perform certain actions
 
-}
-
-type EnvironmentFiles struct {
-	Env         *core.EnvironmentFile // Env is the environment file that holds the environment variables
-	Path        *core.EnvironmentFile // Path is the environment file that holds the path variables
-	Outputs     *core.EnvironmentFile // Outputs is the environment file that holds the outputs
-	StepSummary *core.EnvironmentFile // StepSummary is the environment file that holds the step summary
 }
 
 func NewCmdExecutorFromStepAction(sa *StepAction, entrypoint string) *CmdExecutor {
@@ -98,15 +91,9 @@ func NewCmdExecutorFromStepRun(sr *StepRun) *CmdExecutor {
 	}
 }
 
-func (c *CmdExecutor) Execute(_ context.Context) error {
+func (c *CmdExecutor) Execute(ctx context.Context) error {
 	//nolint:gosec // this is a command executor, we need to execute the command as it is
 	cmd := exec.Command(c.args[0], c.args[1:]...)
-
-	stdout := bytes.NewBuffer(nil)
-	stderr := bytes.NewBuffer(nil)
-	rawout := bytes.NewBuffer(nil)
-
-	cmd.Stderr = io.MultiWriter(stderr, os.Stderr)
 
 	// load environment files - this will create env files and load it to the environment. That's why we need to do this
 	// before setting the environment variables
@@ -154,19 +141,11 @@ func (c *CmdExecutor) Execute(_ context.Context) error {
 		for scanner.Scan() {
 			output := scanner.Text()
 
-			// write to stdout as it is so we can keep original formatting
-			rawout.WriteString(output)
-			rawout.WriteString("\n") // scanner strips newlines
-
 			isCommand, command := core.ParseCommand(output)
 
 			// print the output if it is a regular output
 			if !isCommand {
 				log.Info(output)
-
-				// write to stdout as it is so we can keep original formatting
-				stdout.WriteString(output)
-				stdout.WriteString("\n") // scanner strips newlines
 
 				continue
 			}
@@ -180,7 +159,7 @@ func (c *CmdExecutor) Execute(_ context.Context) error {
 
 	waitErr := cmd.Wait()
 
-	if err := c.processEnvironmentFiles(); err != nil {
+	if err := processEnvironmentFiles(ctx, c.stepID, c.envFiles, c.ec); err != nil {
 		return err
 	}
 
@@ -198,7 +177,7 @@ func (c *CmdExecutor) loadEnvFiles() error {
 		return err
 	}
 
-	env, err := core.NewEnvironmentFile(filepath.Join(dir, "env"))
+	env, err := core.NewLocalEnvironmentFile(filepath.Join(dir, "env"))
 	if err != nil {
 		return err
 	}
@@ -206,7 +185,7 @@ func (c *CmdExecutor) loadEnvFiles() error {
 	c.env[core.EnvFileNameGithubEnv] = env.Path
 	c.envFiles.Env = env
 
-	path, err := core.NewEnvironmentFile(filepath.Join(dir, "path"))
+	path, err := core.NewLocalEnvironmentFile(filepath.Join(dir, "path"))
 	if err != nil {
 		return err
 	}
@@ -214,7 +193,7 @@ func (c *CmdExecutor) loadEnvFiles() error {
 	c.env[core.EnvFileNameGithubPath] = path.Path
 	c.envFiles.Path = path
 
-	outputs, err := core.NewEnvironmentFile(filepath.Join(dir, "outputs"))
+	outputs, err := core.NewLocalEnvironmentFile(filepath.Join(dir, "outputs"))
 	if err != nil {
 		return err
 	}
@@ -222,7 +201,7 @@ func (c *CmdExecutor) loadEnvFiles() error {
 	c.env[core.EnvFileNameGithubActionOutput] = outputs.Path
 	c.envFiles.Outputs = outputs
 
-	stepSummary, err := core.NewEnvironmentFile(filepath.Join(dir, "step_summary"))
+	stepSummary, err := core.NewLocalEnvironmentFile(filepath.Join(dir, "step_summary"))
 	if err != nil {
 		return err
 	}
@@ -231,7 +210,7 @@ func (c *CmdExecutor) loadEnvFiles() error {
 	c.envFiles.StepSummary = stepSummary
 
 	// update the expression context with the environment files
-	c.ec.WithGithubEnv(env).WithGithubPath(path)
+	c.ec.WithGithubEnv(env.Path).WithGithubPath(path.Path)
 
 	return nil
 }
@@ -282,56 +261,6 @@ func (c *CmdExecutor) processWorkflowCommands(cmd *core.WorkflowCommand) error {
 
 	// add the command to the list of commands to keep it as artifact
 	c.commands = append(c.commands, cmd)
-
-	return nil
-}
-
-func (c *CmdExecutor) processEnvironmentFiles() error {
-	if c.envFiles == nil {
-		return nil
-	}
-
-	env, err := c.envFiles.Env.ReadData()
-	if err != nil {
-		return err
-	}
-
-	for k, v := range env {
-		if err := os.Setenv(k, v); err != nil {
-			return err
-		}
-	}
-
-	paths, err := c.envFiles.Path.ReadData()
-	if err != nil {
-		return err
-	}
-
-	path := os.Getenv("PATH")
-
-	for p := range paths {
-		path = fmt.Sprintf("%s:%s", path, p)
-	}
-
-	if err := os.Setenv("PATH", path); err != nil {
-		return err
-	}
-
-	outputs, err := c.envFiles.Outputs.ReadData()
-	if err != nil {
-		return err
-	}
-
-	for k, v := range outputs {
-		c.ec.SetStepOutput(c.stepID, k, v)
-	}
-
-	stepSummary, err := c.envFiles.StepSummary.RawData()
-	if err != nil {
-		return err
-	}
-
-	c.ec.SetStepSummary(c.stepID, stepSummary)
 
 	return nil
 }

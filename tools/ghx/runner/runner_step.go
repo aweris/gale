@@ -4,6 +4,9 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"strings"
+
+	"dagger.io/dagger"
 
 	"github.com/aweris/gale/internal/config"
 	"github.com/aweris/gale/internal/core"
@@ -42,6 +45,8 @@ func NewStep(runner *Runner, s core.Step) (Step, error) {
 		return &StepAction{runner: runner, Step: s}, nil
 	case core.StepTypeRun:
 		return &StepRun{runner: runner, Step: s}, nil
+	case core.StepTypeDocker:
+		return &StepDocker{runner: runner, Step: s}, nil
 	default:
 		return nil, fmt.Errorf("unknown step type: %s", s.Type())
 	}
@@ -51,9 +56,10 @@ var _ Step = new(StepAction)
 
 // StepAction is a step that runs an action.
 type StepAction struct {
-	runner *Runner
-	Step   core.Step
-	Action core.CustomAction
+	runner    *Runner
+	container *dagger.Container
+	Step      core.Step
+	Action    core.CustomAction
 }
 
 func (s *StepAction) setup() TaskExecutorFn {
@@ -68,26 +74,56 @@ func (s *StepAction) setup() TaskExecutorFn {
 
 		log.Info(fmt.Sprintf("Download action repository '%s'", s.Step.Uses))
 
+		if s.Action.Meta.Runs.Using == core.ActionRunsUsingDocker {
+			var (
+				image        = ca.Meta.Runs.Image
+				workspace    = s.runner.context.Github.Workspace
+				workspaceDir = config.Client().Host().Directory(workspace)
+			)
+
+			switch {
+			case image == "Dockerfile":
+				s.container = config.Client().Container().Build(ca.Dir)
+			case strings.HasPrefix(image, "docker://"):
+				s.container = config.Client().Container().From(strings.TrimPrefix(image, "docker://"))
+			default:
+				// This should never happen. Adding it for safety.
+				return core.ConclusionFailure, fmt.Errorf("invalid docker image: %s", image)
+			}
+
+			// add repository to the container
+			s.container = s.container.WithMountedDirectory(workspace, workspaceDir).WithWorkdir(workspace)
+		}
+
 		return core.ConclusionSuccess, nil
 	}
 }
 
 func (s *StepAction) preCondition() TaskConditionalFn {
 	return func(ctx context.Context) (bool, core.Conclusion, error) {
-		if s.Action.Meta.Runs.Pre == "" {
+		run, condition := s.Action.Meta.Runs.PreCondition()
+		if !run {
 			return false, "", nil
 		}
 
-		return evalStepCondition(s.Action.Meta.Runs.PreIf, s.runner.context)
+		return evalStepCondition(condition, s.runner.context)
 	}
 }
 
 func (s *StepAction) pre() TaskExecutorFn {
 	return func(ctx context.Context) (core.Conclusion, error) {
-		cmd := NewCmdExecutorFromStepAction(s, s.Action.Meta.Runs.Pre)
+		var executor Executor
 
-		err := cmd.Execute(ctx)
-		if err != nil && !s.Step.ContinueOnError {
+		switch s.Action.Meta.Runs.Using {
+		case core.ActionRunsUsingDocker:
+			executor = NewContainerExecutorFromStepAction(s, s.Action.Meta.Runs.PreEntrypoint)
+		case core.ActionRunsUsingNode12, core.ActionRunsUsingNode16:
+			executor = NewCmdExecutorFromStepAction(s, s.Action.Meta.Runs.Pre)
+		default:
+			return core.ConclusionFailure, fmt.Errorf("invalid action runs using: %s", s.Action.Meta.Runs.Using)
+		}
+
+		if err := executor.Execute(ctx); err != nil && !s.Step.ContinueOnError {
 			return core.ConclusionFailure, err
 		}
 
@@ -103,10 +139,18 @@ func (s *StepAction) mainCondition() TaskConditionalFn {
 
 func (s *StepAction) main() TaskExecutorFn {
 	return func(ctx context.Context) (core.Conclusion, error) {
-		cmd := NewCmdExecutorFromStepAction(s, s.Action.Meta.Runs.Main)
+		var executor Executor
 
-		err := cmd.Execute(ctx)
-		if err != nil && !s.Step.ContinueOnError {
+		switch s.Action.Meta.Runs.Using {
+		case core.ActionRunsUsingDocker:
+			executor = NewContainerExecutorFromStepAction(s, s.Action.Meta.Runs.Entrypoint)
+		case core.ActionRunsUsingNode12, core.ActionRunsUsingNode16:
+			executor = NewCmdExecutorFromStepAction(s, s.Action.Meta.Runs.Main)
+		default:
+			return core.ConclusionFailure, fmt.Errorf("invalid action runs using: %s", s.Action.Meta.Runs.Using)
+		}
+
+		if err := executor.Execute(ctx); err != nil && !s.Step.ContinueOnError {
 			return core.ConclusionFailure, err
 		}
 
@@ -116,20 +160,29 @@ func (s *StepAction) main() TaskExecutorFn {
 
 func (s *StepAction) postCondition() TaskConditionalFn {
 	return func(ctx context.Context) (bool, core.Conclusion, error) {
-		if s.Action.Meta.Runs.Post == "" {
+		run, condition := s.Action.Meta.Runs.PostCondition()
+		if !run {
 			return false, "", nil
 		}
 
-		return evalStepCondition(s.Action.Meta.Runs.PostIf, s.runner.context)
+		return evalStepCondition(condition, s.runner.context)
 	}
 }
 
 func (s *StepAction) post() TaskExecutorFn {
 	return func(ctx context.Context) (core.Conclusion, error) {
-		cmd := NewCmdExecutorFromStepAction(s, s.Action.Meta.Runs.Post)
+		var executor Executor
 
-		err := cmd.Execute(ctx)
-		if err != nil && !s.Step.ContinueOnError {
+		switch s.Action.Meta.Runs.Using {
+		case core.ActionRunsUsingDocker:
+			executor = NewContainerExecutorFromStepAction(s, s.Action.Meta.Runs.PostEntrypoint)
+		case core.ActionRunsUsingNode12, core.ActionRunsUsingNode16:
+			executor = NewCmdExecutorFromStepAction(s, s.Action.Meta.Runs.Post)
+		default:
+			return core.ConclusionFailure, fmt.Errorf("invalid action runs using: %s", s.Action.Meta.Runs.Using)
+		}
+
+		if err := executor.Execute(ctx); err != nil && !s.Step.ContinueOnError {
 			return core.ConclusionFailure, err
 		}
 
@@ -151,28 +204,6 @@ type StepRun struct {
 
 func (s *StepRun) setup() TaskExecutorFn {
 	return func(ctx context.Context) (core.Conclusion, error) {
-		path := filepath.Join(config.GhxRunDir(s.runner.jr.RunID), "scripts", s.Step.ID, "run.sh")
-
-		// evaluate run script against the expressions
-		run, err := evalString(s.Step.Run, s.runner.context)
-		if err != nil {
-			return core.ConclusionFailure, err
-		}
-
-		content := []byte(fmt.Sprintf("#!/bin/bash\n%s", run))
-
-		err = fs.WriteFile(path, content, 0755)
-		if err != nil {
-			return core.ConclusionFailure, err
-		}
-
-		s.Path = path
-		s.Shell = "bash"
-		s.ShellArgs = []string{"--noprofile", "--norc", "-e", "-o", "pipefail"}
-
-		// make it debug level because it's not really important and it's visible in Github Actions logs
-		log.Debug(fmt.Sprintf("Write script to '%s' for step '%s'", path, s.Step.ID))
-
 		return core.ConclusionSuccess, nil
 	}
 }
@@ -198,9 +229,28 @@ func (s *StepRun) mainCondition() TaskConditionalFn {
 
 func (s *StepRun) main() TaskExecutorFn {
 	return func(ctx context.Context) (core.Conclusion, error) {
+		path := filepath.Join(config.GhxRunDir(s.runner.jr.RunID), "scripts", s.Step.ID, "run.sh")
+
+		// evaluate run script against the expressions
+		run, err := evalString(s.Step.Run, s.runner.context)
+		if err != nil {
+			return core.ConclusionFailure, err
+		}
+
+		content := []byte(fmt.Sprintf("#!/bin/bash\n%s", run))
+
+		err = fs.WriteFile(path, content, 0755)
+		if err != nil {
+			return core.ConclusionFailure, err
+		}
+
+		s.Path = path
+		s.Shell = "bash"
+		s.ShellArgs = []string{"--noprofile", "--norc", "-e", "-o", "pipefail"}
+
 		cmd := NewCmdExecutorFromStepRun(s)
 
-		err := cmd.Execute(ctx)
+		err = cmd.Execute(ctx)
 		if err != nil && !s.Step.ContinueOnError {
 			return core.ConclusionFailure, err
 		}
@@ -217,6 +267,81 @@ func (s *StepRun) postCondition() TaskConditionalFn {
 }
 
 func (s *StepRun) post() TaskExecutorFn {
+	return func(ctx context.Context) (core.Conclusion, error) {
+		return core.ConclusionSkipped, nil
+	}
+}
+
+var _ Step = new(StepDocker)
+
+type StepDocker struct {
+	runner    *Runner
+	container *dagger.Container
+	Step      core.Step
+}
+
+func (s *StepDocker) setup() TaskExecutorFn {
+	return func(ctx context.Context) (core.Conclusion, error) {
+		var (
+			image        = strings.TrimPrefix(s.Step.Uses, "docker://")
+			workspace    = s.runner.context.Github.Workspace
+			workspaceDir = config.Client().Host().Directory(workspace)
+		)
+
+		// configure the step container
+		s.container = config.Client().
+			Container().
+			From(image).
+			WithMountedDirectory(workspace, workspaceDir).
+			WithWorkdir(workspace)
+
+		// TODO: This will be print same log line if the image used multiple times. However, this scenario is not really common and no benefit to fix this scenario for now.
+		log.Info(fmt.Sprintf("Pull '%s'", image))
+
+		return core.ConclusionSuccess, nil
+	}
+}
+
+// preCondition returns always false because pre run is not supported for StepDocker.
+func (s *StepDocker) preCondition() TaskConditionalFn {
+	return func(ctx context.Context) (bool, core.Conclusion, error) {
+		return false, "", nil
+	}
+}
+
+func (s *StepDocker) pre() TaskExecutorFn {
+	return func(ctx context.Context) (core.Conclusion, error) {
+		return core.ConclusionSkipped, nil
+	}
+}
+
+func (s *StepDocker) mainCondition() TaskConditionalFn {
+	return func(ctx context.Context) (bool, core.Conclusion, error) {
+		return evalStepCondition(s.Step.If, s.runner.context)
+	}
+}
+
+func (s *StepDocker) main() TaskExecutorFn {
+	return func(ctx context.Context) (core.Conclusion, error) {
+		executor := NewContainerExecutorFromStepDocker(s)
+
+		err := executor.Execute(ctx)
+		if err != nil && !s.Step.ContinueOnError {
+			return core.ConclusionFailure, err
+		}
+
+		return core.ConclusionSuccess, nil
+	}
+}
+
+// postCondition returns always false because post run is not supported for StepDocker.
+func (s *StepDocker) postCondition() TaskConditionalFn {
+	return func(ctx context.Context) (bool, core.Conclusion, error) {
+		return false, "", nil
+	}
+}
+
+func (s *StepDocker) post() TaskExecutorFn {
 	return func(ctx context.Context) (core.Conclusion, error) {
 		return core.ConclusionSkipped, nil
 	}
