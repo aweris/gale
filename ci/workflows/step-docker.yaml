@@ -26,10 +26,11 @@ jobs:
           entrypoint: /bin/echo
           args: ${{ github.repository }}
 
-      - uses: jsok/svu-version-bump-action@v2
+      - name: SVU version bump custom docker action
+        uses: jsok/svu-version-bump-action@v2
         id: bump
         with:
-          bump: 'next'
+          bump: 'patch'
 
       - name: Print the version
         run: echo "The version is ${{ steps.bump.outputs.version }}"
