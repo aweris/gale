@@ -3,7 +3,7 @@ module github.com/aweris/gale
 go 1.20
 
 require (
-	dagger.io/dagger v0.8.2
+	dagger.io/dagger v0.8.4
 	github.com/adrg/xdg v0.4.0
 	github.com/cli/go-gh/v2 v2.1.0
 	github.com/julienschmidt/httprouter v1.3.0
@@ -29,10 +29,9 @@ require (
 	github.com/robfig/cron v1.2.0 // indirect
 	github.com/stretchr/testify v1.8.4 // indirect
 	github.com/vektah/gqlparser/v2 v2.5.8 // indirect
-	golang.org/x/mod v0.12.0 // indirect
+	golang.org/x/net v0.12.0 // indirect
 	golang.org/x/sync v0.3.0 // indirect
 	golang.org/x/sys v0.11.0 // indirect
 	golang.org/x/term v0.10.0 // indirect
 	golang.org/x/text v0.11.0 // indirect
-	golang.org/x/tools v0.11.1 // indirect
 )
