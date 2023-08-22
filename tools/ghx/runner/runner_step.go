@@ -227,9 +227,48 @@ func (s *StepRun) mainCondition() TaskConditionalFn {
 	}
 }
 
+const (
+	extSH = ".sh"
+	extPY = ".py"
+)
+
 func (s *StepRun) main() TaskExecutorFn {
 	return func(ctx context.Context) (core.Conclusion, error) {
+		var (
+			pre   string
+			pos   string
+			args  []string
+			shell = s.Step.Shell
+		)
+
 		path := filepath.Join(config.GhxRunDir(s.runner.jr.RunID), "scripts", s.Step.ID, "run.sh")
+
+		// TODO: add support and test for "pwsh" shell. This is not supported for now because we don't have a pwsh image,
+		//  and we don't have a way to test it for now. We'll add support for it later after making sure that it works.
+
+		// set the shell and shell args according to the shell type. Windows is not supported platform for now. So, we
+		// don't need to handle shell type for windows.
+		//
+		// Docs: https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsshell
+		// Ref: https://github.com/actions/runner/blob/efffbaeabc6d53c4c1ec05b11cea58331ff38e3c/src/Runner.Worker/Handlers/ScriptHandlerHelpers.cs
+		// Ref: https://github.com/actions/runner/blob/efffbaeabc6d53c4c1ec05b11cea58331ff38e3c/src/Runner.Worker/Handlers/ScriptHandler.cs
+		switch shell {
+		case "":
+			path += extSH
+			shell = "bash"
+			args = []string{"-e", path}
+		case "bash":
+			path += extSH
+			args = []string{"--noprofile", "--norc", "-e", "-o", "pipefail", path}
+		case "python":
+			path += extPY
+			args = []string{path}
+		case "sh":
+			path += extSH
+			args = []string{"-e", path}
+		default:
+			return core.ConclusionFailure, fmt.Errorf("not supported shell: %s", shell)
+		}
 
 		// evaluate run script against the expressions
 		run, err := evalString(s.Step.Run, s.runner.context)
@@ -237,16 +276,16 @@ func (s *StepRun) main() TaskExecutorFn {
 			return core.ConclusionFailure, err
 		}
 
-		content := []byte(fmt.Sprintf("#!/bin/bash\n%s", run))
+		content := []byte(fmt.Sprintf("%s\n%s\n%s", pre, run, pos))
 
 		err = fs.WriteFile(path, content, 0755)
 		if err != nil {
 			return core.ConclusionFailure, err
 		}
 
+		s.Shell = shell
+		s.ShellArgs = args
 		s.Path = path
-		s.Shell = "bash"
-		s.ShellArgs = []string{"--noprofile", "--norc", "-e", "-o", "pipefail"}
 
 		cmd := NewCmdExecutorFromStepRun(s)
 
@@ -255,7 +294,7 @@ func (s *StepRun) main() TaskExecutorFn {
 			return core.ConclusionFailure, err
 		}
 
-		return core.ConclusionSuccess, nil
+		return core.ConclusionSuccess, err
 	}
 }
 

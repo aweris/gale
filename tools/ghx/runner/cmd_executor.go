@@ -69,7 +69,6 @@ func NewCmdExecutorFromStepRun(sr *StepRun) *CmdExecutor {
 	args := []string{sr.Shell}
 
 	args = append(args, sr.ShellArgs...)
-	args = append(args, sr.Path)
 
 	env := make(map[string]string)
 
