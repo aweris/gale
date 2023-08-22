@@ -1,0 +1,25 @@
+name: shell
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Default Shell
+        run: echo "Hello World"
+
+      - name: Bash Shell
+        shell: bash
+        run: echo "Hello World"
+
+      - name: Python Shell
+        shell: python
+        run: print("Hello World")
+
+      - name: SH Shell
+        shell: sh
+        run: echo "Hello World"
