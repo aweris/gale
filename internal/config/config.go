@@ -13,11 +13,16 @@ var cfg = new(config)
 
 func init() {
 	cfg.ghxHome = "/home/runner/_temp/ghx"
+	// original image is ghcr.io/catthehacker/ubuntu:act-latest. moved to ghcr.io/aweris/gale/runner/ubuntu:22.04
+	// to work around issues similar to https://github.com/catthehacker/docker_images/issues/102 and updating the
+	// image periodically after testing.
+	cfg.runnerImage = "ghcr.io/aweris/gale/runner/ubuntu:22.04"
 }
 
 type config struct {
-	client  *dagger.Client // client is the dagger client for the config.
-	ghxHome string         // ghxHome directory where all the data is stored.
+	client      *dagger.Client // client is the dagger client for the config.
+	runnerImage string         // runnerImage is the image used for running the actions.
+	ghxHome     string         // ghxHome directory where all the data is stored.
 }
 
 // SetClient sets the dagger client for the config.
@@ -28,6 +33,16 @@ func SetClient(client *dagger.Client) {
 // Client returns the dagger client for the config.
 func Client() *dagger.Client {
 	return cfg.client
+}
+
+// SetRunnerImage sets the runner image for the config.
+func SetRunnerImage(image string) {
+	cfg.runnerImage = image
+}
+
+// RunnerImage returns the runner image for the config.
+func RunnerImage() string {
+	return cfg.runnerImage
 }
 
 // SetGhxHome sets the ghx home directory for the config.
