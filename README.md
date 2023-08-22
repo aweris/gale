@@ -77,12 +77,27 @@ Since `dagger run` is an optional command, it's omitted in the example above. So
 
 ### Configuration options
 
-For commands described above all parameters are optional. Available command flags for `list` and `run` commands are:
+For commands described above all parameters are optional. 
+
+Common parameters for `list` and `run` commands are:
+
 ```
   --repo string            owner/repo to load workflows from. If empty, repository information of the current directory will be used.
   --branch string          branch to load workflows from. Only one of branch or tag can be used. Precedence is as follows: tag, branch.
   --tag string             tag to load workflows from. Only one of branch or tag can be used. Precedence is as follows: tag, branch.
   --workflows-dir string   directory to load workflows from. If empty, workflows will be loaded from the default directory.
+```
+
+For `run` command, following parameters are also available:
+
+```
+  --runner string           runner image to use for running the actions. If empty, the default image will be used.
+```
+This parameter is useful when you want to use a custom runner image for running the actions. For example, if you want
+ to use a custom runner image for running the actions, you can use the following command:
+
+```bash!
+dagger run gale run --runner my-custom-runner-image --workflows-dir ci/workflows ci/workflows/lint.yaml golangci-lint
 ```
 
 Also, running commands with `dagger run` command optional as well but it's preferred execution method to enhance `gale` with `TUI`.
