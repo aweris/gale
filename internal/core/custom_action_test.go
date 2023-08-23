@@ -1,4 +1,4 @@
-package actions_test
+package core_test
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"dagger.io/dagger"
 
 	"github.com/aweris/gale/internal/config"
-	"github.com/aweris/gale/tools/ghx/actions"
+	"github.com/aweris/gale/internal/core"
 )
 
 func TestCustomActionManager_GetCustomAction(t *testing.T) {
@@ -31,7 +31,7 @@ func TestCustomActionManager_GetCustomAction(t *testing.T) {
 	config.SetClient(client)
 
 	t.Run("download missing action", func(t *testing.T) {
-		ca, err := actions.LoadActionFromSource(ctx, "actions/checkout@v2")
+		ca, err := core.LoadActionFromSource(ctx, "actions/checkout@v2")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -67,7 +67,7 @@ func TestCustomActionManager_GetCustomAction(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		ca, err := actions.LoadActionFromSource(ctx, "some/action@v1")
+		ca, err := core.LoadActionFromSource(ctx, "some/action@v1")
 		if err != nil {
 			t.Fatal(err)
 		}

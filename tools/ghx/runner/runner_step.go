@@ -12,7 +12,6 @@ import (
 	"github.com/aweris/gale/internal/core"
 	"github.com/aweris/gale/internal/fs"
 	"github.com/aweris/gale/internal/log"
-	"github.com/aweris/gale/tools/ghx/actions"
 )
 
 type Step interface {
@@ -64,7 +63,7 @@ type StepAction struct {
 
 func (s *StepAction) setup() TaskExecutorFn {
 	return func(ctx context.Context) (core.Conclusion, error) {
-		ca, err := actions.LoadActionFromSource(ctx, s.Step.Uses)
+		ca, err := core.LoadActionFromSource(ctx, s.Step.Uses)
 		if err != nil {
 			return core.ConclusionFailure, err
 		}
