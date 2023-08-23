@@ -1,6 +1,7 @@
 package preflight_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -37,7 +38,7 @@ func (m *MockReporter) Report(t preflight.Task, _ preflight.Result) error {
 func TestValidator(t *testing.T) {
 	// Create the validator with a mock reporter
 	reporter := &MockReporter{}
-	validator := preflight.NewValidator(reporter)
+	validator := preflight.NewValidator(context.Background(), reporter)
 
 	// Register setups and checks
 	setupA := &MockTask{name: "setupA"}

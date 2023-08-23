@@ -48,6 +48,8 @@ func (r *ConsoleReporter) Report(t Task, result Result) error {
 			log.Warn(msg.Content)
 		case Info:
 			log.Info(msg.Content)
+		case Debug:
+			log.Debug(msg.Content)
 		}
 	}
 

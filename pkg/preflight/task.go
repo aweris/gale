@@ -18,9 +18,10 @@ type Task interface {
 
 // Task names to make it easier to reference them in dependencies.
 const (
-	NameDaggerCheck = "Dagger"
-	NameGHCheck     = "GitHub CLI"
-	NameRepoLoader  = "Repo"
+	NameDaggerCheck    = "Dagger"
+	NameGHCheck        = "GitHub CLI"
+	NameRepoLoader     = "Repo"
+	NameWorkflowLoader = "Workflow"
 )
 
 // StandardTasks returns the standard tasks that are used in preflight checks.
@@ -29,5 +30,6 @@ func StandardTasks() []Task {
 		new(DaggerCheck),
 		new(GHCheck),
 		new(RepoLoader),
+		new(WorkflowLoader),
 	}
 }
