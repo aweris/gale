@@ -46,3 +46,4 @@ linters-settings:
           - github.com/rhysd/actionlint
           - github.com/magefile/mage/sh
           - github.com/julienschmidt/httprouter
+          - github.com/stretchr/testify/assert
