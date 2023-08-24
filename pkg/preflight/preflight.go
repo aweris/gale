@@ -1,6 +1,9 @@
 package preflight
 
-import "fmt"
+import (
+	"context"
+	"fmt"
+)
 
 // Validator entrypoint for preflight checks.
 type Validator struct {
@@ -10,10 +13,10 @@ type Validator struct {
 }
 
 // NewValidator creates a new Validator.
-func NewValidator(reporter Reporter) *Validator {
+func NewValidator(ctx context.Context, reporter Reporter) *Validator {
 	return &Validator{
 		tasks:    make(map[string]Task),
-		ctx:      &Context{},
+		ctx:      &Context{Context: ctx},
 		reporter: reporter,
 	}
 }

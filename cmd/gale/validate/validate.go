@@ -40,9 +40,13 @@ func NewCommand() *cobra.Command {
 			return config.Client().Close()
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			validator := preflight.NewValidator(preflight.NewConsoleReporter())
+			validator := preflight.NewValidator(cmd.Context(), preflight.NewConsoleReporter())
 
 			validator.Register(preflight.StandardTasks()...)
+
+			// set the workflow and job names
+			opts.Workflow = args[0]
+			opts.Job = args[1]
 
 			return validator.Validate(opts)
 		},
@@ -52,6 +56,7 @@ func NewCommand() *cobra.Command {
 	cmd.Flags().StringVar(&opts.Repo, "repo", "", "owner/repo to load workflows from. If empty, repository information of the current directory will be used.")
 	cmd.Flags().StringVar(&opts.Branch, "branch", "", "branch to load workflows from. Only one of branch or tag can be used. Precedence is as follows: tag, branch.")
 	cmd.Flags().StringVar(&opts.Tag, "tag", "", "tag to load workflows from. Only one of branch or tag can be used. Precedence is as follows: tag, branch.")
+	cmd.Flags().StringVar(&opts.WorkflowsDir, "workflows-dir", "", "directory to load workflows from. If empty, workflows will be loaded from the default directory.")
 
 	return cmd
 }
