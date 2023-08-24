@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/aweris/gale/cmd/gale/validate"
+
 	"github.com/spf13/cobra"
 
 	"github.com/aweris/gale/cmd/gale/list"
@@ -28,6 +30,7 @@ func Execute() {
 	rootCmd.AddCommand(list.NewCommand())
 	rootCmd.AddCommand(run.NewCommand())
 	rootCmd.AddCommand(version.NewCommand())
+	rootCmd.AddCommand(validate.NewCommand())
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Printf("Error executing command: %v", err)
