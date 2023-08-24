@@ -20,6 +20,7 @@ func NewCommand() *cobra.Command {
 		Use:          "validate <workflow> <job> [flags]",
 		Short:        "Runs preflight checks for the given workflow and job",
 		Args:         cobra.ExactArgs(2),
+		Hidden:       true, // It's hidden because it's not ready yet.
 		SilenceUsage: true, // don't print usage when error occurs
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			client, err := dagger.Connect(cmd.Context())
