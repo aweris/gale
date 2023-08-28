@@ -18,12 +18,13 @@ type Task interface {
 
 // Task names to make it easier to reference them in dependencies.
 const (
-	NameDaggerCheck       = "Dagger"
-	NameGHCheck           = "GitHub CLI"
-	NameRepoLoader        = "Repo"
-	NameWorkflowLoader    = "Workflow"
-	NameDockerImagesCheck = "Docker Images"
-	NameStepShellCheck    = "Run Step Shell"
+	NameDaggerCheck             = "Dagger"
+	NameGHCheck                 = "GitHub CLI"
+	NameRepoLoader              = "Repo"
+	NameWorkflowLoader          = "Workflow"
+	NameDockerImagesCheck       = "Docker Images"
+	NameStepShellCheck          = "Run Step Shell"
+	NameMissingExprContextCheck = "Missing Expression Context"
 )
 
 // StandardTasks returns the standard tasks that are used in preflight checks.
@@ -35,5 +36,6 @@ func StandardTasks() []Task {
 		new(WorkflowLoader),
 		new(DockerImagesCheck),
 		new(StepShellCheck),
+		new(MissingExprContextCheck),
 	}
 }
