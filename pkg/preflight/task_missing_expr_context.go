@@ -22,11 +22,10 @@ func (m *MissingExprContextCheck) DependsOn() []string {
 	return []string{NameDaggerCheck, NameWorkflowLoader}
 }
 
-func (m *MissingExprContextCheck) Run(ctx *Context, opt Options) Result {
+func (m *MissingExprContextCheck) Run(ctx *Context, _ Options) Result {
 	var (
-		msg []Message
-
 		status = Passed
+		msg    = make([]Message, 0)
 	)
 
 	data, err := ctx.Repo.GitRef.Dir.File(ctx.Workflow.Path).Contents(ctx.Context)
@@ -43,7 +42,7 @@ func (m *MissingExprContextCheck) Run(ctx *Context, opt Options) Result {
 		return Result{
 			Status: Failed,
 			Messages: []Message{
-				{Level: Error, Content: fmt.Sprintf("Workflow file is empty")},
+				{Level: Error, Content: "Workflow file is empty"},
 			},
 		}
 	}

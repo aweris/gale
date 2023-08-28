@@ -25,11 +25,9 @@ func (d *DockerImagesCheck) DependsOn() []string {
 
 func (d *DockerImagesCheck) Run(ctx *Context, _ Options) Result {
 	var (
-		msg []Message
-
 		status = Passed
+		msg    = make([]Message, 0)
 	)
-
 	// validate runner image
 	_, err := config.Client().Container().From(config.RunnerImage()).Sync(ctx.Context)
 	if err != nil {
@@ -39,7 +37,7 @@ func (d *DockerImagesCheck) Run(ctx *Context, _ Options) Result {
 		msg = append(msg, Message{Level: Debug, Content: fmt.Sprintf("Runner image %s is available", config.RunnerImage())})
 	}
 
-	for image, _ := range ctx.DockerImages {
+	for image := range ctx.DockerImages {
 		_, err := config.Client().Container().From(image).Sync(ctx.Context)
 		if err != nil {
 			status = Failed

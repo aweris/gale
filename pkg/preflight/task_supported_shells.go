@@ -26,9 +26,8 @@ func (s *StepShellCheck) DependsOn() []string {
 
 func (s *StepShellCheck) Run(ctx *Context, _ Options) Result {
 	var (
-		msg []Message
-
 		status = Passed
+		msg    = make([]Message, 0)
 	)
 
 	// TODO: look better way other than hard-coding the list of not supported shells.
@@ -43,7 +42,7 @@ func (s *StepShellCheck) Run(ctx *Context, _ Options) Result {
 	// runner container
 	runner := config.Client().Container().From(config.RunnerImage())
 
-	for shell, _ := range ctx.Shells {
+	for shell := range ctx.Shells {
 		if _, ok := notSupportedShells[shell]; ok {
 			status = Failed
 			msg = append(msg, Message{Level: Error, Content: fmt.Sprintf("Shell %s is not supported", shell)})

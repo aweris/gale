@@ -27,10 +27,9 @@ func (s *StepActionCheck) DependsOn() []string {
 
 func (s *StepActionCheck) Run(ctx *Context, _ Options) Result {
 	var (
-		msg []Message
-
 		status    = Passed
 		checkNode = false
+		msg       = make([]Message, 0)
 	)
 
 	// runner container
@@ -61,11 +60,11 @@ func (s *StepActionCheck) Run(ctx *Context, _ Options) Result {
 		out = strings.TrimSpace(strings.TrimSuffix(out, "\n"))
 
 		// if the output is empty or contains not found message then the shell is not available
-		if out == "" || out == fmt.Sprintf("node not found") {
+		if out == "" || out == "node not found" {
 			status = Failed
-			msg = append(msg, Message{Level: Error, Content: fmt.Sprintf("Node is not available in the runner image")})
+			msg = append(msg, Message{Level: Error, Content: "Node is not available in the runner image"})
 		} else {
-			msg = append(msg, Message{Level: Debug, Content: fmt.Sprintf("Node is available in the runner image")})
+			msg = append(msg, Message{Level: Debug, Content: "Node is available in the runner image"})
 
 			version, err := runner.WithExec([]string{"node", "--version"}).Stdout(ctx.Context)
 
