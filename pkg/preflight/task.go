@@ -25,6 +25,7 @@ const (
 	NameDockerImagesCheck       = "Docker Images"
 	NameStepShellCheck          = "Run Step Shell"
 	NameMissingExprContextCheck = "Missing Expression Context"
+	NameStepActionCheck         = "Step Action"
 )
 
 // StandardTasks returns the standard tasks that are used in preflight checks.
@@ -36,6 +37,7 @@ func StandardTasks() []Task {
 		new(WorkflowLoader),
 		new(DockerImagesCheck),
 		new(StepShellCheck),
+		new(StepActionCheck),
 		new(MissingExprContextCheck),
 	}
 }
