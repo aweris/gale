@@ -22,6 +22,7 @@ const (
 	NameGHCheck        = "GitHub CLI"
 	NameRepoLoader     = "Repo"
 	NameWorkflowLoader = "Workflow"
+	NameStepShellCheck = "Run Step Shell"
 )
 
 // StandardTasks returns the standard tasks that are used in preflight checks.
@@ -31,5 +32,6 @@ func StandardTasks() []Task {
 		new(GHCheck),
 		new(RepoLoader),
 		new(WorkflowLoader),
+		new(StepShellCheck),
 	}
 }

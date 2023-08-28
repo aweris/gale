@@ -152,6 +152,7 @@ func (c *WorkflowLoader) Run(ctx *Context, opts Options) Result {
 
 			// empty shell means the default shell. skip it.
 			if step.Shell == "" {
+				ctx.Shells["bash"] = true // default shell is bash
 				continue
 			}
 
