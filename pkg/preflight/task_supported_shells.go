@@ -2,8 +2,9 @@ package preflight
 
 import (
 	"fmt"
-	"github.com/aweris/gale/internal/config"
 	"strings"
+
+	"github.com/aweris/gale/internal/config"
 )
 
 var _ Task = new(StepShellCheck)
@@ -20,7 +21,7 @@ func (s *StepShellCheck) Type() TaskType {
 }
 
 func (s *StepShellCheck) DependsOn() []string {
-	return []string{NameWorkflowLoader}
+	return []string{NameDockerImagesCheck, NameWorkflowLoader}
 }
 
 func (s *StepShellCheck) Run(ctx *Context, _ Options) Result {
