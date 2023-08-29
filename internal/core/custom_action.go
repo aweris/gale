@@ -259,14 +259,28 @@ func getActionDirectory(source string) (*dagger.Directory, error) {
 		return nil, fmt.Errorf("failed to parse repo ref %s: %v", source, err)
 	}
 
+	// TODO: handle enterprise github instances as well
+	gitRepo := config.Client().Git(path.Join("github.com", actionRepo))
+
+	var gitRef *dagger.GitRef
+
+	switch DetermineRefTypeFromRepo(actionRepo, actionRef) {
+	case RefTypeBranch:
+		gitRef = gitRepo.Branch(actionRef)
+	case RefTypeTag:
+		gitRef = gitRepo.Tag(actionRef)
+	case RefTypeCommit:
+		gitRef = gitRepo.Commit(actionRef)
+	default:
+		return nil, fmt.Errorf("failed to determine ref type for %s: %v", source, err)
+	}
+
 	// if path is empty, use the root of the repo as the action directory
 	if actionPath == "" {
 		actionPath = "."
 	}
 
-	// TODO: handle enterprise github instances as well
-	// TODO: handle ref type (branch, tag, commit) currently only tags are supported
-	return config.Client().Git(path.Join("github.com", actionRepo)).Tag(actionRef).Tree().Directory(actionPath), nil
+	return gitRef.Tree().Directory(actionPath), nil
 }
 
 // findActionMetadataFileName finds the action.yml or action.yaml file in the root of the action directory.

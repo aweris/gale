@@ -6,15 +6,8 @@ import (
 	"strings"
 
 	"dagger.io/dagger"
+
 	"github.com/aweris/gale/internal/config"
-)
-
-// RefType represents the type of a ref. It can be either a branch or a tag.
-type RefType string
-
-const (
-	RefTypeBranch RefType = "branch"
-	RefTypeTag    RefType = "tag"
 )
 
 // RepositoryGitRef represents a Git ref (branch or tag) in a repository
