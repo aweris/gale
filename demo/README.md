@@ -11,6 +11,7 @@ Explore `gale` through the following scenarios:
 | List            | `--list`            | List all workflows and jobs under it for current repositories `main` branch                     |
 | Run             | `--run`             | Run golangci-lint job from ci/workflows/lint workflow for aweris/gale repository default branch |
 | Lint GoReleaser | `--lint-goreleaser` | Run golangci job from golangci-lint workflow for goreleaser/goreleaser repository tag v1.19.2   |
+| Shell run       | `--shell-run`       | Run example workflow contains steps with different shells                                       |
 | Test Dagger     | `--test-dagger`     | Run sdk-go job from test workflow for dagger/dagger repository branch main                      |
 | Test Cache      | `--test-cache`      | Use actions/cache in the workflow                                                               |
 
