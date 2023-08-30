@@ -227,8 +227,9 @@ func (s *StepRun) condition() TaskConditionalFn {
 }
 
 const (
-	extSH = ".sh"
-	extPY = ".py"
+	extSH   = ".sh"
+	extPY   = ".py"
+	extPWSH = ".ps1"
 )
 
 func (s *StepRun) main() TaskExecutorFn {
@@ -262,6 +263,11 @@ func (s *StepRun) main() TaskExecutorFn {
 		case "python":
 			path += extPY
 			args = []string{path}
+		case "pwsh":
+			path += extPWSH
+			pre = "$ErrorActionPreference = 'stop'"
+			pos = "if ((Test-Path -LiteralPath variable:/LASTEXITCODE)) { exit $LASTEXITCODE }"
+			args = []string{"-command", fmt.Sprintf(". '%s'", path)}
 		case "sh":
 			path += extSH
 			args = []string{"-e", path}

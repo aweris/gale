@@ -33,11 +33,7 @@ func (s *StepShellCheck) Run(ctx *Context, _ Options) Result {
 	// TODO: look better way other than hard-coding the list of not supported shells.
 
 	// list of not supported shells. This list will be updated when a new shell is supported.
-	notSupportedShells := map[string]bool{
-		"pwsh":       true,
-		"powershell": true,
-		"cmd":        true,
-	}
+	notSupportedShells := map[string]bool{"powershell": true, "cmd": true}
 
 	// runner container
 	runner := config.Client().Container().From(config.RunnerImage())
