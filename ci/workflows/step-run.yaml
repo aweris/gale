@@ -23,3 +23,11 @@ jobs:
       - name: SH Shell
         shell: sh
         run: echo "Hello World"
+
+  ## This job requires a custom runner image with PowerShell installed. Default runner for gale can't run PowerShell.
+  run-pwsh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: PowerShell Shell
+        shell: pwsh
+        run: Write-Host "Hello World"
