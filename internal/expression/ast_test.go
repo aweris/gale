@@ -8,7 +8,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/aweris/gale/internal/core"
-	"github.com/aweris/gale/tools/ghx/expression"
+	"github.com/aweris/gale/internal/expression"
 )
 
 var _ expression.VariableProvider = new(TestContext)

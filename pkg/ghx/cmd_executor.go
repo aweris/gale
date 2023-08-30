@@ -1,4 +1,4 @@
-package runner
+package ghx
 
 import (
 	"bufio"
@@ -10,9 +10,8 @@ import (
 	"strings"
 
 	"github.com/aweris/gale/internal/core"
+	"github.com/aweris/gale/internal/expression"
 	"github.com/aweris/gale/internal/log"
-	"github.com/aweris/gale/tools/ghx/actions"
-	"github.com/aweris/gale/tools/ghx/expression"
 )
 
 var _ Executor = new(CmdExecutor)
@@ -21,7 +20,7 @@ type CmdExecutor struct {
 	stepID   string                  // stepID is the id of the step
 	args     []string                // args to pass to the command
 	env      map[string]string       // env to pass to the command as environment variables
-	ec       *actions.ExprContext    // ec is the expression context to evaluate the github expressions
+	ec       *ExprContext            // ec is the expression context to evaluate the github expressions
 	commands []*core.WorkflowCommand // commands is the list of commands that are executed in the step
 	envFiles *EnvironmentFiles       // envFiles contains temporary files that can be used to perform certain actions
 

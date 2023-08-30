@@ -43,7 +43,7 @@ func (_ Ghx) Publish(ctx context.Context, version string) error {
 
 	file := images.GoBase().
 		WithMountedDirectory("/src", client.Host().Directory(".")).
-		WithWorkdir("/src/tools/ghx").
+		WithWorkdir("/src").
 		WithEnvVariable("CGO_ENABLED", "0").
 		WithExec([]string{"go", "build", "-o", "/src/out/ghx", "./cmd/ghx"}).
 		File("/src/out/ghx")
