@@ -30,10 +30,12 @@ func Plan(jr *core.JobRun) (*Runner, error) {
 	runner.executor = NewTaskExecutor(jr.Job.Name, run(runner))
 
 	// step task executors that execute the steps
-
-	// pre allocate the slices to avoid reallocation.
-	setupFns := make([]TaskExecutorFn, 0, len(jr.Job.Steps))
-	tasks := make([]TaskExecutor, len(jr.Job.Steps)*3)
+	var (
+		setupFns = make([]TaskExecutorFn, 0)
+		pre      = make([]TaskExecutor, 0)
+		main     = make([]TaskExecutor, 0)
+		post     = make([]TaskExecutor, 0)
+	)
 
 	for idx, step := range jr.Job.Steps {
 		if step.ID == "" {
@@ -45,25 +47,34 @@ func Plan(jr *core.JobRun) (*Runner, error) {
 			return nil, err
 		}
 
-		// setup functions are added to the setupFns slice to be executed by the setup task executor.
-		setupFns = append(setupFns, sr.setup())
+		// if step implements setup hook, add the setup function to the setupFns slice to be executed
+		// by the setup task executor.
+		if setup, ok := sr.(SetupHook); ok {
+			setupFns = append(setupFns, setup.setup())
+		}
 
-		// pre task is added same index as the step index
-		tasks[idx] = NewConditionalTaskExecutor(getStepName("Pre", step), sr.pre(), sr.preCondition())
+		// if step implements pre hook, add the pre task executor to the tasks slice.
+		if hook, ok := sr.(PreHook); ok {
+			// pre task is added same index as the step index
+			pre = append(pre, NewConditionalTaskExecutor(getStepName("Pre", step), hook.pre(), hook.preCondition()))
+		}
 
 		// main tasks starts after pre tasks. so index is step index + len(steps)
 		prefix := ""
 		if step.Name == "" {
 			prefix = "Run"
 		}
-		tasks[len(jr.Job.Steps)+idx] = NewConditionalTaskExecutor(getStepName(prefix, step), sr.main(), sr.mainCondition())
+		main = append(main, NewConditionalTaskExecutor(getStepName(prefix, step), sr.main(), sr.condition()))
 
-		// post tasks starts after main tasks. so index is step index + (len(steps) * 2)
-		tasks[(len(jr.Job.Steps)*2)+idx] = NewConditionalTaskExecutor(getStepName("Post", step), sr.post(), sr.postCondition())
+		if hook, ok := sr.(PostHook); ok {
+			post = append(post, NewConditionalTaskExecutor(getStepName("Post", step), hook.post(), hook.postCondition()))
+		}
 	}
 
 	runner.stepTasks = append(runner.stepTasks, NewTaskExecutor("Set up job", setup(runner, setup(runner, setupFns...))))
-	runner.stepTasks = append(runner.stepTasks, tasks...)
+	runner.stepTasks = append(runner.stepTasks, pre...)
+	runner.stepTasks = append(runner.stepTasks, main...)
+	runner.stepTasks = append(runner.stepTasks, post...)
 	runner.stepTasks = append(runner.stepTasks, NewTaskExecutor("Complete job", complete(runner)))
 
 	return runner, nil

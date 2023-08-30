@@ -14,22 +14,32 @@ import (
 	"github.com/aweris/gale/internal/log"
 )
 
+// Step is an internal interface that defines contract for steps.
 type Step interface {
+	// condition returns the function that checks if the main execution condition is met.
+	condition() TaskConditionalFn
+
+	// main returns the function that executes the main execution logic.
+	main() TaskExecutorFn
+}
+
+// SetupHook is the interface that defines contract for steps capable of performing a setup task.
+type SetupHook interface {
 	// setup returns the function that sets up the step before execution.
 	setup() TaskExecutorFn
+}
 
+// PreHook is the interface that defines contract for steps capable of performing a pre execution task.
+type PreHook interface {
 	// preCondition returns the function that checks if the pre execution condition is met.
 	preCondition() TaskConditionalFn
 
 	// pre returns the function that executes the pre execution logic just before the main execution.
 	pre() TaskExecutorFn
+}
 
-	// mainCondition returns the function that checks if the main execution condition is met.
-	mainCondition() TaskConditionalFn
-
-	// main returns the function that executes the main execution logic.
-	main() TaskExecutorFn
-
+// PostHook is the interface that defines contract for steps capable of performing a post execution task.
+type PostHook interface {
 	// postCondition returns the function that checks if the post execution condition is met.
 	postCondition() TaskConditionalFn
 
@@ -39,19 +49,28 @@ type Step interface {
 
 // NewStep creates a new step from the given step configuration.
 func NewStep(runner *Runner, s core.Step) (Step, error) {
+	var step Step
+
 	switch s.Type() {
 	case core.StepTypeAction:
-		return &StepAction{runner: runner, Step: s}, nil
+		step = &StepAction{runner: runner, Step: s}
 	case core.StepTypeRun:
-		return &StepRun{runner: runner, Step: s}, nil
+		step = &StepRun{runner: runner, Step: s}
 	case core.StepTypeDocker:
-		return &StepDocker{runner: runner, Step: s}, nil
+		step = &StepDocker{runner: runner, Step: s}
 	default:
 		return nil, fmt.Errorf("unknown step type: %s", s.Type())
 	}
+
+	return step, nil
 }
 
-var _ Step = new(StepAction)
+var (
+	_ Step      = new(StepAction)
+	_ PreHook   = new(StepAction)
+	_ PostHook  = new(StepAction)
+	_ SetupHook = new(StepAction)
+)
 
 // StepAction is a step that runs an action.
 type StepAction struct {
@@ -130,7 +149,7 @@ func (s *StepAction) pre() TaskExecutorFn {
 	}
 }
 
-func (s *StepAction) mainCondition() TaskConditionalFn {
+func (s *StepAction) condition() TaskConditionalFn {
 	return func(ctx context.Context) (bool, core.Conclusion, error) {
 		return evalStepCondition(s.Step.If, s.runner.context)
 	}
@@ -201,26 +220,7 @@ type StepRun struct {
 
 }
 
-func (s *StepRun) setup() TaskExecutorFn {
-	return func(ctx context.Context) (core.Conclusion, error) {
-		return core.ConclusionSuccess, nil
-	}
-}
-
-// preCondition returns always false because pre run is not supported for StepRun.
-func (s *StepRun) preCondition() TaskConditionalFn {
-	return func(ctx context.Context) (bool, core.Conclusion, error) {
-		return false, "", nil
-	}
-}
-
-func (s *StepRun) pre() TaskExecutorFn {
-	return func(ctx context.Context) (core.Conclusion, error) {
-		return core.ConclusionSkipped, nil
-	}
-}
-
-func (s *StepRun) mainCondition() TaskConditionalFn {
+func (s *StepRun) condition() TaskConditionalFn {
 	return func(ctx context.Context) (bool, core.Conclusion, error) {
 		return evalStepCondition(s.Step.If, s.runner.context)
 	}
@@ -297,20 +297,10 @@ func (s *StepRun) main() TaskExecutorFn {
 	}
 }
 
-// postCondition returns always false because post run is not supported for StepRun.
-func (s *StepRun) postCondition() TaskConditionalFn {
-	return func(ctx context.Context) (bool, core.Conclusion, error) {
-		return false, "", nil
-	}
-}
-
-func (s *StepRun) post() TaskExecutorFn {
-	return func(ctx context.Context) (core.Conclusion, error) {
-		return core.ConclusionSkipped, nil
-	}
-}
-
-var _ Step = new(StepDocker)
+var (
+	_ Step      = new(StepDocker)
+	_ SetupHook = new(StepDocker)
+)
 
 type StepDocker struct {
 	runner    *Runner
@@ -340,20 +330,7 @@ func (s *StepDocker) setup() TaskExecutorFn {
 	}
 }
 
-// preCondition returns always false because pre run is not supported for StepDocker.
-func (s *StepDocker) preCondition() TaskConditionalFn {
-	return func(ctx context.Context) (bool, core.Conclusion, error) {
-		return false, "", nil
-	}
-}
-
-func (s *StepDocker) pre() TaskExecutorFn {
-	return func(ctx context.Context) (core.Conclusion, error) {
-		return core.ConclusionSkipped, nil
-	}
-}
-
-func (s *StepDocker) mainCondition() TaskConditionalFn {
+func (s *StepDocker) condition() TaskConditionalFn {
 	return func(ctx context.Context) (bool, core.Conclusion, error) {
 		return evalStepCondition(s.Step.If, s.runner.context)
 	}
@@ -369,18 +346,5 @@ func (s *StepDocker) main() TaskExecutorFn {
 		}
 
 		return core.ConclusionSuccess, nil
-	}
-}
-
-// postCondition returns always false because post run is not supported for StepDocker.
-func (s *StepDocker) postCondition() TaskConditionalFn {
-	return func(ctx context.Context) (bool, core.Conclusion, error) {
-		return false, "", nil
-	}
-}
-
-func (s *StepDocker) post() TaskExecutorFn {
-	return func(ctx context.Context) (core.Conclusion, error) {
-		return core.ConclusionSkipped, nil
 	}
 }
