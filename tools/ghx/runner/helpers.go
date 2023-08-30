@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/aweris/gale/internal/core"
+	"github.com/aweris/gale/internal/expression"
 	"github.com/aweris/gale/tools/ghx/actions"
-	"github.com/aweris/gale/tools/ghx/expression"
 )
 
 // getStepName returns the step name. If step name is not set, it will be generated from the step type.

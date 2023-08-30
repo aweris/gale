@@ -12,9 +12,9 @@ import (
 
 	"github.com/aweris/gale/internal/config"
 	"github.com/aweris/gale/internal/core"
+	"github.com/aweris/gale/internal/expression"
 	"github.com/aweris/gale/internal/log"
 	"github.com/aweris/gale/tools/ghx/actions"
-	"github.com/aweris/gale/tools/ghx/expression"
 )
 
 var _ Executor = new(ContainerExecutor)
