@@ -1,4 +1,4 @@
-package runner
+package ghx
 
 import (
 	"fmt"
@@ -6,7 +6,6 @@ import (
 
 	"github.com/aweris/gale/internal/core"
 	"github.com/aweris/gale/internal/expression"
-	"github.com/aweris/gale/tools/ghx/actions"
 )
 
 // getStepName returns the step name. If step name is not set, it will be generated from the step type.
@@ -27,7 +26,7 @@ func getStepName(prefix string, s core.Step) string {
 
 // evalStepCondition evaluates the given condition and returns the result. If the condition is empty, then it uses
 // success() as default.
-func evalStepCondition(condition string, ac *actions.ExprContext) (bool, core.Conclusion, error) {
+func evalStepCondition(condition string, ac *ExprContext) (bool, core.Conclusion, error) {
 	// if condition is empty, then use success() as default
 	if condition == "" {
 		condition = "success()"
@@ -50,7 +49,7 @@ func evalStepCondition(condition string, ac *actions.ExprContext) (bool, core.Co
 }
 
 // evalString evaluates the given expression and returns the result as string.
-func evalString(expr string, ac *actions.ExprContext) (string, error) {
+func evalString(expr string, ac *ExprContext) (string, error) {
 	val, err := expression.NewString(expr).Eval(ac)
 	if err != nil {
 		return "", err

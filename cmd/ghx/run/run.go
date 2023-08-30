@@ -5,7 +5,7 @@ import (
 
 	"github.com/aweris/gale/internal/config"
 	"github.com/aweris/gale/internal/core"
-	runnerpkg "github.com/aweris/gale/tools/ghx/runner"
+	"github.com/aweris/gale/pkg/ghx"
 )
 
 // NewCommand  creates a new root command.
@@ -27,7 +27,7 @@ func NewCommand() *cobra.Command {
 				return err
 			}
 
-			runner, err := runnerpkg.Plan(jr)
+			runner, err := ghx.Plan(jr)
 			if err != nil {
 				return err
 			}

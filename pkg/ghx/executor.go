@@ -1,4 +1,4 @@
-package runner
+package ghx
 
 import (
 	"context"
@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/aweris/gale/internal/core"
-	"github.com/aweris/gale/tools/ghx/actions"
 )
 
 // Executor is the interface that defines contract for objects capable of performing an execution task.
@@ -22,7 +21,7 @@ type EnvironmentFiles struct {
 	StepSummary core.EnvironmentFile // StepSummary is the environment file that holds the step summary
 }
 
-func processEnvironmentFiles(ctx context.Context, stepID string, ef *EnvironmentFiles, ec *actions.ExprContext) error {
+func processEnvironmentFiles(ctx context.Context, stepID string, ef *EnvironmentFiles, ec *ExprContext) error {
 	if ef == nil {
 		return nil
 	}
