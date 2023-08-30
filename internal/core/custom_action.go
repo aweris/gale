@@ -78,6 +78,9 @@ var (
 	// ActionRunsUsingDocker is the value for ActionRunsUsing when the action is a docker action.
 	ActionRunsUsingDocker CustomActionRunsUsing = "docker"
 
+	// ActionRunsUsingNode20 is the value for ActionRunsUsing when the action is a javascript action using node 20.
+	ActionRunsUsingNode20 CustomActionRunsUsing = "node20"
+
 	// ActionRunsUsingNode16 is the value for ActionRunsUsing when the action is a javascript action using node 16.
 	ActionRunsUsingNode16 CustomActionRunsUsing = "node16"
 
@@ -99,7 +102,7 @@ func (a *CustomActionRunsUsing) UnmarshalYAML(unmarshal func(interface{}) error)
 
 	// unmarshal all unsupported values as invalid
 	switch using {
-	case ActionRunsUsingComposite, ActionRunsUsingDocker, ActionRunsUsingNode16, ActionRunsUsingNode12:
+	case ActionRunsUsingComposite, ActionRunsUsingDocker, ActionRunsUsingNode20, ActionRunsUsingNode16, ActionRunsUsingNode12:
 		*a = using
 	default:
 		return fmt.Errorf("invalid value for using: %s", using)
