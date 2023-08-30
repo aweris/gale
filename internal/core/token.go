@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/cli/go-gh/v2"
 )
@@ -13,5 +14,8 @@ func GetToken() (string, error) {
 		return "", fmt.Errorf("failed to get token: %w stderr: %s", err, stderr.String())
 	}
 
-	return stdout.String(), nil
+	// sanitize token by trimming spaces and newlines
+	token := strings.TrimSpace(strings.TrimSuffix(stdout.String(), "\n"))
+
+	return token, nil
 }
