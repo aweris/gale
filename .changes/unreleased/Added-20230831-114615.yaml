@@ -1,0 +1,6 @@
+kind: Added
+body: Added node20 to the list of supported custom action types
+time: 2023-08-31T11:46:15.025373+02:00
+custom:
+  Author: aweris
+  PR: "109"

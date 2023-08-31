@@ -1,0 +1,30 @@
+changesDir: .changes
+unreleasedDir: unreleased
+headerPath: header.tpl.md
+changelogPath: CHANGELOG.md
+versionExt: md
+versionFormat: '## {{.Version}} - {{.Time.Format "2006-01-02"}}'
+kindFormat: '### {{.Kind}}'
+changeFormat: '- {{.Body}} by @{{.Custom.Author}} in https://github.com/aweris/gale/pull/{{.Custom.PR}}'
+custom:
+  - key: PR
+    label: GitHub PR
+    type: int
+  - key: Author
+    label: GitHub Author
+    type: string
+kinds:
+  - label: Breaking
+    format: '### 🔥 Breaking Changes'
+  - label: Added
+  - label: Changed
+  - label: Deprecated
+  - label: Removed
+  - label: Fixed
+  - label: Dependencies
+newlines:
+  afterChangelogHeader: 3
+  afterVersion: 1
+  beforeKind: 1
+  beforeFooterTemplate: 1
+envPrefix: CHANGIE_
