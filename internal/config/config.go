@@ -1,6 +1,7 @@
 package config
 
 import (
+	"os"
 	"path/filepath"
 
 	"dagger.io/dagger"
@@ -23,6 +24,7 @@ type config struct {
 	client      *dagger.Client // client is the dagger client for the config.
 	runnerImage string         // runnerImage is the image used for running the actions.
 	ghxHome     string         // ghxHome directory where all the data is stored.
+	debug       bool           // debug is the flag to enable debug mode.
 }
 
 // SetClient sets the dagger client for the config.
@@ -73,4 +75,15 @@ func GhxRunDir(runID string) string {
 // GaleDataHome returns the path for local data.
 func GaleDataHome() string {
 	return filepath.Join(xdg.DataHome, "gale")
+}
+
+// SetDebug sets the debug flag for the config.
+func SetDebug(debug bool) {
+	cfg.debug = debug
+}
+
+// Debug returns the debug flag for the config. It also checks the environment variable RUNNER_DEBUG to enable debug
+// mode. If RUNNER_DEBUG=1 is set, it will enable debug mode.
+func Debug() bool {
+	return cfg.debug || os.Getenv("RUNNER_DEBUG") == "1"
 }

@@ -84,7 +84,7 @@ func Run(ctx context.Context, workflow, job string, opts ...RunOpts) dagger.With
 		}
 
 		// context configuration
-		container = container.With(core.NewRunnerContext().WithContainerFunc())
+		container = container.With(core.NewRunnerContext(config.Debug()).WithContainerFunc())
 		container = container.With(core.NewGithubRepositoryContext(repo).WithContainerFunc())
 		container = container.With(core.NewGithubSecretsContext(token).WithContainerFunc())
 		container = container.With(core.NewGithubURLContext().WithContainerFunc())

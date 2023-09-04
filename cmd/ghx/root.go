@@ -102,7 +102,7 @@ func logJournalEntries(reader journal.Reader) {
 		}
 
 		// Skip internal entries if we're not in debug mode
-		if entry.Type == journal.EntryTypeInternal && os.Getenv("RUNNER_DEBUG") != "1" {
+		if entry.Type == journal.EntryTypeInternal && !config.Debug() {
 			continue
 		}
 

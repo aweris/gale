@@ -24,14 +24,19 @@ type RunnerContext struct {
 }
 
 // NewRunnerContext creates a new RunnerContext from the given runner.
-func NewRunnerContext() RunnerContext {
+func NewRunnerContext(debug bool) RunnerContext {
+	// adjust debug value from bool to string as it's expected to be string in the container.
+	debugVal := "0"
+	if debug {
+		debugVal = "1"
+	}
 	return RunnerContext{
 		Name:      "Gale Agent",
 		OS:        "linux",
 		Arch:      "x64",
 		Temp:      "/home/runner/_temp",
 		ToolCache: "/home/runner/hostedtoolcache", // /opt/hostedtoolcache is used by our base runner image and if we mount it we'll lose the tools installed by the base image.
-		Debug:     "0",                            // TODO: This should be configurable. Read from config.Debug()
+		Debug:     debugVal,
 	}
 }
 
