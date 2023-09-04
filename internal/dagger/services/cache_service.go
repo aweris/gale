@@ -44,8 +44,10 @@ func NewArtifactCacheService() *ArtifactCacheService {
 	cache := config.Client().CacheVolume("gale-artifactcache-service")
 	container = container.WithMountedCache("/cache", cache).WithEnvVariable("CACHE_DIR", "/cache")
 
-	// debug configuration -- enable debug logging for internal/log package //TODO: find better way to do this
-	container = container.WithEnvVariable("RUNNER_DEBUG", "1")
+	// debug configuration -- enable debug logging for internal/log package
+	if config.Debug() {
+		container = container.WithEnvVariable("RUNNER_DEBUG", "1")
+	}
 
 	return &ArtifactCacheService{
 		client:        config.Client(),

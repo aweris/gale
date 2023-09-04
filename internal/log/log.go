@@ -2,8 +2,9 @@ package log
 
 import (
 	"fmt"
-	"os"
 	"strings"
+
+	"github.com/aweris/gale/internal/config"
 )
 
 const (
@@ -47,13 +48,13 @@ func (l *Logger) Infof(message string, keyvals ...interface{}) {
 }
 
 func (l *Logger) Debug(message string) {
-	if os.Getenv("RUNNER_DEBUG") == "1" {
+	if config.Debug() {
 		l.log("", LevelDebug, message)
 	}
 }
 
 func (l *Logger) Debugf(message string, keyvals ...interface{}) {
-	if os.Getenv("RUNNER_DEBUG") == "1" {
+	if config.Debug() {
 		l.logf(LevelDebug, message, keyvals...)
 	}
 }
