@@ -1,6 +1,0 @@
-kind: Fixed
-body: Removed space and newline characters from Github Token
-time: 2023-08-31T11:43:33.108538+02:00
-custom:
-  Author: aweris
-  PR: "108"
