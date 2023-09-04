@@ -1,6 +1,0 @@
-kind: Added
-body: Added --debug flag to `gale run` command to enable debug level logs
-time: 2023-09-04T14:30:22.596008+02:00
-custom:
-  Author: aweris
-  PR: "115"
