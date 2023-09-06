@@ -196,7 +196,7 @@ func (c *CmdExecutor) loadEnvFiles() error {
 		return err
 	}
 
-	c.env[core.EnvFileNameGithubActionOutput] = outputs.Path
+	c.env[core.EnvFileNameGithubOutput] = outputs.Path
 	c.envFiles.Outputs = outputs
 
 	stepSummary, err := core.NewLocalEnvironmentFile(filepath.Join(dir, "step_summary"))

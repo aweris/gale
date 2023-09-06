@@ -207,7 +207,7 @@ func (c *ContainerExecutor) loadEnvFiles() error {
 		WithMountedDirectory(root, dir).
 		WithEnvVariable(core.EnvFileNameGithubEnv, env).
 		WithEnvVariable(core.EnvFileNameGithubPath, path).
-		WithEnvVariable(core.EnvFileNameGithubActionOutput, outputs).
+		WithEnvVariable(core.EnvFileNameGithubOutput, outputs).
 		WithEnvVariable(core.EnvFileNameGithubStepSummary, stepSummary)
 
 	// update the expression context with the environment files
