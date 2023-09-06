@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/aweris/gale/internal/core"
+	"github.com/aweris/gale/internal/expression"
 	"github.com/aweris/gale/internal/log"
 )
 
@@ -131,6 +132,16 @@ func setup(_ *Runner, setupFns ...TaskExecutorFn) TaskExecutorFn {
 // complete returns a task executor function that will be executed by the task executor for the complete step.
 func complete(r *Runner) TaskExecutorFn {
 	return func(ctx context.Context) (core.Conclusion, error) {
+
+		for k, v := range r.jr.Job.Outputs {
+			val, err := expression.NewString(v).Eval(r.context)
+			if err != nil {
+				return core.ConclusionFailure, err
+			}
+
+			log.Debugf("Evaluated output", "key", k, "value", val)
+		}
+
 		log.Infof("Complete", "job", r.jr.Job.Name, "conclusion", r.context.Job.Status)
 
 		return core.ConclusionSuccess, nil
