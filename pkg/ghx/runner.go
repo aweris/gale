@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/aweris/gale/internal/core"
+	"github.com/aweris/gale/internal/expression"
 	"github.com/aweris/gale/internal/log"
 )
 
@@ -128,9 +129,42 @@ func setup(_ *Runner, setupFns ...TaskExecutorFn) TaskExecutorFn {
 	}
 }
 
+// MB is the megabyte size in bytes. It'll be used to check size of the job outputs. This just to increase the
+// readability of the code.
+const MB = 1024 * 1024
+
 // complete returns a task executor function that will be executed by the task executor for the complete step.
 func complete(r *Runner) TaskExecutorFn {
 	return func(ctx context.Context) (core.Conclusion, error) {
+		totalSize := 0
+
+		for k, v := range r.jr.Job.Outputs {
+			val, err := expression.NewString(v).Eval(r.context)
+			if err != nil {
+				return core.ConclusionFailure, err
+			}
+
+			log.Debugf("Evaluated output", "key", k, "value", val)
+
+			// According to Github Action docs, Outputs are Unicode strings, and can be a maximum of 1 MB in size.
+			// We'll check the size of the output and log a warning if it's bigger than 1MB.
+			//
+			// See: https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idoutputs
+			if len(val) > 1*MB {
+				log.Warnf("Size of the output is bigger than 1MB", "key", k, "size", fmt.Sprintf("%dMB", len(val)/MB))
+			}
+
+			totalSize += len(val)
+		}
+
+		// According to Github Action docs, The total of all outputs in a workflow run can be a maximum of 50 MB.
+		// We'll check the size of the outputs and log a warning if it's bigger than 50MB.
+		//
+		// See: https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idoutputs
+		if totalSize > 50*MB {
+			log.Warnf("Total size of the outputs is bigger than 50MB", "size", fmt.Sprintf("%dMB", totalSize/MB))
+		}
+
 		log.Infof("Complete", "job", r.jr.Job.Name, "conclusion", r.context.Job.Status)
 
 		return core.ConclusionSuccess, nil

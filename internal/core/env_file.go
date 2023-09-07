@@ -16,10 +16,10 @@ import (
 // Name of the environment files used by github actions with the names used in the documentation. These names are list
 // of the possible environment files that can be used by github actions. They do not represent the actual file names.
 const (
-	EnvFileNameGithubEnv          = "GITHUB_ENV"
-	EnvFileNameGithubPath         = "GITHUB_PATH"
-	EnvFileNameGithubStepSummary  = "GITHUB_STEP_SUMMARY"
-	EnvFileNameGithubActionOutput = "GITHUB_ACTION_OUTPUT"
+	EnvFileNameGithubEnv         = "GITHUB_ENV"
+	EnvFileNameGithubPath        = "GITHUB_PATH"
+	EnvFileNameGithubStepSummary = "GITHUB_STEP_SUMMARY"
+	EnvFileNameGithubOutput      = "GITHUB_OUTPUT"
 )
 
 // EnvironmentFile represents a generated temporary file that can be used to perform certain actions. This struct is
