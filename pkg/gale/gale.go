@@ -9,8 +9,6 @@ import (
 	"github.com/aweris/gale/internal/config"
 	"github.com/aweris/gale/internal/core"
 	"github.com/aweris/gale/internal/dagger/helpers"
-	"github.com/aweris/gale/internal/dagger/services"
-	"github.com/aweris/gale/internal/dagger/tools"
 	"github.com/aweris/gale/internal/idgen"
 )
 
@@ -110,11 +108,11 @@ func ExecutionEnv(_ context.Context) dagger.WithContainerFunc {
 		container = container.With(core.NewDaggerContextFromEnv().WithContainerFunc())
 
 		// tools
-		container = container.With(tools.NewGhxBinary().WithContainerFunc())
+		container = container.With(NewGhxBinary().WithContainerFunc())
 
 		// services
-		container = container.With(services.NewArtifactService().WithContainerFunc()) // TODO: move service to context or outside to be able to use it later to get artifacts
-		container = container.With(services.NewArtifactCacheService().WithContainerFunc())
+		container = container.With(NewArtifactService().WithContainerFunc()) // TODO: move service to context or outside to be able to use it later to get artifacts
+		container = container.With(NewArtifactCacheService().WithContainerFunc())
 
 		return container
 	}
