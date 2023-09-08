@@ -92,12 +92,12 @@ func NewExprContext() (*ExprContext, error) {
 				RefProtected: os.Getenv("GITHUB_REF_PROTECTED") == "true",
 				HeadRef:      os.Getenv("GITHUB_HEAD_REF"),
 				BaseRef:      os.Getenv("GITHUB_BASE_REF"),
+				SHA:          os.Getenv("GITHUB_SHA"),
 			},
 			GithubEventContext: core.GithubEventContext{
 				EventName: os.Getenv("GITHUB_EVENT_NAME"),
 				EventPath: os.Getenv("GITHUB_EVENT_PATH"),
 				Event:     event,
-				SHA:       os.Getenv("GITHUB_SHA"),
 			},
 			GithubFilesContext: core.GithubFilesContext{ /* No initial values */ },
 		},

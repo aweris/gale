@@ -8,6 +8,8 @@ import (
 
 	"dagger.io/dagger"
 
+	"github.com/google/uuid"
+
 	"github.com/aweris/gale/internal/config"
 	"github.com/aweris/gale/internal/dagger/helpers"
 )
@@ -217,6 +219,7 @@ type GithubRefContext struct {
 	RefProtected bool   `json:"ref_protected"` // RefProtected is true if branch protections are enabled and the base ref for the pull request matches the branch protection rule.
 	BaseRef      string `json:"base_ref"`      // BaseRef is the branch of the base repository. This property is only available when the event that triggered the workflow is a pull request. Otherwise the property will not exist.
 	HeadRef      string `json:"head_ref"`      // HeadRef is the branch of the head repository. This property is only available when the event that triggered the workflow is a pull request. Otherwise the property will not exist.
+	SHA          string `json:"sha"`           // SHA is the commit SHA that triggered the workflow. The value of this commit SHA depends on the event that triggered the workflow.
 }
 
 // NewGithubRefContext creates a new GithubRefContext from the given repository and ref.
@@ -228,6 +231,7 @@ func NewGithubRefContext(ref *RepositoryGitRef) GithubRefContext {
 		RefProtected: false, // TODO: fill this value when needed, not supported yet.
 		BaseRef:      "",    // TODO: fill this value when needed, not supported yet.
 		HeadRef:      "",    // TODO: fill this value when needed, not supported yet.
+		SHA:          ref.SHA,
 	}
 }
 
@@ -239,7 +243,8 @@ func (c GithubRefContext) WithContainerFunc() dagger.WithContainerFunc {
 			WithEnvVariable("GITHUB_REF_TYPE", c.RefType).
 			WithEnvVariable("GITHUB_REF_PROTECTED", strconv.FormatBool(c.RefProtected)).
 			WithEnvVariable("GITHUB_BASE_REF", c.BaseRef).
-			WithEnvVariable("GITHUB_HEAD_REF", c.HeadRef)
+			WithEnvVariable("GITHUB_HEAD_REF", c.HeadRef).
+			WithEnvVariable("GITHUB_SHA", c.SHA)
 	}
 }
 
@@ -248,16 +253,14 @@ type GithubEventContext struct {
 	EventName string                 `json:"event_name"` // EventName is the name of the event that triggered the workflow. e.g. push
 	EventPath string                 `json:"event_path"` // EventPath is the path of the file with the complete webhook event payload. e.g. /github/workflow/event.json
 	Event     map[string]interface{} `json:"event"`      // Event is the full event webhook payload.
-	SHA       string                 `json:"sha"`        // SHA is the commit SHA that triggered the workflow. The value of this commit SHA depends on the event that triggered the workflow.
 }
 
 // NewGithubEventContext creates a new GithubEventContext from the given event.
-func NewGithubEventContext(runID string, ref *RepositoryGitRef) GithubEventContext {
+func NewGithubEventContext() GithubEventContext {
 	return GithubEventContext{
 		EventName: "push", // TODO: this is only supported event type for now. Make it configurable when we support events properly.
-		EventPath: filepath.Join(config.GhxRunDir(runID), "event.json"),
+		EventPath: filepath.Join("/home/runner/_temp", uuid.NewString(), "event.json"),
 		Event:     make(map[string]interface{}),
-		SHA:       ref.SHA,
 	}
 }
 
@@ -271,8 +274,7 @@ func (c GithubEventContext) WithContainerFunc() dagger.WithContainerFunc {
 		return container.
 			WithEnvVariable("GITHUB_EVENT_NAME", c.EventName).
 			WithEnvVariable("GITHUB_EVENT_PATH", c.EventPath).
-			WithNewFile(c.EventPath, dagger.ContainerWithNewFileOpts{Contents: string(data)}).
-			WithEnvVariable("GITHUB_SHA", c.SHA)
+			WithNewFile(c.EventPath, dagger.ContainerWithNewFileOpts{Contents: string(data)})
 	}
 }
 
