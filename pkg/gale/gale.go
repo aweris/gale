@@ -14,25 +14,54 @@ import (
 
 // RunOpts are the options for the Run function.
 type RunOpts struct {
-	Repo         string
-	Branch       string
-	Tag          string
 	WorkflowsDir string
 	Secrets      map[string]string
 }
 
+// Gale is the main entrypoint for the gale library.
+type Gale struct {
+	repo             *core.Repository
+	ghx              *Ghx
+	artifactSVC      *ArtifactService
+	artifactCacheSVC *ArtifactCacheService
+}
+
+// New creates a new gale instance.
+func New(repo *core.Repository) *Gale {
+	return &Gale{
+		repo:             repo,
+		ghx:              NewGhxBinary(),
+		artifactSVC:      NewArtifactService(),
+		artifactCacheSVC: NewArtifactCacheService(),
+	}
+}
+
+// ExecutionEnv returns a dagger function that sets the execution environment of the gale to the given container.
+func (g *Gale) ExecutionEnv(_ context.Context) dagger.WithContainerFunc {
+	return func(container *dagger.Container) *dagger.Container {
+		// pass dagger context to the container
+		container = container.With(core.NewDaggerContextFromEnv().WithContainerFunc())
+
+		// tools
+		container = container.With(g.ghx.WithContainerFunc())
+
+		// services
+		container = container.With(g.artifactSVC.WithContainerFunc())
+		container = container.With(g.artifactCacheSVC.WithContainerFunc())
+
+		return container
+	}
+}
+
 // Run runs a job from a workflow.
-func Run(ctx context.Context, workflow, job string, opts ...RunOpts) dagger.WithContainerFunc {
+func (g *Gale) Run(ctx context.Context, workflow, job string, opts ...RunOpts) dagger.WithContainerFunc {
 	return func(container *dagger.Container) *dagger.Container {
 		opt := RunOpts{}
 		if len(opts) > 0 {
 			opt = opts[0]
 		}
 
-		repo, err := core.GetRepository(opt.Repo, core.GetRepositoryOpts{Branch: opt.Branch, Tag: opt.Tag})
-		if err != nil {
-			return helpers.FailPipeline(container, err)
-		}
+		repo := g.repo
 
 		workflows, err := repo.LoadWorkflows(ctx, core.RepositoryLoadWorkflowOpts{WorkflowsDir: opt.WorkflowsDir})
 		if err != nil {
@@ -96,23 +125,6 @@ func Run(ctx context.Context, workflow, job string, opts ...RunOpts) dagger.With
 		container = container.With(core.NewJobRun(jobRunID, jm).WithContainerFunc())
 
 		container = container.WithExec([]string{"/usr/local/bin/ghx", "run", jobRunID})
-
-		return container
-	}
-}
-
-// ExecutionEnv returns a dagger function that sets the execution environment of the gale to the given container.
-func ExecutionEnv(_ context.Context) dagger.WithContainerFunc {
-	return func(container *dagger.Container) *dagger.Container {
-		// pass dagger context to the container
-		container = container.With(core.NewDaggerContextFromEnv().WithContainerFunc())
-
-		// tools
-		container = container.With(NewGhxBinary().WithContainerFunc())
-
-		// services
-		container = container.With(NewArtifactService().WithContainerFunc()) // TODO: move service to context or outside to be able to use it later to get artifacts
-		container = container.With(NewArtifactCacheService().WithContainerFunc())
 
 		return container
 	}
