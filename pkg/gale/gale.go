@@ -49,6 +49,12 @@ func (g *Gale) ExecutionEnv(_ context.Context) dagger.WithContainerFunc {
 		container = container.With(g.artifactSVC.WithContainerFunc())
 		container = container.With(g.artifactCacheSVC.WithContainerFunc())
 
+		// context configuration -- these are the contexts that not change during the execution
+		container = container.With(core.NewRunnerContext(config.Debug()).WithContainerFunc())
+		container = container.With(core.NewGithubRepositoryContext(g.repo).WithContainerFunc())
+		container = container.With(core.NewGithubURLContext().WithContainerFunc())
+		container = container.With(core.NewGithubRefContext(g.repo.GitRef).WithContainerFunc())
+
 		return container
 	}
 }
@@ -111,13 +117,9 @@ func (g *Gale) Run(ctx context.Context, workflow, job string, opts ...RunOpts) d
 		}
 
 		// context configuration
-		container = container.With(core.NewRunnerContext(config.Debug()).WithContainerFunc())
-		container = container.With(core.NewGithubRepositoryContext(repo).WithContainerFunc())
 		container = container.With(core.NewGithubSecretsContext(token).WithContainerFunc())
-		container = container.With(core.NewGithubURLContext().WithContainerFunc())
 		container = container.With(core.NewGithubWorkflowContext(repo, wf, workflowRunID, strings.TrimSpace(sha)).WithContainerFunc())
 		container = container.With(core.NewGithubJobInfoContext(job).WithContainerFunc())
-		container = container.With(core.NewGithubRefContext(repo.GitRef).WithContainerFunc())
 		container = container.With(core.NewGithubEventContext(jobRunID, repo.GitRef).WithContainerFunc())
 		container = container.With(core.NewSecretsContext(token, opt.Secrets).WithContainerFunc())
 
