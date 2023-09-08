@@ -10,6 +10,7 @@ import (
 	"github.com/aweris/gale/internal/core"
 	"github.com/aweris/gale/internal/dagger/helpers"
 	"github.com/aweris/gale/internal/idgen"
+	"github.com/aweris/gale/pkg/data"
 )
 
 // RunOpts are the options for the Run function.
@@ -28,11 +29,14 @@ type Gale struct {
 
 // New creates a new gale instance.
 func New(repo *core.Repository) *Gale {
+
+	cache := data.NewCacheVolume(repo)
+
 	return &Gale{
 		repo:             repo,
-		ghx:              NewGhxBinary(),
-		artifactSVC:      NewArtifactService(),
-		artifactCacheSVC: NewArtifactCacheService(),
+		ghx:              NewGhxBinary(cache),
+		artifactSVC:      NewArtifactService(cache),
+		artifactCacheSVC: NewArtifactCacheService(cache),
 	}
 }
 

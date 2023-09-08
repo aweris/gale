@@ -8,21 +8,22 @@ import (
 	"github.com/aweris/gale/internal/config"
 	"github.com/aweris/gale/internal/dagger/helpers"
 	"github.com/aweris/gale/internal/version"
+	"github.com/aweris/gale/pkg/data"
 )
 
 var _ helpers.WithContainerFuncHook = new(ArtifactCacheService)
 
 // ArtifactCacheService is the dagger service definitions for the services/artifact directory.
 type ArtifactCacheService struct {
-	client        *dagger.Client
-	container     *dagger.Container
-	artifactcache *dagger.CacheVolume
-	alias         string
-	port          string
+	client    *dagger.Client
+	container *dagger.Container
+	data      *data.CacheVolume
+	alias     string
+	port      string
 }
 
 // NewArtifactCacheService creates a new artifact service.
-func NewArtifactCacheService() *ArtifactCacheService {
+func NewArtifactCacheService(cache *data.CacheVolume) *ArtifactCacheService {
 	var (
 		tag   = version.GetVersion().GitVersion
 		alias = "artifactcache"
@@ -41,8 +42,7 @@ func NewArtifactCacheService() *ArtifactCacheService {
 
 	// stateful data configuration
 
-	cache := config.Client().CacheVolume("gale-artifactcache-service")
-	container = container.WithMountedCache("/cache", cache).WithEnvVariable("CACHE_DIR", "/cache")
+	container = container.With(cache.WithContainerFunc()).WithEnvVariable("CACHE_DIR", data.ArtifactsCachePath())
 
 	// debug configuration -- enable debug logging for internal/log package
 	if config.Debug() {
@@ -50,11 +50,11 @@ func NewArtifactCacheService() *ArtifactCacheService {
 	}
 
 	return &ArtifactCacheService{
-		client:        config.Client(),
-		container:     container,
-		artifactcache: cache,
-		alias:         alias,
-		port:          fmt.Sprintf("%d", port),
+		client:    config.Client(),
+		container: container,
+		data:      cache,
+		alias:     alias,
+		port:      fmt.Sprintf("%d", port),
 	}
 }
 
