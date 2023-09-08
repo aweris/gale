@@ -5,7 +5,6 @@ import (
 	"strconv"
 
 	"github.com/aweris/gale/internal/config"
-	"github.com/aweris/gale/internal/core"
 	"github.com/aweris/gale/internal/fs"
 )
 
@@ -20,15 +19,15 @@ type counter map[string]int
 // TODO: This is not concurrency safe. Need to use lock file or something similar to make it concurrency safe
 
 // GenerateWorkflowRunID generates a unique workflow run id for the given repository
-func GenerateWorkflowRunID(repo *core.Repository) (string, error) {
-	dataPath := filepath.Join(config.GaleDataHome(), repo.NameWithOwner, metadataFile)
+func GenerateWorkflowRunID() (string, error) {
+	dataPath := filepath.Join(config.GhxHome(), metadataFile)
 
 	return generateID(dataPath, keyWorkflowRunID)
 }
 
 // GenerateJobRunID generates a unique job run id for the given repository
-func GenerateJobRunID(repo *core.Repository) (string, error) {
-	dataPath := filepath.Join(config.GaleDataHome(), repo.NameWithOwner, metadataFile)
+func GenerateJobRunID() (string, error) {
+	dataPath := filepath.Join(config.GhxHome(), metadataFile)
 
 	return generateID(dataPath, keyJobRunID)
 }

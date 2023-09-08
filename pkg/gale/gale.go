@@ -2,14 +2,12 @@ package gale
 
 import (
 	"context"
-	"strings"
 
 	"dagger.io/dagger"
 
 	"github.com/aweris/gale/internal/config"
 	"github.com/aweris/gale/internal/core"
 	"github.com/aweris/gale/internal/dagger/helpers"
-	"github.com/aweris/gale/internal/idgen"
 	"github.com/aweris/gale/pkg/data"
 )
 
@@ -64,43 +62,11 @@ func (g *Gale) ExecutionEnv(_ context.Context) dagger.WithContainerFunc {
 }
 
 // Run runs a job from a workflow.
-func (g *Gale) Run(ctx context.Context, workflow, job string, opts ...RunOpts) dagger.WithContainerFunc {
+func (g *Gale) Run(_ context.Context, workflow, job string, opts ...RunOpts) dagger.WithContainerFunc {
 	return func(container *dagger.Container) *dagger.Container {
 		opt := RunOpts{}
 		if len(opts) > 0 {
 			opt = opts[0]
-		}
-
-		repo := g.repo
-
-		workflows, err := repo.LoadWorkflows(ctx, core.RepositoryLoadWorkflowOpts{WorkflowsDir: opt.WorkflowsDir})
-		if err != nil {
-			return helpers.FailPipeline(container, err)
-		}
-
-		wf, ok := workflows[workflow]
-		if !ok {
-			return helpers.FailPipeline(container, ErrWorkflowNotFound)
-		}
-
-		jm, ok := wf.Jobs[job]
-		if !ok {
-			return helpers.FailPipeline(container, ErrJobNotFound)
-		}
-
-		// ensure job name is set
-		if jm.Name == "" {
-			jm.Name = job
-		}
-
-		workflowRunID, err := idgen.GenerateWorkflowRunID(repo)
-		if err != nil {
-			return helpers.FailPipeline(container, err)
-		}
-
-		jobRunID, err := idgen.GenerateJobRunID(repo)
-		if err != nil {
-			return helpers.FailPipeline(container, err)
 		}
 
 		token, err := core.GetToken()
@@ -108,29 +74,33 @@ func (g *Gale) Run(ctx context.Context, workflow, job string, opts ...RunOpts) d
 			return helpers.FailPipeline(container, err)
 		}
 
-		//TODO: not sure if this is the best way to get the sha, probably we're missing some scenarios. However, it works for now.
+		/*
+			// FIXME: move this to ghx
 
-		sha, err := config.Client().Container().
-			From("alpine/git").
-			WithMountedDirectory("/workdir", repo.GitRef.Dir).
-			WithWorkdir("/workdir").
-			WithExec([]string{"log", "-1", "--follow", "--format=%H", "--", wf.Path}).
-			Stdout(ctx)
-		if err != nil {
-			return helpers.FailPipeline(container, err)
-		}
+			//TODO: not sure if this is the best way to get the sha, probably we're missing some scenarios. However, it works for now.
+
+			sha, err := config.Client().Container().
+				From("alpine/git").
+				WithMountedDirectory("/workdir", repo.GitRef.Dir).
+				WithWorkdir("/workdir").
+				WithExec([]string{"log", "-1", "--follow", "--format=%H", "--", wf.Path}).
+				Stdout(ctx)
+			if err != nil {
+				return helpers.FailPipeline(container, err)
+			}
+
+		*/
 
 		// context configuration
 		container = container.With(core.NewGithubSecretsContext(token).WithContainerFunc())
-		container = container.With(core.NewGithubWorkflowContext(repo, wf, workflowRunID, strings.TrimSpace(sha)).WithContainerFunc())
-		container = container.With(core.NewGithubJobInfoContext(job).WithContainerFunc())
+		// FIXME: move this to ghx
+		// container = container.With(core.NewGithubWorkflowContext(repo, wf, workflowRunID, strings.TrimSpace(sha)).WithContainerFunc())
+		// container = container.With(core.NewGithubJobInfoContext(job).WithContainerFunc())
 		container = container.With(core.NewGithubEventContext().WithContainerFunc())
 		container = container.With(core.NewSecretsContext(token, opt.Secrets).WithContainerFunc())
 
-		// job run configuration
-		container = container.With(core.NewJobRun(jobRunID, jm).WithContainerFunc())
-
-		container = container.WithExec([]string{"/usr/local/bin/ghx", "run", jobRunID})
+		container = container.WithEnvVariable("GALE_WORKFLOWS_DIR", opt.WorkflowsDir)
+		container = container.WithExec([]string{"/usr/local/bin/ghx", "run", workflow, job})
 
 		return container
 	}
