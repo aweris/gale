@@ -10,7 +10,7 @@ import (
 
 	"github.com/aweris/gale/cmd/gale/list"
 	"github.com/aweris/gale/cmd/gale/run"
-	"github.com/aweris/gale/cmd/gale/version"
+	"github.com/aweris/gale/internal/cmd/version"
 )
 
 // NewCommand  creates a new root command.

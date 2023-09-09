@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/pflag"
 
 	"github.com/aweris/gale/cmd/ghx/run"
-	"github.com/aweris/gale/cmd/ghx/version"
+	"github.com/aweris/gale/internal/cmd/version"
 	"github.com/aweris/gale/internal/config"
 	"github.com/aweris/gale/internal/core"
 	"github.com/aweris/gale/internal/fs"
