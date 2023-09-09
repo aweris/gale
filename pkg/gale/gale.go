@@ -27,7 +27,6 @@ type Gale struct {
 
 // New creates a new gale instance.
 func New(repo *core.Repository) *Gale {
-
 	cache := data.NewCacheVolume(repo)
 
 	return &Gale{
@@ -53,9 +52,6 @@ func (g *Gale) ExecutionEnv(_ context.Context) dagger.WithContainerFunc {
 
 		// context configuration -- these are the contexts that not change during the execution
 		container = container.With(core.NewRunnerContext(config.Debug()).WithContainerFunc())
-		container = container.With(core.NewGithubRepositoryContext(g.repo).WithContainerFunc())
-		container = container.With(core.NewGithubURLContext().WithContainerFunc())
-		container = container.With(core.NewGithubRefContext(g.repo.GitRef).WithContainerFunc())
 
 		return container
 	}
@@ -74,30 +70,15 @@ func (g *Gale) Run(_ context.Context, workflow, job string, opts ...RunOpts) dag
 			return helpers.FailPipeline(container, err)
 		}
 
-		/*
-			// FIXME: move this to ghx
-
-			//TODO: not sure if this is the best way to get the sha, probably we're missing some scenarios. However, it works for now.
-
-			sha, err := config.Client().Container().
-				From("alpine/git").
-				WithMountedDirectory("/workdir", repo.GitRef.Dir).
-				WithWorkdir("/workdir").
-				WithExec([]string{"log", "-1", "--follow", "--format=%H", "--", wf.Path}).
-				Stdout(ctx)
-			if err != nil {
-				return helpers.FailPipeline(container, err)
-			}
-
-		*/
-
 		// context configuration
-		container = container.With(core.NewGithubSecretsContext(token).WithContainerFunc())
-		// FIXME: move this to ghx
-		// container = container.With(core.NewGithubWorkflowContext(repo, wf, workflowRunID, strings.TrimSpace(sha)).WithContainerFunc())
-		// container = container.With(core.NewGithubJobInfoContext(job).WithContainerFunc())
-		container = container.With(core.NewGithubEventContext().WithContainerFunc())
+		gc := core.NewGithubContext(g.repo, token)
+
+		container = container.With(gc.WithContainerFunc())
 		container = container.With(core.NewSecretsContext(token, opt.Secrets).WithContainerFunc())
+
+		// load repository to container
+		container = container.WithMountedDirectory(gc.Workspace, g.repo.GitRef.Dir)
+		container = container.WithWorkdir(gc.Workspace)
 
 		container = container.WithEnvVariable("GALE_WORKFLOWS_DIR", opt.WorkflowsDir)
 		container = container.WithExec([]string{"/usr/local/bin/ghx", "run", workflow, job})

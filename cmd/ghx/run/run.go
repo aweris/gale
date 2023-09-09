@@ -51,11 +51,6 @@ func NewCommand() *cobra.Command {
 				return ErrJobNotFound
 			}
 
-			// ensure job name is set
-			if jm.Name == "" {
-				jm.Name = args[1]
-			}
-
 			_, err = idgen.GenerateWorkflowRunID()
 			if err != nil {
 				return err
