@@ -7,9 +7,9 @@ import (
 	"dagger.io/dagger"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 
 	"github.com/aweris/gale/cmd/ghx/run"
+	"github.com/aweris/gale/internal/cmd"
 	"github.com/aweris/gale/internal/cmd/version"
 	"github.com/aweris/gale/internal/config"
 	"github.com/aweris/gale/internal/core"
@@ -22,7 +22,7 @@ import (
 func NewCommand() *cobra.Command {
 	var homeDir string
 
-	cmd := &cobra.Command{
+	command := &cobra.Command{
 		Use:   "ghx",
 		Short: "Github Actions Executor",
 		Long:  "Github Actions Executor is a helper tool for gale to run workflows locally",
@@ -59,11 +59,11 @@ func NewCommand() *cobra.Command {
 		},
 	}
 
-	cmd.PersistentFlags().StringVar(&homeDir, "home", "/home/runner/_temp/ghx", "home directory for ghx")
+	command.PersistentFlags().StringVar(&homeDir, "home", "/home/runner/_temp/ghx", "home directory for ghx")
 
-	bindEnv(cmd.Flags().Lookup("home"), "GHX_HOME")
+	cmd.BindEnv(command.Flags().Lookup("home"), "GHX_HOME")
 
-	return cmd
+	return command
 }
 
 // Execute runs the command.
@@ -79,21 +79,6 @@ func Execute() {
 	}
 }
 
-func bindEnv(fn *pflag.Flag, env string) {
-	if fn == nil || fn.Changed {
-		return
-	}
-
-	val := os.Getenv(env)
-
-	if len(val) > 0 {
-		if err := fn.Value.Set(val); err != nil {
-			log.Errorf("failed to bind env: %v\n", err)
-			os.Exit(1)
-		}
-	}
-}
-
 func logJournalEntries(reader journal.Reader) {
 	for {
 		entry, ok := reader.ReadEntry()
@@ -106,8 +91,8 @@ func logJournalEntries(reader journal.Reader) {
 			continue
 		}
 
-		isCmd, cmd := core.ParseCommand(entry.Message)
-		if !isCmd {
+		isCommand, command := core.ParseCommand(entry.Message)
+		if !isCommand {
 			log.Info(entry.Message)
 			continue
 		}
@@ -115,20 +100,20 @@ func logJournalEntries(reader journal.Reader) {
 		// TODO: We should extract these to common place, currently we're duplicating the code when we need to parse the commands
 
 		// process only logging based commands and ignore the rest
-		switch cmd.Name {
+		switch command.Name {
 		case "group":
-			log.Info(cmd.Value)
+			log.Info(command.Value)
 			log.StartGroup()
 		case "endgroup":
 			log.EndGroup()
 		case "debug":
-			log.Debug(cmd.Value)
+			log.Debug(command.Value)
 		case "error":
-			log.Errorf(cmd.Value, "file", cmd.Parameters["file"], "line", cmd.Parameters["line"], "col", cmd.Parameters["col"], "endLine", cmd.Parameters["endLine"], "endCol", cmd.Parameters["endCol"], "title", cmd.Parameters["title"])
+			log.Errorf(command.Value, "file", command.Parameters["file"], "line", command.Parameters["line"], "col", command.Parameters["col"], "endLine", command.Parameters["endLine"], "endCol", command.Parameters["endCol"], "title", command.Parameters["title"])
 		case "warning":
-			log.Warnf(cmd.Value, "file", cmd.Parameters["file"], "line", cmd.Parameters["line"], "col", cmd.Parameters["col"], "endLine", cmd.Parameters["endLine"], "endCol", cmd.Parameters["endCol"], "title", cmd.Parameters["title"])
+			log.Warnf(command.Value, "file", command.Parameters["file"], "line", command.Parameters["line"], "col", command.Parameters["col"], "endLine", command.Parameters["endLine"], "endCol", command.Parameters["endCol"], "title", command.Parameters["title"])
 		case "notice":
-			log.Noticef(cmd.Value, "file", cmd.Parameters["file"], "line", cmd.Parameters["line"], "col", cmd.Parameters["col"], "endLine", cmd.Parameters["endLine"], "endCol", cmd.Parameters["endCol"], "title", cmd.Parameters["title"])
+			log.Noticef(command.Value, "file", command.Parameters["file"], "line", command.Parameters["line"], "col", command.Parameters["col"], "endLine", command.Parameters["endLine"], "endCol", command.Parameters["endCol"], "title", command.Parameters["title"])
 		default:
 			// do nothing
 		}

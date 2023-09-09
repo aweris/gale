@@ -2,12 +2,10 @@ package run
 
 import (
 	"errors"
-	"log"
-	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 
+	"github.com/aweris/gale/internal/cmd"
 	"github.com/aweris/gale/internal/core"
 	"github.com/aweris/gale/internal/idgen"
 	"github.com/aweris/gale/pkg/ghx"
@@ -22,7 +20,7 @@ var (
 func NewCommand() *cobra.Command {
 	var workflowsDir string // workflowsDir is the directory to load workflows from.
 
-	cmd := &cobra.Command{
+	command := &cobra.Command{
 		Use:   "run <workflow> <job> [flags]",
 		Short: "Runs a job given run id",
 		Args:  cobra.ExactArgs(2),
@@ -75,23 +73,9 @@ func NewCommand() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&workflowsDir, "workflows-dir", "", "directory to load workflows from. If empty, workflows will be loaded from the default directory.")
+	command.Flags().StringVar(&workflowsDir, "workflows-dir", "", "directory to load workflows from. If empty, workflows will be loaded from the default directory.")
 
-	bindEnv(cmd.Flags().Lookup("workflows-dir"), "GALE_WORKFLOWS_DIR")
+	cmd.BindEnv(command.Flags().Lookup("workflows-dir"), "GALE_WORKFLOWS_DIR")
 
-	return cmd
-}
-
-func bindEnv(fn *pflag.Flag, env string) {
-	if fn == nil || fn.Changed {
-		return
-	}
-
-	val := os.Getenv(env)
-
-	if len(val) > 0 {
-		if err := fn.Value.Set(val); err != nil {
-			log.Fatalf("failed to bind env: %v\n", err)
-		}
-	}
+	return command
 }
