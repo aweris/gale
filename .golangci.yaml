@@ -47,3 +47,4 @@ linters-settings:
           - github.com/magefile/mage/sh
           - github.com/julienschmidt/httprouter
           - github.com/stretchr/testify/assert
+          - github.com/google/uuid
