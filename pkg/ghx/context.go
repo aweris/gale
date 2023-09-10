@@ -99,6 +99,7 @@ func LoadGithubContextFromEnv() (*core.GithubContext, error) {
 		SHA:               os.Getenv("GITHUB_SHA"),
 		EventName:         os.Getenv("GITHUB_EVENT_NAME"),
 		EventPath:         os.Getenv("GITHUB_EVENT_PATH"),
+		Token:             os.Getenv("GITHUB_TOKEN"),
 		Event:             event,
 	}
 
