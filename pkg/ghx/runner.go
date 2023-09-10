@@ -9,15 +9,15 @@ import (
 	"github.com/aweris/gale/internal/log"
 )
 
-type Runner struct {
+type JobRunner struct {
 	jr        *core.JobRun   // jr is the job run configuration.
 	context   *ExprContext   // context is the expression context for the job run.
 	executor  TaskExecutor   // executor is the main task executor that executes the job and keeps the execution information.
 	stepTasks []TaskExecutor // stepTasks are the step task executors that execute the steps and keep the execution information.
 }
 
-func Plan(jr *core.JobRun) (*Runner, error) {
-	runner := &Runner{jr: jr}
+func Plan(jr *core.JobRun) (*JobRunner, error) {
+	runner := &JobRunner{jr: jr}
 
 	// initialize the expression context
 	ec, err := NewExprContext()
@@ -81,7 +81,7 @@ func Plan(jr *core.JobRun) (*Runner, error) {
 	return runner, nil
 }
 
-func (r *Runner) Run(ctx context.Context) error {
+func (r *JobRunner) Run(ctx context.Context) error {
 	// run is always true for the main task executor and concussion not important.
 	_, _, err := r.executor.Run(ctx)
 	if err != nil {
@@ -91,7 +91,7 @@ func (r *Runner) Run(ctx context.Context) error {
 	return nil
 }
 
-func run(r *Runner) TaskExecutorFn {
+func run(r *JobRunner) TaskExecutorFn {
 	return func(ctx context.Context) (core.Conclusion, error) {
 		for _, te := range r.stepTasks {
 			run, conclusion, err := te.Run(ctx)
@@ -116,7 +116,7 @@ func run(r *Runner) TaskExecutorFn {
 }
 
 // setup returns a task executor function that will be executed by the task executor for the setup step.
-func setup(_ *Runner, setupFns ...TaskExecutorFn) TaskExecutorFn {
+func setup(_ *JobRunner, setupFns ...TaskExecutorFn) TaskExecutorFn {
 	return func(ctx context.Context) (core.Conclusion, error) {
 		for _, setupFn := range setupFns {
 			_, err := setupFn(ctx)
@@ -134,7 +134,7 @@ func setup(_ *Runner, setupFns ...TaskExecutorFn) TaskExecutorFn {
 const MB = 1024 * 1024
 
 // complete returns a task executor function that will be executed by the task executor for the complete step.
-func complete(r *Runner) TaskExecutorFn {
+func complete(r *JobRunner) TaskExecutorFn {
 	return func(ctx context.Context) (core.Conclusion, error) {
 		totalSize := 0
 

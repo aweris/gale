@@ -48,7 +48,7 @@ type PostHook interface {
 }
 
 // NewStep creates a new step from the given step configuration.
-func NewStep(runner *Runner, s core.Step) (Step, error) {
+func NewStep(runner *JobRunner, s core.Step) (Step, error) {
 	var step Step
 
 	switch s.Type() {
@@ -74,7 +74,7 @@ var (
 
 // StepAction is a step that runs an action.
 type StepAction struct {
-	runner    *Runner
+	runner    *JobRunner
 	container *dagger.Container
 	Step      core.Step
 	Action    core.CustomAction
@@ -212,7 +212,7 @@ var _ Step = new(StepRun)
 
 // StepRun is a step that runs a job.
 type StepRun struct {
-	runner    *Runner
+	runner    *JobRunner
 	Step      core.Step
 	Shell     string   // Shell is the shell to use to run the script.
 	ShellArgs []string // ShellArgs are the arguments to pass to the shell.
@@ -309,7 +309,7 @@ var (
 )
 
 type StepDocker struct {
-	runner    *Runner
+	runner    *JobRunner
 	container *dagger.Container
 	Step      core.Step
 }
