@@ -3,12 +3,11 @@ package list
 import (
 	"fmt"
 
-	"dagger.io/dagger"
-
 	"github.com/spf13/cobra"
 
 	"github.com/aweris/gale/internal/config"
 	"github.com/aweris/gale/internal/core"
+	"github.com/aweris/gale/internal/dagger/helpers"
 )
 
 // NewCommand  creates a new root command.
@@ -24,12 +23,19 @@ func NewCommand() *cobra.Command {
 		Short: "List all workflows and jobs under it",
 		Args:  cobra.NoArgs,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			client, err := dagger.Connect(cmd.Context(), dagger.WithLogOutput(cmd.OutOrStdout()))
+			client, err := helpers.DefaultClient(cmd.Context())
 			if err != nil {
 				return err
 			}
 
 			config.SetClient(client)
+
+			clientNoLog, err := helpers.NoLogClient(cmd.Context())
+			if err != nil {
+				return err
+			}
+
+			config.SetClientNoLog(clientNoLog)
 
 			return nil
 		},

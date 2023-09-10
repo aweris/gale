@@ -20,8 +20,12 @@ func init() {
 	cfg.runnerImage = "ghcr.io/aweris/gale/runner/ubuntu:22.04"
 }
 
+// TODO: need some change here to make it more maintainable. This became a hacky mess and it's hard to maintain or
+//  track where it's used.
+
 type config struct {
 	client      *dagger.Client // client is the dagger client for the config.
+	clientNoLog *dagger.Client // clientNoLog is the dagger client without logging.
 	runnerImage string         // runnerImage is the image used for running the actions.
 	ghxHome     string         // ghxHome directory where all the data is stored.
 	debug       bool           // debug is the flag to enable debug mode.
@@ -35,6 +39,16 @@ func SetClient(client *dagger.Client) {
 // Client returns the dagger client for the config.
 func Client() *dagger.Client {
 	return cfg.client
+}
+
+// SetClientNoLog sets the dagger client without logging for the config.
+func SetClientNoLog(client *dagger.Client) {
+	cfg.clientNoLog = client
+}
+
+// ClientNoLog returns the dagger client without logging for the config.
+func ClientNoLog() *dagger.Client {
+	return cfg.clientNoLog
 }
 
 // SetRunnerImage sets the runner image for the config.
