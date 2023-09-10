@@ -12,17 +12,3 @@ type Job struct {
 
 	// TBD: add more fields when needed
 }
-
-// JobRun represents a job run configuration that is passed to the container
-type JobRun struct {
-	RunID string `json:"runID"` // RunID is the ID of the run
-	Job   Job    `json:"job"`   // Job is the job to run
-}
-
-// NewJobRun creates a new job run
-func NewJobRun(runID string, job Job) JobRun {
-	return JobRun{
-		RunID: runID,
-		Job:   job,
-	}
-}

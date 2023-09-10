@@ -54,17 +54,7 @@ func NewCommand() *cobra.Command {
 				return err
 			}
 
-			jobRunID, err := idgen.GenerateJobRunID()
-			if err != nil {
-				return err
-			}
-
-			jr := core.NewJobRun(jobRunID, jm)
-			if err != nil {
-				return err
-			}
-
-			runner, err := ghx.Plan(&jr)
+			runner, err := ghx.Plan(jm)
 			if err != nil {
 				return err
 			}

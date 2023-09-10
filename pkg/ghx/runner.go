@@ -6,18 +6,27 @@ import (
 
 	"github.com/aweris/gale/internal/core"
 	"github.com/aweris/gale/internal/expression"
+	"github.com/aweris/gale/internal/idgen"
 	"github.com/aweris/gale/internal/log"
 )
 
 type JobRunner struct {
-	jr        *core.JobRun   // jr is the job run configuration.
-	context   *ExprContext   // context is the expression context for the job run.
-	executor  TaskExecutor   // executor is the main task executor that executes the job and keeps the execution information.
-	stepTasks []TaskExecutor // stepTasks are the step task executors that execute the steps and keep the execution information.
+	RunID    string       // RunID is the run id of the job run.
+	Job      core.Job     // Job is the job to be executed.
+	context  *ExprContext // context is the expression context for the job run.
+	executor TaskExecutor // executor is the main task executor that executes the job and keeps the execution information.
 }
 
-func Plan(jr *core.JobRun) (*JobRunner, error) {
-	runner := &JobRunner{jr: jr}
+func Plan(job core.Job) (*JobRunner, error) {
+	runID, err := idgen.GenerateJobRunID()
+	if err != nil {
+		return nil, err
+	}
+
+	runner := &JobRunner{
+		RunID: runID,
+		Job:   job,
+	}
 
 	// initialize the expression context
 	ec, err := NewExprContext()
@@ -27,9 +36,6 @@ func Plan(jr *core.JobRun) (*JobRunner, error) {
 
 	runner.context = ec
 
-	// main task executor that executes the job
-	runner.executor = NewTaskExecutor(jr.Job.Name, run(runner))
-
 	// step task executors that execute the steps
 	var (
 		setupFns = make([]TaskExecutorFn, 0)
@@ -38,7 +44,7 @@ func Plan(jr *core.JobRun) (*JobRunner, error) {
 		post     = make([]TaskExecutor, 0)
 	)
 
-	for idx, step := range jr.Job.Steps {
+	for idx, step := range job.Steps {
 		if step.ID == "" {
 			step.ID = fmt.Sprintf("%d", idx)
 		}
@@ -72,28 +78,17 @@ func Plan(jr *core.JobRun) (*JobRunner, error) {
 		}
 	}
 
-	runner.stepTasks = append(runner.stepTasks, NewTaskExecutor("Set up job", setup(runner, setup(runner, setupFns...))))
-	runner.stepTasks = append(runner.stepTasks, pre...)
-	runner.stepTasks = append(runner.stepTasks, main...)
-	runner.stepTasks = append(runner.stepTasks, post...)
-	runner.stepTasks = append(runner.stepTasks, NewTaskExecutor("Complete job", complete(runner)))
+	var tasks = make([]TaskExecutor, 0)
 
-	return runner, nil
-}
+	tasks = append(tasks, NewTaskExecutor("Set up job", setup(runner, setup(runner, setupFns...))))
+	tasks = append(tasks, pre...)
+	tasks = append(tasks, main...)
+	tasks = append(tasks, post...)
+	tasks = append(tasks, NewTaskExecutor("Complete job", complete(runner)))
 
-func (r *JobRunner) Run(ctx context.Context) error {
-	// run is always true for the main task executor and concussion not important.
-	_, _, err := r.executor.Run(ctx)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func run(r *JobRunner) TaskExecutorFn {
-	return func(ctx context.Context) (core.Conclusion, error) {
-		for _, te := range r.stepTasks {
+	// main task executor that executes the job
+	runner.executor = NewTaskExecutor(job.Name, func(ctx context.Context) (core.Conclusion, error) {
+		for _, te := range tasks {
 			run, conclusion, err := te.Run(ctx)
 
 			// no need to continue if the task executor did not run.
@@ -106,13 +101,25 @@ func run(r *JobRunner) TaskExecutorFn {
 			}
 
 			// set the job status to the conclusion of the job status is success and the conclusion is not success.
-			if r.context.Job.Status == core.ConclusionSuccess && conclusion != r.context.Job.Status {
-				r.context.SetJobStatus(conclusion)
+			if ec.Job.Status == core.ConclusionSuccess && conclusion != ec.Job.Status {
+				ec.SetJobStatus(conclusion)
 			}
 		}
 
 		return core.ConclusionSuccess, nil
+	})
+
+	return runner, nil
+}
+
+func (r *JobRunner) Run(ctx context.Context) error {
+	// run is always true for the main task executor and concussion not important.
+	_, _, err := r.executor.Run(ctx)
+	if err != nil {
+		return err
 	}
+
+	return nil
 }
 
 // setup returns a task executor function that will be executed by the task executor for the setup step.
@@ -138,7 +145,7 @@ func complete(r *JobRunner) TaskExecutorFn {
 	return func(ctx context.Context) (core.Conclusion, error) {
 		totalSize := 0
 
-		for k, v := range r.jr.Job.Outputs {
+		for k, v := range r.Job.Outputs {
 			val, err := expression.NewString(v).Eval(r.context)
 			if err != nil {
 				return core.ConclusionFailure, err
@@ -165,7 +172,7 @@ func complete(r *JobRunner) TaskExecutorFn {
 			log.Warnf("Total size of the outputs is bigger than 50MB", "size", fmt.Sprintf("%dMB", totalSize/MB))
 		}
 
-		log.Infof("Complete", "job", r.jr.Job.Name, "conclusion", r.context.Job.Status)
+		log.Infof("Complete", "job", r.Job.Name, "conclusion", r.context.Job.Status)
 
 		return core.ConclusionSuccess, nil
 	}

@@ -241,7 +241,7 @@ func (s *StepRun) main() TaskExecutorFn {
 			shell = s.Step.Shell
 		)
 
-		path := filepath.Join(config.GhxRunDir(s.runner.jr.RunID), "scripts", s.Step.ID, "run.sh")
+		path := filepath.Join(config.GhxRunDir(s.runner.RunID), "scripts", s.Step.ID, "run.sh")
 
 		// TODO: add support and test for "pwsh" shell. This is not supported for now because we don't have a pwsh image,
 		//  and we don't have a way to test it for now. We'll add support for it later after making sure that it works.
