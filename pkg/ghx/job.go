@@ -10,6 +10,7 @@ import (
 	"github.com/aweris/gale/internal/log"
 )
 
+// JobRunner is the runner that executes the job.
 type JobRunner struct {
 	RunID    string       // RunID is the run id of the job run.
 	Job      core.Job     // Job is the job to be executed.
@@ -17,7 +18,8 @@ type JobRunner struct {
 	executor TaskExecutor // executor is the main task executor that executes the job and keeps the execution information.
 }
 
-func Plan(job core.Job) (*JobRunner, error) {
+// planJob plans the job and returns the job runner.
+func planJob(job core.Job) (*JobRunner, error) {
 	runID, err := idgen.GenerateJobRunID()
 	if err != nil {
 		return nil, err
@@ -87,7 +89,7 @@ func Plan(job core.Job) (*JobRunner, error) {
 	tasks = append(tasks, NewTaskExecutor("Complete job", complete(runner)))
 
 	// main task executor that executes the job
-	runner.executor = NewTaskExecutor(job.Name, func(ctx context.Context) (core.Conclusion, error) {
+	runner.executor = NewTaskExecutor(fmt.Sprintf("Job: %s", job.Name), func(ctx context.Context) (core.Conclusion, error) {
 		for _, te := range tasks {
 			run, conclusion, err := te.Run(ctx)
 
@@ -112,6 +114,7 @@ func Plan(job core.Job) (*JobRunner, error) {
 	return runner, nil
 }
 
+// Run runs the job and updates job results.
 func (r *JobRunner) Run(ctx context.Context) error {
 	// run is always true for the main task executor and concussion not important.
 	_, _, err := r.executor.Run(ctx)

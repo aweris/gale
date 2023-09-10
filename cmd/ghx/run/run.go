@@ -7,14 +7,10 @@ import (
 
 	"github.com/aweris/gale/internal/cmd"
 	"github.com/aweris/gale/internal/core"
-	"github.com/aweris/gale/internal/idgen"
 	"github.com/aweris/gale/pkg/ghx"
 )
 
-var (
-	ErrWorkflowNotFound = errors.New("workflow not found")
-	ErrJobNotFound      = errors.New("job not found")
-)
+var ErrWorkflowNotFound = errors.New("workflow not found")
 
 // NewCommand  creates a new root command.
 func NewCommand() *cobra.Command {
@@ -44,17 +40,7 @@ func NewCommand() *cobra.Command {
 				return ErrWorkflowNotFound
 			}
 
-			jm, ok := wf.Jobs[args[1]]
-			if !ok {
-				return ErrJobNotFound
-			}
-
-			_, err = idgen.GenerateWorkflowRunID()
-			if err != nil {
-				return err
-			}
-
-			runner, err := ghx.Plan(jm)
+			runner, err := ghx.Plan(*wf, args[1])
 			if err != nil {
 				return err
 			}
