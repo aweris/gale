@@ -26,7 +26,7 @@ func getStepName(prefix string, s core.Step) string {
 
 // evalStepCondition evaluates the given condition and returns the result. If the condition is empty, then it uses
 // success() as default.
-func evalStepCondition(condition string, ac *ExprContext) (bool, core.Conclusion, error) {
+func evalStepCondition(condition string, ac *ExprContext) (bool, *StepResult, error) {
 	// if condition is empty, then use success() as default
 	if condition == "" {
 		condition = "success()"
@@ -35,7 +35,7 @@ func evalStepCondition(condition string, ac *ExprContext) (bool, core.Conclusion
 	// evaluate the condition as boolean expression
 	run, err := expression.NewBoolExpr(condition).Eval(ac)
 	if err != nil {
-		return false, "", err
+		return false, nil, err
 	}
 
 	var conclusion core.Conclusion
@@ -45,15 +45,5 @@ func evalStepCondition(condition string, ac *ExprContext) (bool, core.Conclusion
 		conclusion = core.ConclusionSkipped
 	}
 
-	return run, conclusion, nil
-}
-
-// evalString evaluates the given expression and returns the result as string.
-func evalString(expr string, ac *ExprContext) (string, error) {
-	val, err := expression.NewString(expr).Eval(ac)
-	if err != nil {
-		return "", err
-	}
-
-	return val, nil
+	return run, &StepResult{Conclusion: conclusion, Outcome: conclusion}, nil
 }
