@@ -87,11 +87,11 @@ func (c *Context) WithContainerFunc() dagger.WithContainerFunc {
 		// context accordingly.
 		container = container.WithEnvVariable(EnvVariableGaleRunner, "true")
 
-		// apply sub contexts to the container
-		container = c.Repo.WithContainerFunc()(container)
-		container = c.Runner.WithContainerFunc()(container)
-		container = c.Github.WithContainerFunc()(container)
-		container = c.Secret.WithContainerFunc()(container)
+		// apply sub-contexts
+		container = container.With(c.Repo.WithContainerFunc())
+		container = container.With(c.Github.WithContainerFunc())
+		container = container.With(c.Secret.WithContainerFunc())
+		container = container.With(c.Runner.WithContainerFunc())
 
 		// load repository to container
 		container = container.WithMountedDirectory(c.Github.Workspace, c.Repo.Repository.GitRef.Dir)
