@@ -16,10 +16,10 @@ var _ expression.VariableProvider = new(ExprContext)
 type ExprContext struct {
 	Github  core.GithubContext
 	Runner  gctx.RunnerContext
-	Job     core.JobContext
-	Steps   map[string]core.StepContext
+	Job     gctx.JobContext
+	Steps   gctx.StepsContext
 	Secrets map[string]string
-	Inputs  map[string]string
+	Inputs  gctx.InputsContext
 
 	// TODO: add other contexts when needed.
 	//  - env context
@@ -39,14 +39,12 @@ func NewExprContext(ctx *gctx.Context) (*ExprContext, error) {
 	}
 
 	return &ExprContext{
-		Github: *gc,
-		Runner: ctx.Runner,
-		Job: core.JobContext{
-			Status: core.ConclusionSuccess, // start with success status
-		},
-		Steps:   make(map[string]core.StepContext),
+		Github:  *gc,
+		Runner:  ctx.Runner,
+		Job:     ctx.Job,
+		Steps:   ctx.Steps,
 		Secrets: ctx.Secret.Data,
-		Inputs:  make(map[string]string),
+		Inputs:  ctx.Inputs,
 	}, nil
 }
 
@@ -150,7 +148,7 @@ func (c *ExprContext) WithoutGithubPath() *ExprContext {
 func (c *ExprContext) SetStepOutput(stepID, key, value string) *ExprContext {
 	sc, ok := c.Steps[stepID]
 	if !ok {
-		sc = core.StepContext{}
+		sc = gctx.StepContext{}
 	}
 
 	if sc.Outputs == nil {
@@ -168,7 +166,7 @@ func (c *ExprContext) SetStepOutput(stepID, key, value string) *ExprContext {
 func (c *ExprContext) SetStepResult(stepID string, outcome, conclusion core.Conclusion) *ExprContext {
 	sc, ok := c.Steps[stepID]
 	if !ok {
-		sc = core.StepContext{}
+		sc = gctx.StepContext{}
 	}
 
 	sc.Outcome = outcome
@@ -183,7 +181,7 @@ func (c *ExprContext) SetStepResult(stepID string, outcome, conclusion core.Conc
 func (c *ExprContext) SetStepSummary(stepID, summary string) *ExprContext {
 	sc, ok := c.Steps[stepID]
 	if !ok {
-		sc = core.StepContext{}
+		sc = gctx.StepContext{}
 	}
 
 	sc.Summary = summary
@@ -197,7 +195,7 @@ func (c *ExprContext) SetStepSummary(stepID, summary string) *ExprContext {
 func (c *ExprContext) SetStepState(stepID, key, value string) *ExprContext {
 	sc, ok := c.Steps[stepID]
 	if !ok {
-		sc = core.StepContext{}
+		sc = gctx.StepContext{}
 	}
 
 	if sc.State == nil {

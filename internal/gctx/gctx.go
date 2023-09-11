@@ -17,9 +17,12 @@ type Context struct {
 	Context     context.Context // Context is the current context of the workflow.
 	Repo        RepoContext     // Repo is the context for the repository.
 
-	// Github Contexts
+	// Github Expression Contexts
 	Runner RunnerContext
 	Secret SecretsContext
+	Inputs InputsContext
+	Job    JobContext
+	Steps  StepsContext
 }
 
 func Load(ctx context.Context, debug bool) (*Context, error) {
@@ -34,6 +37,21 @@ func Load(ctx context.Context, debug bool) (*Context, error) {
 	}
 
 	err = gctx.LoadSecrets()
+	if err != nil {
+		return nil, err
+	}
+
+	err = gctx.LoadInputs()
+	if err != nil {
+		return nil, err
+	}
+
+	err = gctx.LoadJob()
+	if err != nil {
+		return nil, err
+	}
+
+	err = gctx.LoadSteps()
 	if err != nil {
 		return nil, err
 	}
