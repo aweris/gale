@@ -10,14 +10,15 @@ import (
 )
 
 type Context struct {
-	isContainer bool        // isContainer indicates whether the workflow is running in a container.
-	Repo        RepoContext // Repo is the context for the repository.
+	isContainer bool            // isContainer indicates whether the workflow is running in a container.
+	Context     context.Context // Context is the current context of the workflow.
+	Repo        RepoContext     // Repo is the context for the repository.
 }
 
-func Load(context.Context) (*Context, error) {
+func Load(ctx context.Context) (*Context, error) {
 	isContainer := os.Getenv(EnvVariableGaleRunner) == "true"
 
-	gctx := &Context{isContainer: isContainer}
+	gctx := &Context{isContainer: isContainer, Context: ctx}
 
 	return gctx, nil
 }
