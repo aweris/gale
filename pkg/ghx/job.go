@@ -47,7 +47,7 @@ func planJob(rc *gctx.Context, job core.Job) (*JobRunner, error) {
 	}
 
 	// initialize the expression context
-	ec, err := NewExprContext(rc.Secret)
+	ec, err := NewExprContext(rc)
 	if err != nil {
 		return nil, err
 	}

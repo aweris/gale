@@ -5,7 +5,6 @@ import (
 
 	"dagger.io/dagger"
 
-	"github.com/aweris/gale/internal/config"
 	"github.com/aweris/gale/internal/core"
 	"github.com/aweris/gale/internal/dagger/helpers"
 	"github.com/aweris/gale/internal/gctx"
@@ -41,9 +40,6 @@ func (g *Gale) ExecutionEnv(_ context.Context) dagger.WithContainerFunc {
 		// services
 		container = container.With(g.artifactSVC.WithContainerFunc())
 		container = container.With(g.artifactCacheSVC.WithContainerFunc())
-
-		// context configuration -- these are the contexts that not change during the execution
-		container = container.With(core.NewRunnerContext(config.Debug()).WithContainerFunc())
 
 		return container
 	}

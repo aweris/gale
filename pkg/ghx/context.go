@@ -15,7 +15,7 @@ var _ expression.VariableProvider = new(ExprContext)
 
 type ExprContext struct {
 	Github  core.GithubContext
-	Runner  core.RunnerContext
+	Runner  gctx.RunnerContext
 	Job     core.JobContext
 	Steps   map[string]core.StepContext
 	Secrets map[string]string
@@ -32,7 +32,7 @@ type ExprContext struct {
 
 // TODO: we'll remove this slowly and replace it with the new context.
 
-func NewExprContext(secrets gctx.SecretsContext) (*ExprContext, error) {
+func NewExprContext(ctx *gctx.Context) (*ExprContext, error) {
 	gc, err := LoadGithubContextFromEnv()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create github context: %w", err)
@@ -40,19 +40,12 @@ func NewExprContext(secrets gctx.SecretsContext) (*ExprContext, error) {
 
 	return &ExprContext{
 		Github: *gc,
-		Runner: core.RunnerContext{
-			Name:      os.Getenv("RUNNER_NAME"),
-			OS:        os.Getenv("RUNNER_OS"),
-			Arch:      os.Getenv("RUNNER_ARCH"),
-			Temp:      os.Getenv("RUNNER_TEMP"),
-			ToolCache: os.Getenv("RUNNER_TOOL_CACHE"),
-			Debug:     os.Getenv("RUNNER_DEBUG"),
-		},
+		Runner: ctx.Runner,
 		Job: core.JobContext{
 			Status: core.ConclusionSuccess, // start with success status
 		},
 		Steps:   make(map[string]core.StepContext),
-		Secrets: secrets.Data,
+		Secrets: ctx.Secret.Data,
 		Inputs:  make(map[string]string),
 	}, nil
 }

@@ -78,7 +78,7 @@ var _ helpers.WithContainerFuncHook = new(RepoContext)
 
 func (c RepoContext) WithContainerFunc() dagger.WithContainerFunc {
 	return func(container *dagger.Container) *dagger.Container {
-		return WithContainerEnv[RepoContext](config.Client(), c)(container)
+		return container.With(WithContainerEnv(config.Client(), c))
 	}
 }
 

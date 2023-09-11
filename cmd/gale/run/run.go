@@ -49,7 +49,7 @@ func NewCommand() *cobra.Command {
 			config.SetDebug(debug)
 
 			// Load context
-			rc, err = gctx.Load(cmd.Context())
+			rc, err = gctx.Load(cmd.Context(), debug)
 			if err != nil {
 				return err
 			}

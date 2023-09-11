@@ -38,7 +38,7 @@ func NewCommand() *cobra.Command {
 			config.SetClientNoLog(clientNoLog)
 
 			// Load context
-			rc, err = gctx.Load(cmd.Context())
+			rc, err = gctx.Load(cmd.Context(), false)
 			if err != nil {
 				return err
 			}

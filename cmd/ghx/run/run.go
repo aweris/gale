@@ -3,6 +3,7 @@ package run
 import (
 	"github.com/spf13/cobra"
 
+	"github.com/aweris/gale/internal/config"
 	"github.com/aweris/gale/internal/gctx"
 	"github.com/aweris/gale/pkg/ghx"
 )
@@ -15,7 +16,7 @@ func NewCommand() *cobra.Command {
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Load context
-			rc, err := gctx.Load(cmd.Context())
+			rc, err := gctx.Load(cmd.Context(), config.Debug())
 			if err != nil {
 				return err
 			}
