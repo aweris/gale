@@ -10,9 +10,8 @@ import (
 )
 
 type Context struct {
-	isContainer bool // isContainer indicates whether the workflow is running in a container.
-
-	Repo RepoContext // Repo is the context for the repository.
+	isContainer bool        // isContainer indicates whether the workflow is running in a container.
+	Repo        RepoContext // Repo is the context for the repository.
 }
 
 func Load(context.Context) (*Context, error) {
@@ -31,6 +30,9 @@ func (c *Context) WithContainerFunc() dagger.WithContainerFunc {
 		// using this variable, we can distinguish between the container and the host process and configure the
 		// context accordingly.
 		container = container.WithEnvVariable(EnvVariableGaleRunner, "true")
+
+		// apply sub contexts to the container
+		container = c.Repo.WithContainerFunc()(container)
 
 		return container
 	}

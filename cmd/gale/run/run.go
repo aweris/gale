@@ -4,7 +4,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/aweris/gale/internal/config"
-	"github.com/aweris/gale/internal/core"
 	"github.com/aweris/gale/internal/dagger/helpers"
 	"github.com/aweris/gale/internal/gctx"
 	"github.com/aweris/gale/pkg/gale"
@@ -13,13 +12,14 @@ import (
 // NewCommand  creates a new root command.
 func NewCommand() *cobra.Command {
 	var (
-		runnerImage string       // runnerImage is the image used for running the actions.
-		debug       bool         // debug is the flag to enable debug mode.
-		repo        string       // repo is the repository to load workflows from.
-		branch      string       // branch is the branch to load workflows from.
-		tag         string       // tag is the tag to load workflows from.
-		opts        gale.RunOpts // options for the run command
-		rc          *gctx.Context
+		runnerImage  string       // runnerImage is the image used for running the actions.
+		debug        bool         // debug is the flag to enable debug mode.
+		repo         string       // repo is the repository to load workflows from.
+		branch       string       // branch is the branch to load workflows from.
+		tag          string       // tag is the tag to load workflows from.
+		workflowsDir string       // workflowsDir is the directory to load workflows from.
+		opts         gale.RunOpts // options for the run command
+		rc           *gctx.Context
 	)
 
 	cmd := &cobra.Command{
@@ -55,7 +55,7 @@ func NewCommand() *cobra.Command {
 			}
 
 			// Load repository
-			if err := rc.LoadRepo(repo, core.GetRepositoryOpts{Branch: branch, Tag: tag}); err != nil {
+			if err := rc.LoadRepo(repo, gctx.LoadRepoOpts{Branch: branch, Tag: tag, WorkflowsDir: workflowsDir}); err != nil {
 				return err
 			}
 
@@ -88,7 +88,7 @@ func NewCommand() *cobra.Command {
 	cmd.Flags().StringVar(&repo, "repo", "", "owner/repo to load workflows from. If empty, repository information of the current directory will be used.")
 	cmd.Flags().StringVar(&branch, "branch", "", "branch to load workflows from. Only one of branch or tag can be used. Precedence is as follows: tag, branch.")
 	cmd.Flags().StringVar(&tag, "tag", "", "tag to load workflows from. Only one of branch or tag can be used. Precedence is as follows: tag, branch.")
-	cmd.Flags().StringVar(&opts.WorkflowsDir, "workflows-dir", "", "directory to load workflows from. If empty, workflows will be loaded from the default directory.")
+	cmd.Flags().StringVar(&workflowsDir, "workflows-dir", "", "directory to load workflows from. If empty, workflows will be loaded from the default directory.")
 	cmd.Flags().StringToStringVar(&opts.Secrets, "secret", nil, "secrets to be used in the workflow. Format: --secret name=value")
 
 	return cmd

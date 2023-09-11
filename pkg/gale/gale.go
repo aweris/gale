@@ -69,6 +69,8 @@ func (g *Gale) Run(_ context.Context, workflow, job string, opts ...RunOpts) dag
 		}
 
 		// context configuration
+		container = container.With(g.rc.WithContainerFunc())
+
 		gc := core.NewGithubContext(g.rc.Repo.Repository, token)
 
 		container = container.With(gc.WithContainerFunc())
@@ -78,7 +80,6 @@ func (g *Gale) Run(_ context.Context, workflow, job string, opts ...RunOpts) dag
 		container = container.WithMountedDirectory(gc.Workspace, g.rc.Repo.Repository.GitRef.Dir)
 		container = container.WithWorkdir(gc.Workspace)
 
-		container = container.WithEnvVariable("GALE_WORKFLOWS_DIR", opt.WorkflowsDir)
 		container = container.WithExec([]string{"/usr/local/bin/ghx", "run", workflow, job})
 
 		return container

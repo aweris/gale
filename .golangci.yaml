@@ -48,3 +48,4 @@ linters-settings:
           - github.com/julienschmidt/httprouter
           - github.com/stretchr/testify/assert
           - github.com/google/uuid
+          - github.com/caarlos0/env/v9

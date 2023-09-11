@@ -14,10 +14,9 @@ import (
 // NewCommand  creates a new root command.
 func NewCommand() *cobra.Command {
 	var (
-		repo     string
-		getOpts  core.GetRepositoryOpts
-		loadOpts core.RepositoryLoadWorkflowOpts
-		rc       *gctx.Context
+		repo string
+		opts gctx.LoadRepoOpts
+		rc   *gctx.Context
 	)
 
 	cmd := &cobra.Command{
@@ -46,7 +45,7 @@ func NewCommand() *cobra.Command {
 			}
 
 			// Load repository
-			if err := rc.LoadRepo(repo, getOpts); err != nil {
+			if err := rc.LoadRepo(repo, opts); err != nil {
 				return err
 			}
 
@@ -58,7 +57,7 @@ func NewCommand() *cobra.Command {
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// TODO: refactor this to use the repository context.
-			workflows, err := rc.Repo.LoadWorkflows(cmd.Context(), loadOpts)
+			workflows, err := rc.Repo.Repository.LoadWorkflows(cmd.Context(), core.RepositoryLoadWorkflowOpts{WorkflowsDir: opts.WorkflowsDir})
 			if err != nil {
 				return err
 			}
@@ -88,9 +87,9 @@ func NewCommand() *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&repo, "repo", "", "owner/repo to load workflows from. If empty, repository information of the current directory will be used.")
-	cmd.Flags().StringVar(&getOpts.Branch, "branch", "", "branch to load workflows from. Only one of branch or tag can be used. Precedence is as follows: tag, branch.")
-	cmd.Flags().StringVar(&getOpts.Tag, "tag", "", "tag to load workflows from. Only one of branch or tag can be used. Precedence is as follows: tag, branch.")
-	cmd.Flags().StringVar(&loadOpts.WorkflowsDir, "workflows-dir", "", "directory to load workflows from. If empty, workflows will be loaded from the default directory.")
+	cmd.Flags().StringVar(&opts.Branch, "branch", "", "branch to load workflows from. Only one of branch or tag can be used. Precedence is as follows: tag, branch.")
+	cmd.Flags().StringVar(&opts.Tag, "tag", "", "tag to load workflows from. Only one of branch or tag can be used. Precedence is as follows: tag, branch.")
+	cmd.Flags().StringVar(&opts.WorkflowsDir, "workflows-dir", "", "directory to load workflows from. If empty, workflows will be loaded from the default directory.")
 
 	return cmd
 }
