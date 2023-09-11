@@ -65,6 +65,9 @@ func (c *Context) LoadRepo(repo string, opts ...LoadRepoOpts) error {
 
 	c.Repo = rc
 
+	// set repo to github context
+	c.Github.setRepo(r)
+
 	return nil
 }
 
@@ -76,7 +79,7 @@ func (c *Context) LoadCurrentRepo(opts ...LoadRepoOpts) error {
 
 var _ helpers.WithContainerFuncHook = new(RepoContext)
 
-func (c RepoContext) WithContainerFunc() dagger.WithContainerFunc {
+func (c *RepoContext) WithContainerFunc() dagger.WithContainerFunc {
 	return func(container *dagger.Container) *dagger.Container {
 		return container.With(WithContainerEnv(config.Client(), c))
 	}

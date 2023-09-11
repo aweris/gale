@@ -52,7 +52,7 @@ func (c *Context) LoadRunnerContext() error {
 
 var _ helpers.WithContainerFuncHook = new(RunnerContext)
 
-func (c RunnerContext) WithContainerFunc() dagger.WithContainerFunc {
+func (c *RunnerContext) WithContainerFunc() dagger.WithContainerFunc {
 	return func(container *dagger.Container) *dagger.Container {
 		// Load context in the container as environment variables or secrets.
 		container = container.With(WithContainerEnv(config.Client(), c))

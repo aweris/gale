@@ -28,9 +28,9 @@ const trueStr = "true"
 // WithContainerEnv loads context fields into the container as environment variables or secrets.
 // It expects a struct with exported fields. Fields tagged with `container_env` or `container_secret` are loaded
 // using the `env` tag value as their name.
-func WithContainerEnv[T any](client *dagger.Client, t T) dagger.WithContainerFunc {
+func WithContainerEnv[T any](client *dagger.Client, t *T) dagger.WithContainerFunc {
 	return func(container *dagger.Container) *dagger.Container {
-		val := reflect.ValueOf(&t).Elem()
+		val := reflect.ValueOf(t).Elem()
 		typ := val.Type()
 
 		for i := 0; i < typ.NumField(); i++ {

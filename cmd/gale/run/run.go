@@ -74,7 +74,7 @@ func NewCommand() *cobra.Command {
 			_, err := config.Client().Container().
 				From(config.RunnerImage()).
 				With(gi.ExecutionEnv(cmd.Context())).
-				With(gi.Run(cmd.Context(), args[0], args[1])).
+				With(gi.Run(args[0], args[1])).
 				Sync(cmd.Context())
 
 			if err != nil {

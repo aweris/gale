@@ -6,6 +6,7 @@ import (
 
 	"dagger.io/dagger"
 
+	"github.com/aweris/gale/internal/core"
 	"github.com/aweris/gale/internal/dagger/helpers"
 	"github.com/aweris/gale/pkg/data"
 )
@@ -19,6 +20,7 @@ type Context struct {
 
 	// Github Expression Contexts
 	Runner RunnerContext
+	Github GithubContext
 	Secret SecretsContext
 	Inputs InputsContext
 	Job    JobContext
@@ -32,6 +34,11 @@ func Load(ctx context.Context, debug bool) (*Context, error) {
 
 	// load the repository context
 	err := gctx.LoadRunnerContext()
+	if err != nil {
+		return nil, err
+	}
+
+	err = gctx.LoadGithubContext()
 	if err != nil {
 		return nil, err
 	}
@@ -56,6 +63,18 @@ func Load(ctx context.Context, debug bool) (*Context, error) {
 		return nil, err
 	}
 
+	// If we can get the token from the environment, we'll use it. Otherwise, we'll try to get it github cli
+	if gctx.Github.Token == "" {
+		token, err := core.GetToken()
+		if err != nil {
+			return nil, err
+		}
+
+		gctx.SetToken(token)
+	} else {
+		gctx.Secret.SetToken(gctx.Github.Token)
+	}
+
 	return gctx, nil
 }
 
@@ -71,8 +90,18 @@ func (c *Context) WithContainerFunc() dagger.WithContainerFunc {
 		// apply sub contexts to the container
 		container = c.Repo.WithContainerFunc()(container)
 		container = c.Runner.WithContainerFunc()(container)
+		container = c.Github.WithContainerFunc()(container)
 		container = c.Secret.WithContainerFunc()(container)
+
+		// load repository to container
+		container = container.WithMountedDirectory(c.Github.Workspace, c.Repo.Repository.GitRef.Dir)
+		container = container.WithWorkdir(c.Github.Workspace)
 
 		return container
 	}
+}
+
+func (c *Context) SetToken(token string) {
+	c.Secret.SetToken(token)
+	c.Github.SetToken(token)
 }

@@ -6,7 +6,6 @@ import (
 	"dagger.io/dagger"
 
 	"github.com/aweris/gale/internal/core"
-	"github.com/aweris/gale/internal/dagger/helpers"
 	"github.com/aweris/gale/internal/gctx"
 )
 
@@ -41,32 +40,16 @@ func (g *Gale) ExecutionEnv(_ context.Context) dagger.WithContainerFunc {
 		container = container.With(g.artifactSVC.WithContainerFunc())
 		container = container.With(g.artifactCacheSVC.WithContainerFunc())
 
+		// context configuration
+		container = container.With(g.rc.WithContainerFunc())
+
 		return container
 	}
 }
 
 // Run runs a job from a workflow.
-func (g *Gale) Run(_ context.Context, workflow, job string) dagger.WithContainerFunc {
+func (g *Gale) Run(workflow, job string) dagger.WithContainerFunc {
 	return func(container *dagger.Container) *dagger.Container {
-		token, err := core.GetToken()
-		if err != nil {
-			return helpers.FailPipeline(container, err)
-		}
-
-		//TODO: refactor later
-		g.rc.Secret.SetToken(token)
-
-		// context configuration
-		container = container.With(g.rc.WithContainerFunc())
-
-		gc := core.NewGithubContext(g.rc.Repo.Repository, token)
-
-		container = container.With(gc.WithContainerFunc())
-
-		// load repository to container
-		container = container.WithMountedDirectory(gc.Workspace, g.rc.Repo.Repository.GitRef.Dir)
-		container = container.WithWorkdir(gc.Workspace)
-
 		container = container.WithExec([]string{"/usr/local/bin/ghx", "run", workflow, job})
 
 		return container

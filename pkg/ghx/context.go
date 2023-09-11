@@ -3,22 +3,20 @@ package ghx
 import (
 	"fmt"
 	"math"
-	"os"
 
 	"github.com/aweris/gale/internal/core"
 	"github.com/aweris/gale/internal/expression"
-	"github.com/aweris/gale/internal/fs"
 	"github.com/aweris/gale/internal/gctx"
 )
 
 var _ expression.VariableProvider = new(ExprContext)
 
 type ExprContext struct {
-	Github  core.GithubContext
+	Github  gctx.GithubContext
 	Runner  gctx.RunnerContext
 	Job     gctx.JobContext
 	Steps   gctx.StepsContext
-	Secrets map[string]string
+	Secrets gctx.SecretsContext
 	Inputs  gctx.InputsContext
 
 	// TODO: add other contexts when needed.
@@ -33,54 +31,14 @@ type ExprContext struct {
 // TODO: we'll remove this slowly and replace it with the new context.
 
 func NewExprContext(ctx *gctx.Context) (*ExprContext, error) {
-	gc, err := LoadGithubContextFromEnv()
-	if err != nil {
-		return nil, fmt.Errorf("failed to create github context: %w", err)
-	}
-
 	return &ExprContext{
-		Github:  *gc,
+		Github:  ctx.Github,
 		Runner:  ctx.Runner,
 		Job:     ctx.Job,
 		Steps:   ctx.Steps,
-		Secrets: ctx.Secret.Data,
+		Secrets: ctx.Secret,
 		Inputs:  ctx.Inputs,
 	}, nil
-}
-
-func LoadGithubContextFromEnv() (*core.GithubContext, error) {
-	// event data
-	var event map[string]interface{}
-
-	err := fs.ReadJSONFile(os.Getenv("GITHUB_EVENT_PATH"), &event)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read event file: %w", err)
-	}
-
-	gc := &core.GithubContext{
-		Repository:        os.Getenv("GITHUB_REPOSITORY"),
-		RepositoryID:      os.Getenv("GITHUB_REPOSITORY_ID"),
-		RepositoryOwner:   os.Getenv("GITHUB_REPOSITORY_OWNER"),
-		RepositoryOwnerID: os.Getenv("GITHUB_REPOSITORY_OWNER_ID"),
-		RepositoryURL:     os.Getenv("GITHUB_REPOSITORY_URL"),
-		Workspace:         os.Getenv("GITHUB_WORKSPACE"),
-		APIURL:            os.Getenv("GITHUB_API_URL"),
-		GraphqlURL:        os.Getenv("GITHUB_GRAPHQL_URL"),
-		ServerURL:         os.Getenv("GITHUB_SERVER_URL"),
-		Ref:               os.Getenv("GITHUB_REF"),
-		RefName:           os.Getenv("GITHUB_REF_NAME"),
-		RefType:           os.Getenv("GITHUB_REF_TYPE"),
-		RefProtected:      os.Getenv("GITHUB_REF_PROTECTED") == "true",
-		HeadRef:           os.Getenv("GITHUB_HEAD_REF"),
-		BaseRef:           os.Getenv("GITHUB_BASE_REF"),
-		SHA:               os.Getenv("GITHUB_SHA"),
-		EventName:         os.Getenv("GITHUB_EVENT_NAME"),
-		EventPath:         os.Getenv("GITHUB_EVENT_PATH"),
-		Token:             os.Getenv("GITHUB_TOKEN"),
-		Event:             event,
-	}
-
-	return gc, nil
 }
 
 func (c *ExprContext) GetVariable(name string) (interface{}, error) {
@@ -98,7 +56,7 @@ func (c *ExprContext) GetVariable(name string) (interface{}, error) {
 	case "steps":
 		return c.Steps, nil
 	case "secrets":
-		return c.Secrets, nil
+		return c.Secrets.Data, nil
 	case "strategy":
 		return map[string]string{}, nil
 	case "matrix":
