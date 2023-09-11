@@ -6,7 +6,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/aweris/gale/internal/config"
-	"github.com/aweris/gale/internal/core"
 	"github.com/aweris/gale/internal/dagger/helpers"
 	"github.com/aweris/gale/internal/gctx"
 )
@@ -45,27 +44,17 @@ func NewCommand() *cobra.Command {
 			}
 
 			// Load repository
-			if err := rc.LoadRepo(repo, opts); err != nil {
-				return err
-			}
-
-			return nil
+			return rc.LoadRepo(repo, opts)
 		},
 		PersistentPostRunE: func(cmd *cobra.Command, args []string) error {
 			// Close the client connection when the command is done.
 			return config.Client().Close()
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// TODO: refactor this to use the repository context.
-			workflows, err := rc.Repo.Repository.LoadWorkflows(cmd.Context(), core.RepositoryLoadWorkflowOpts{WorkflowsDir: opts.WorkflowsDir})
-			if err != nil {
-				return err
-			}
-
 			// TODO: add more information about the workflow like the trigger, etc.
 			// TODO: maybe we could add better formatting for the output
 
-			for _, workflow := range workflows {
+			for _, workflow := range rc.Repo.Workflows {
 				fmt.Printf("Workflow: ")
 				if workflow.Name != workflow.Path {
 					fmt.Printf("%s (path: %s)\n", workflow.Name, workflow.Path)

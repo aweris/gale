@@ -55,11 +55,7 @@ func NewCommand() *cobra.Command {
 			}
 
 			// Load repository
-			if err := rc.LoadRepo(repo, gctx.LoadRepoOpts{Branch: branch, Tag: tag, WorkflowsDir: workflowsDir}); err != nil {
-				return err
-			}
-
-			return nil
+			return rc.LoadRepo(repo, gctx.LoadRepoOpts{Branch: branch, Tag: tag, WorkflowsDir: workflowsDir})
 		},
 		PersistentPostRunE: func(cmd *cobra.Command, args []string) error {
 			// Close the client connection when the command is done.

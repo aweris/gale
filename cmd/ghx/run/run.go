@@ -5,7 +5,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/aweris/gale/internal/core"
 	"github.com/aweris/gale/internal/gctx"
 	"github.com/aweris/gale/pkg/ghx"
 )
@@ -30,17 +29,12 @@ func NewCommand() *cobra.Command {
 				return err
 			}
 
-			workflows, err := rc.Repo.Repository.LoadWorkflows(cmd.Context(), core.RepositoryLoadWorkflowOpts{WorkflowsDir: rc.Repo.WorkflowsDir})
-			if err != nil {
-				return err
-			}
-
-			wf, ok := workflows[args[0]]
+			wf, ok := rc.Repo.Workflows[args[0]]
 			if !ok {
 				return ErrWorkflowNotFound
 			}
 
-			runner, err := ghx.Plan(*wf, args[1])
+			runner, err := ghx.Plan(wf, args[1])
 			if err != nil {
 				return err
 			}
