@@ -12,13 +12,13 @@ import (
 // NewCommand  creates a new root command.
 func NewCommand() *cobra.Command {
 	var (
-		runnerImage  string       // runnerImage is the image used for running the actions.
-		debug        bool         // debug is the flag to enable debug mode.
-		repo         string       // repo is the repository to load workflows from.
-		branch       string       // branch is the branch to load workflows from.
-		tag          string       // tag is the tag to load workflows from.
-		workflowsDir string       // workflowsDir is the directory to load workflows from.
-		opts         gale.RunOpts // options for the run command
+		runnerImage  string            // runnerImage is the image used for running the actions.
+		debug        bool              // debug is the flag to enable debug mode.
+		repo         string            // repo is the repository to load workflows from.
+		branch       string            // branch is the branch to load workflows from.
+		tag          string            // tag is the tag to load workflows from.
+		workflowsDir string            // workflowsDir is the directory to load workflows from.
+		secrets      map[string]string // secrets is the map of secrets to be used in the workflow.
 		rc           *gctx.Context
 	)
 
@@ -55,7 +55,13 @@ func NewCommand() *cobra.Command {
 			}
 
 			// Load repository
-			return rc.LoadRepo(repo, gctx.LoadRepoOpts{Branch: branch, Tag: tag, WorkflowsDir: workflowsDir})
+			err = rc.LoadRepo(repo, gctx.LoadRepoOpts{Branch: branch, Tag: tag, WorkflowsDir: workflowsDir})
+			if err != nil {
+				return err
+			}
+
+			// Load secrets
+			return rc.LoadSecrets(secrets)
 		},
 		PersistentPostRunE: func(cmd *cobra.Command, args []string) error {
 			// Close the client connection when the command is done.
@@ -68,7 +74,7 @@ func NewCommand() *cobra.Command {
 			_, err := config.Client().Container().
 				From(config.RunnerImage()).
 				With(gi.ExecutionEnv(cmd.Context())).
-				With(gi.Run(cmd.Context(), args[0], args[1], opts)).
+				With(gi.Run(cmd.Context(), args[0], args[1])).
 				Sync(cmd.Context())
 
 			if err != nil {
@@ -85,7 +91,7 @@ func NewCommand() *cobra.Command {
 	cmd.Flags().StringVar(&branch, "branch", "", "branch to load workflows from. Only one of branch or tag can be used. Precedence is as follows: tag, branch.")
 	cmd.Flags().StringVar(&tag, "tag", "", "tag to load workflows from. Only one of branch or tag can be used. Precedence is as follows: tag, branch.")
 	cmd.Flags().StringVar(&workflowsDir, "workflows-dir", "", "directory to load workflows from. If empty, workflows will be loaded from the default directory.")
-	cmd.Flags().StringToStringVar(&opts.Secrets, "secret", nil, "secrets to be used in the workflow. Format: --secret name=value")
+	cmd.Flags().StringToStringVar(&secrets, "secret", nil, "secrets to be used in the workflow. Format: --secret name=value")
 
 	return cmd
 }

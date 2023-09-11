@@ -4,13 +4,11 @@ import (
 	"fmt"
 	"math"
 	"os"
-	"path/filepath"
-
-	"github.com/aweris/gale/internal/config"
-	"github.com/aweris/gale/internal/fs"
 
 	"github.com/aweris/gale/internal/core"
 	"github.com/aweris/gale/internal/expression"
+	"github.com/aweris/gale/internal/fs"
+	"github.com/aweris/gale/internal/gctx"
 )
 
 var _ expression.VariableProvider = new(ExprContext)
@@ -20,7 +18,7 @@ type ExprContext struct {
 	Runner  core.RunnerContext
 	Job     core.JobContext
 	Steps   map[string]core.StepContext
-	Secrets core.SecretsContext
+	Secrets map[string]string
 	Inputs  map[string]string
 
 	// TODO: add other contexts when needed.
@@ -32,21 +30,9 @@ type ExprContext struct {
 	//  - jobs context
 }
 
-func NewExprContext() (*ExprContext, error) {
-	path := filepath.Join(config.GhxHome(), "secrets", "secrets.json")
+// TODO: we'll remove this slowly and replace it with the new context.
 
-	err := fs.EnsureFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("failed to ensure secrets file exist: %w", err)
-	}
-
-	var secrets core.SecretsContext
-
-	err = fs.ReadJSONFile(path, &secrets)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read secrets file: %w", err)
-	}
-
+func NewExprContext(secrets gctx.SecretsContext) (*ExprContext, error) {
 	gc, err := LoadGithubContextFromEnv()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create github context: %w", err)
@@ -66,7 +52,7 @@ func NewExprContext() (*ExprContext, error) {
 			Status: core.ConclusionSuccess, // start with success status
 		},
 		Steps:   make(map[string]core.StepContext),
-		Secrets: secrets,
+		Secrets: secrets.Data,
 		Inputs:  make(map[string]string),
 	}, nil
 }

@@ -7,18 +7,27 @@ import (
 	"dagger.io/dagger"
 
 	"github.com/aweris/gale/internal/dagger/helpers"
+	"github.com/aweris/gale/pkg/data"
 )
 
 type Context struct {
 	isContainer bool            // isContainer indicates whether the workflow is running in a container.
+	path        string          // path is the data path for the context to be mounted from the host or to be used in the container.
 	Context     context.Context // Context is the current context of the workflow.
 	Repo        RepoContext     // Repo is the context for the repository.
+
+	// Github Contexts
+	Secret SecretsContext
 }
 
 func Load(ctx context.Context) (*Context, error) {
 	isContainer := os.Getenv(EnvVariableGaleRunner) == "true"
 
-	gctx := &Context{isContainer: isContainer, Context: ctx}
+	gctx := &Context{isContainer: isContainer, Context: ctx, path: data.MountPath}
+
+	if isContainer {
+		gctx.LoadSecrets()
+	}
 
 	return gctx, nil
 }
@@ -34,6 +43,7 @@ func (c *Context) WithContainerFunc() dagger.WithContainerFunc {
 
 		// apply sub contexts to the container
 		container = c.Repo.WithContainerFunc()(container)
+		container = c.Secret.WithContainerFunc()(container)
 
 		return container
 	}

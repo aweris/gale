@@ -78,7 +78,7 @@ func Plan(rc *gctx.Context, workflow, job string) (*WorkflowRunner, error) {
 			continue
 		}
 
-		jr, err := planJob(jm)
+		jr, err := planJob(rc, jm)
 		if err != nil {
 			return nil, err
 		}

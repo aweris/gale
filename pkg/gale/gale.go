@@ -11,12 +11,6 @@ import (
 	"github.com/aweris/gale/internal/gctx"
 )
 
-// RunOpts are the options for the Run function.
-type RunOpts struct {
-	WorkflowsDir string
-	Secrets      map[string]string
-}
-
 // Gale is the main entrypoint for the gale library.
 type Gale struct {
 	rc               *gctx.Context
@@ -56,17 +50,15 @@ func (g *Gale) ExecutionEnv(_ context.Context) dagger.WithContainerFunc {
 }
 
 // Run runs a job from a workflow.
-func (g *Gale) Run(_ context.Context, workflow, job string, opts ...RunOpts) dagger.WithContainerFunc {
+func (g *Gale) Run(_ context.Context, workflow, job string) dagger.WithContainerFunc {
 	return func(container *dagger.Container) *dagger.Container {
-		opt := RunOpts{}
-		if len(opts) > 0 {
-			opt = opts[0]
-		}
-
 		token, err := core.GetToken()
 		if err != nil {
 			return helpers.FailPipeline(container, err)
 		}
+
+		//TODO: refactor later
+		g.rc.Secret.SetToken(token)
 
 		// context configuration
 		container = container.With(g.rc.WithContainerFunc())
@@ -74,7 +66,6 @@ func (g *Gale) Run(_ context.Context, workflow, job string, opts ...RunOpts) dag
 		gc := core.NewGithubContext(g.rc.Repo.Repository, token)
 
 		container = container.With(gc.WithContainerFunc())
-		container = container.With(core.NewSecretsContext(token, opt.Secrets).WithContainerFunc())
 
 		// load repository to container
 		container = container.WithMountedDirectory(gc.Workspace, g.rc.Repo.Repository.GitRef.Dir)
