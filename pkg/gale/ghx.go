@@ -47,3 +47,9 @@ func (g *Ghx) WithContainerFunc() dagger.WithContainerFunc {
 		return container
 	}
 }
+
+func (g *Ghx) Run(workflow, job string) dagger.WithContainerFunc {
+	return func(container *dagger.Container) *dagger.Container {
+		return container.WithExec([]string{"/usr/local/bin/ghx", "run", workflow, job})
+	}
+}

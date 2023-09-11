@@ -49,9 +49,5 @@ func (g *Gale) ExecutionEnv(_ context.Context) dagger.WithContainerFunc {
 
 // Run runs a job from a workflow.
 func (g *Gale) Run(workflow, job string) dagger.WithContainerFunc {
-	return func(container *dagger.Container) *dagger.Container {
-		container = container.WithExec([]string{"/usr/local/bin/ghx", "run", workflow, job})
-
-		return container
-	}
+	return g.ghx.Run(workflow, job)
 }
