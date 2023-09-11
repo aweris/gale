@@ -2,11 +2,15 @@ package ghx
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/aweris/gale/internal/core"
+	"github.com/aweris/gale/internal/gctx"
 	"github.com/aweris/gale/internal/idgen"
 )
+
+var ErrWorkflowNotFound = errors.New("workflow not found")
 
 var _ TaskResult = new(WorkflowResult)
 
@@ -35,7 +39,12 @@ type WorkflowRunner struct {
 }
 
 // Plan plans the workflow and returns the workflow runner.
-func Plan(wf core.Workflow, job string) (*WorkflowRunner, error) {
+func Plan(rc *gctx.Context, workflow, job string) (*WorkflowRunner, error) {
+	wf, ok := rc.Repo.Workflows[workflow]
+	if !ok {
+		return nil, ErrWorkflowNotFound
+	}
+
 	runID, err := idgen.GenerateWorkflowRunID()
 	if err != nil {
 		return nil, err
