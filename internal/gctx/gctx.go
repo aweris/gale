@@ -1,6 +1,7 @@
 package gctx
 
 import (
+	"context"
 	"os"
 
 	"dagger.io/dagger"
@@ -10,21 +11,21 @@ import (
 
 type Context struct {
 	isContainer bool // isContainer indicates whether the workflow is running in a container.
+
+	Repo RepoContext // Repo is the context for the repository.
 }
 
-func Load() (*Context, error) {
+func Load(context.Context) (*Context, error) {
 	isContainer := os.Getenv(EnvVariableGaleRunner) == "true"
 
-	gctx := &Context{
-		isContainer: isContainer,
-	}
+	gctx := &Context{isContainer: isContainer}
 
 	return gctx, nil
 }
 
 var _ helpers.WithContainerFuncHook = new(Context)
 
-func (c Context) WithContainerFunc() dagger.WithContainerFunc {
+func (c *Context) WithContainerFunc() dagger.WithContainerFunc {
 	return func(container *dagger.Container) *dagger.Container {
 		// set the environment variable that indicates that the workflow is running in a container.
 		// using this variable, we can distinguish between the container and the host process and configure the

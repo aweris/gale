@@ -51,8 +51,8 @@ type GetRepositoryOpts struct {
 }
 
 // GetCurrentRepository returns current repository information. This is a wrapper around GetRepository with empty name.
-func GetCurrentRepository() (*Repository, error) {
-	return GetRepository("")
+func GetCurrentRepository(opts ...GetRepositoryOpts) (*Repository, error) {
+	return GetRepository("", opts...)
 }
 
 // GetRepository returns repository information. If name is empty, the current repository will be used.

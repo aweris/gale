@@ -7,6 +7,7 @@ import (
 
 	"github.com/aweris/gale/internal/cmd"
 	"github.com/aweris/gale/internal/core"
+	"github.com/aweris/gale/internal/gctx"
 	"github.com/aweris/gale/pkg/ghx"
 )
 
@@ -21,16 +22,18 @@ func NewCommand() *cobra.Command {
 		Short: "Runs a job given run id",
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// `gale` already mounts and configures the repository directory as working directory. So we can
-			// look for repository information in the current directory.
-			//
-			// TODO: do not make this call here. Pass info from `gale` to `ghx` instead. This is just easier for now.
-			repo, err := core.GetRepository("")
+			//Load context
+			rc, err := gctx.Load(cmd.Context())
 			if err != nil {
 				return err
 			}
 
-			workflows, err := repo.LoadWorkflows(cmd.Context(), core.RepositoryLoadWorkflowOpts{WorkflowsDir: workflowsDir})
+			//Load repository
+			if err := rc.LoadCurrentRepo(); err != nil {
+				return err
+			}
+
+			workflows, err := rc.Repo.LoadWorkflows(cmd.Context(), core.RepositoryLoadWorkflowOpts{WorkflowsDir: workflowsDir})
 			if err != nil {
 				return err
 			}

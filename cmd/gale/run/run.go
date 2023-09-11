@@ -6,6 +6,7 @@ import (
 	"github.com/aweris/gale/internal/config"
 	"github.com/aweris/gale/internal/core"
 	"github.com/aweris/gale/internal/dagger/helpers"
+	"github.com/aweris/gale/internal/gctx"
 	"github.com/aweris/gale/pkg/gale"
 )
 
@@ -18,6 +19,7 @@ func NewCommand() *cobra.Command {
 		branch      string       // branch is the branch to load workflows from.
 		tag         string       // tag is the tag to load workflows from.
 		opts        gale.RunOpts // options for the run command
+		rc          *gctx.Context
 	)
 
 	cmd := &cobra.Command{
@@ -46,6 +48,17 @@ func NewCommand() *cobra.Command {
 
 			config.SetDebug(debug)
 
+			// Load context
+			rc, err = gctx.Load(cmd.Context())
+			if err != nil {
+				return err
+			}
+
+			// Load repository
+			if err := rc.LoadRepo(repo, core.GetRepositoryOpts{Branch: branch, Tag: tag}); err != nil {
+				return err
+			}
+
 			return nil
 		},
 		PersistentPostRunE: func(cmd *cobra.Command, args []string) error {
@@ -53,15 +66,10 @@ func NewCommand() *cobra.Command {
 			return config.Client().Close()
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			repo, err := core.GetRepository(repo, core.GetRepositoryOpts{Branch: branch, Tag: tag})
-			if err != nil {
-				return err
-			}
-
 			// new gale instance
-			gi := gale.New(repo)
+			gi := gale.New(rc)
 
-			_, err = config.Client().Container().
+			_, err := config.Client().Container().
 				From(config.RunnerImage()).
 				With(gi.ExecutionEnv(cmd.Context())).
 				With(gi.Run(cmd.Context(), args[0], args[1], opts)).

@@ -2,12 +2,12 @@ package data
 
 import (
 	"fmt"
+	"github.com/aweris/gale/internal/gctx"
 	"path/filepath"
 
 	"dagger.io/dagger"
 
 	"github.com/aweris/gale/internal/config"
-	"github.com/aweris/gale/internal/core"
 	"github.com/aweris/gale/internal/dagger/helpers"
 )
 
@@ -31,7 +31,7 @@ type CacheVolume struct {
 }
 
 // NewCacheVolume creates a new cache volume.
-func NewCacheVolume(repo *core.Repository) *CacheVolume {
+func NewCacheVolume(repo gctx.RepoContext) *CacheVolume {
 	return &CacheVolume{
 		source: source(),
 		volume: config.Client().CacheVolume(fmt.Sprintf("gale-data-%s-%s", repo.Owner.Login, repo.Name)),

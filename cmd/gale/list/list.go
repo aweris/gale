@@ -8,6 +8,7 @@ import (
 	"github.com/aweris/gale/internal/config"
 	"github.com/aweris/gale/internal/core"
 	"github.com/aweris/gale/internal/dagger/helpers"
+	"github.com/aweris/gale/internal/gctx"
 )
 
 // NewCommand  creates a new root command.
@@ -16,13 +17,14 @@ func NewCommand() *cobra.Command {
 		repo     string
 		getOpts  core.GetRepositoryOpts
 		loadOpts core.RepositoryLoadWorkflowOpts
+		rc       *gctx.Context
 	)
 
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List all workflows and jobs under it",
 		Args:  cobra.NoArgs,
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) (err error) {
 			client, err := helpers.DefaultClient(cmd.Context())
 			if err != nil {
 				return err
@@ -37,6 +39,17 @@ func NewCommand() *cobra.Command {
 
 			config.SetClientNoLog(clientNoLog)
 
+			// Load context
+			rc, err = gctx.Load(cmd.Context())
+			if err != nil {
+				return err
+			}
+
+			// Load repository
+			if err := rc.LoadRepo(repo, getOpts); err != nil {
+				return err
+			}
+
 			return nil
 		},
 		PersistentPostRunE: func(cmd *cobra.Command, args []string) error {
@@ -44,12 +57,8 @@ func NewCommand() *cobra.Command {
 			return config.Client().Close()
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			repo, err := core.GetRepository(repo, getOpts)
-			if err != nil {
-				return err
-			}
-
-			workflows, err := repo.LoadWorkflows(cmd.Context(), loadOpts)
+			// TODO: refactor this to use the repository context.
+			workflows, err := rc.Repo.LoadWorkflows(cmd.Context(), loadOpts)
 			if err != nil {
 				return err
 			}
