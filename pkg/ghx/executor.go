@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/aweris/gale/internal/core"
+	"github.com/aweris/gale/internal/gctx"
 )
 
 // Executor is the interface that defines contract for objects capable of performing an execution task.
@@ -21,7 +22,7 @@ type EnvironmentFiles struct {
 	StepSummary core.EnvironmentFile // StepSummary is the environment file that holds the step summary
 }
 
-func processEnvironmentFiles(ctx context.Context, stepID string, ef *EnvironmentFiles, ec *ExprContext) error {
+func processEnvironmentFiles(ctx context.Context, stepID string, ef *EnvironmentFiles, ec *gctx.Context) error {
 	if ef == nil {
 		return nil
 	}

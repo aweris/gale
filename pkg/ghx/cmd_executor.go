@@ -11,6 +11,7 @@ import (
 
 	"github.com/aweris/gale/internal/core"
 	"github.com/aweris/gale/internal/expression"
+	"github.com/aweris/gale/internal/gctx"
 	"github.com/aweris/gale/internal/log"
 )
 
@@ -20,7 +21,7 @@ type CmdExecutor struct {
 	stepID   string                  // stepID is the id of the step
 	args     []string                // args to pass to the command
 	env      map[string]string       // env to pass to the command as environment variables
-	ec       *ExprContext            // ec is the expression context to evaluate the github expressions
+	ec       *gctx.Context           // ec is the expression context to evaluate the github expressions
 	commands []*core.WorkflowCommand // commands is the list of commands that are executed in the step
 	envFiles *EnvironmentFiles       // envFiles contains temporary files that can be used to perform certain actions
 

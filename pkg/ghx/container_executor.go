@@ -13,6 +13,7 @@ import (
 	"github.com/aweris/gale/internal/config"
 	"github.com/aweris/gale/internal/core"
 	"github.com/aweris/gale/internal/expression"
+	"github.com/aweris/gale/internal/gctx"
 	"github.com/aweris/gale/internal/log"
 )
 
@@ -24,8 +25,8 @@ type ContainerExecutor struct {
 	entrypoint string                  // entrypoint is the entrypoint of the container
 	args       []string                // args is the arguments of the container
 	env        map[string]string       // env to pass to the command as environment variables
-	ec         *ExprContext            // ec is the expression context to evaluate the github expressions
-	dec        *ExprContext            // dec is the dagger expression context to evaluate action meta files. TODO: temporary solution, we need to find a better way to do this
+	ec         *gctx.Context           // ec is the expression context to evaluate the github expressions
+	dec        *gctx.Context           // dec is the dagger expression context to evaluate action meta files. TODO: temporary solution, we need to find a better way to do this
 	commands   []*core.WorkflowCommand // commands is the list of commands that are executed in the step
 	envFiles   *EnvironmentFiles       // envFiles contains temporary files that can be used to perform certain actions
 }

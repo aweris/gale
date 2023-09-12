@@ -30,7 +30,7 @@ func (r JobResult) GetConclusion() core.Conclusion {
 type JobRunner struct {
 	RunID    string                  // RunID is the run id of the job run.
 	Job      core.Job                // Job is the job to be executed.
-	context  *ExprContext            // context is the expression context for the job run.
+	context  *gctx.Context           // context is the expression context for the job run.
 	executor TaskExecutor[JobResult] // executor is the main task executor that executes the job and keeps the execution information.
 }
 
@@ -42,17 +42,10 @@ func planJob(rc *gctx.Context, job core.Job) (*JobRunner, error) {
 	}
 
 	runner := &JobRunner{
-		RunID: runID,
-		Job:   job,
+		RunID:   runID,
+		Job:     job,
+		context: rc,
 	}
-
-	// initialize the expression context
-	ec, err := NewExprContext(rc)
-	if err != nil {
-		return nil, err
-	}
-
-	runner.context = ec
 
 	// step task executors that execute the steps
 	var (
@@ -119,8 +112,8 @@ func planJob(rc *gctx.Context, job core.Job) (*JobRunner, error) {
 			}
 
 			// set the job status to the conclusion of the job status is success and the conclusion is not success.
-			if ec.Job.Status == core.ConclusionSuccess && result.Conclusion != ec.Job.Status {
-				ec.SetJobStatus(result.Conclusion)
+			if runner.context.Job.Status == core.ConclusionSuccess && result.Conclusion != runner.context.Job.Status {
+				runner.context.SetJobStatus(result.Conclusion)
 			}
 		}
 
@@ -164,8 +157,8 @@ func planJob(rc *gctx.Context, job core.Job) (*JobRunner, error) {
 		}
 
 		result := &JobResult{
-			Conclusion: ec.Job.Status,
-			Outcome:    ec.Job.Status,
+			Conclusion: runner.context.Job.Status,
+			Outcome:    runner.context.Job.Status,
 			Outputs:    outputs,
 		}
 

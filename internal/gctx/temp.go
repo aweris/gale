@@ -1,53 +1,42 @@
-package ghx
+package gctx
 
-import (
-	"github.com/aweris/gale/internal/core"
-	"github.com/aweris/gale/internal/gctx"
-)
+import "github.com/aweris/gale/internal/core"
 
-type ExprContext struct {
-	*gctx.Context
-}
-
-// TODO: we'll remove this slowly and replace it with the new context.
-
-func NewExprContext(ctx *gctx.Context) (*ExprContext, error) {
-	return &ExprContext{ctx}, nil
-}
+// TODO: migrate to the new context slowly. These are added for keeping the backward compatibility while removing ExprContext.
 
 // WithGithubEnv sets `github.env` from the given environment file. This is path of the temporary file that holds the
 // environment variables
-func (c *ExprContext) WithGithubEnv(path string) *ExprContext {
+func (c *Context) WithGithubEnv(path string) *Context {
 	c.Github.Env = path
 
 	return c
 }
 
 // WithoutGithubEnv removes `github.env` from the context.
-func (c *ExprContext) WithoutGithubEnv() *ExprContext {
+func (c *Context) WithoutGithubEnv() *Context {
 	c.Github.Env = ""
 
 	return c
 }
 
 // WithGithubPath sets `github.path` from the given environment file. This is path of the temporary file that holds the
-func (c *ExprContext) WithGithubPath(path string) *ExprContext {
+func (c *Context) WithGithubPath(path string) *Context {
 	c.Github.Path = path
 
 	return c
 }
 
 // WithoutGithubPath removes `github.path` from the context.
-func (c *ExprContext) WithoutGithubPath() *ExprContext {
+func (c *Context) WithoutGithubPath() *Context {
 	c.Github.Path = ""
 	return c
 }
 
 // SetStepOutput sets the output of the given step.
-func (c *ExprContext) SetStepOutput(stepID, key, value string) *ExprContext {
+func (c *Context) SetStepOutput(stepID, key, value string) *Context {
 	sc, ok := c.Steps[stepID]
 	if !ok {
-		sc = gctx.StepContext{}
+		sc = StepContext{}
 	}
 
 	if sc.Outputs == nil {
@@ -62,10 +51,10 @@ func (c *ExprContext) SetStepOutput(stepID, key, value string) *ExprContext {
 }
 
 // SetStepResult sets the result of the given step.
-func (c *ExprContext) SetStepResult(stepID string, outcome, conclusion core.Conclusion) *ExprContext {
+func (c *Context) SetStepResult(stepID string, outcome, conclusion core.Conclusion) *Context {
 	sc, ok := c.Steps[stepID]
 	if !ok {
-		sc = gctx.StepContext{}
+		sc = StepContext{}
 	}
 
 	sc.Outcome = outcome
@@ -77,10 +66,10 @@ func (c *ExprContext) SetStepResult(stepID string, outcome, conclusion core.Conc
 }
 
 // SetStepSummary sets the summary of the given step.
-func (c *ExprContext) SetStepSummary(stepID, summary string) *ExprContext {
+func (c *Context) SetStepSummary(stepID, summary string) *Context {
 	sc, ok := c.Steps[stepID]
 	if !ok {
-		sc = gctx.StepContext{}
+		sc = StepContext{}
 	}
 
 	sc.Summary = summary
@@ -91,10 +80,10 @@ func (c *ExprContext) SetStepSummary(stepID, summary string) *ExprContext {
 }
 
 // SetStepState sets the state of the given step.
-func (c *ExprContext) SetStepState(stepID, key, value string) *ExprContext {
+func (c *Context) SetStepState(stepID, key, value string) *Context {
 	sc, ok := c.Steps[stepID]
 	if !ok {
-		sc = gctx.StepContext{}
+		sc = StepContext{}
 	}
 
 	if sc.State == nil {
@@ -109,7 +98,7 @@ func (c *ExprContext) SetStepState(stepID, key, value string) *ExprContext {
 }
 
 // SetJobStatus sets the status of the job.
-func (c *ExprContext) SetJobStatus(status core.Conclusion) *ExprContext {
+func (c *Context) SetJobStatus(status core.Conclusion) *Context {
 	c.Job.Status = status
 
 	return c

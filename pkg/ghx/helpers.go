@@ -6,6 +6,7 @@ import (
 
 	"github.com/aweris/gale/internal/core"
 	"github.com/aweris/gale/internal/expression"
+	"github.com/aweris/gale/internal/gctx"
 )
 
 // getStepName returns the step name. If step name is not set, it will be generated from the step type.
@@ -26,7 +27,7 @@ func getStepName(prefix string, s core.Step) string {
 
 // evalStepCondition evaluates the given condition and returns the result. If the condition is empty, then it uses
 // success() as default.
-func evalStepCondition(condition string, ac *ExprContext) (bool, *StepResult, error) {
+func evalStepCondition(condition string, ac *gctx.Context) (bool, *StepResult, error) {
 	// if condition is empty, then use success() as default
 	if condition == "" {
 		condition = "success()"
