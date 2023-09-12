@@ -19,12 +19,12 @@ type Context struct {
 	Repo        RepoContext     // Repo is the context for the repository.
 
 	// Github Expression Contexts
-	Runner RunnerContext
-	Github GithubContext
-	Secret SecretsContext
-	Inputs InputsContext
-	Job    JobContext
-	Steps  StepsContext
+	Runner  RunnerContext
+	Github  GithubContext
+	Secrets SecretsContext
+	Inputs  InputsContext
+	Job     JobContext
+	Steps   StepsContext
 }
 
 func Load(ctx context.Context, debug bool) (*Context, error) {
@@ -72,7 +72,7 @@ func Load(ctx context.Context, debug bool) (*Context, error) {
 
 		gctx.SetToken(token)
 	} else {
-		gctx.Secret.SetToken(gctx.Github.Token)
+		gctx.Secrets.SetToken(gctx.Github.Token)
 	}
 
 	return gctx, nil
@@ -90,7 +90,7 @@ func (c *Context) WithContainerFunc() dagger.WithContainerFunc {
 		// apply sub-contexts
 		container = container.With(c.Repo.WithContainerFunc())
 		container = container.With(c.Github.WithContainerFunc())
-		container = container.With(c.Secret.WithContainerFunc())
+		container = container.With(c.Secrets.WithContainerFunc())
 		container = container.With(c.Runner.WithContainerFunc())
 
 		// load repository to container
@@ -102,6 +102,6 @@ func (c *Context) WithContainerFunc() dagger.WithContainerFunc {
 }
 
 func (c *Context) SetToken(token string) {
-	c.Secret.SetToken(token)
+	c.Secrets.SetToken(token)
 	c.Github.SetToken(token)
 }

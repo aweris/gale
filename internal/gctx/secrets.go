@@ -22,7 +22,7 @@ type SecretsContext struct {
 // LoadSecrets loads the secrets into the context. If the context is in container mode, it will read the secrets from
 // the mounted file. Otherwise, it will load the secrets from the given maps.
 func (c *Context) LoadSecrets(secrets ...map[string]string) error {
-	c.Secret = SecretsContext{MountPath: filepath.Join(c.path, data.DirSecrets, "secret.json")}
+	c.Secrets = SecretsContext{MountPath: filepath.Join(c.path, data.DirSecrets, "secret.json")}
 
 	if !c.isContainer {
 		sd := make(map[string]string)
@@ -34,19 +34,19 @@ func (c *Context) LoadSecrets(secrets ...map[string]string) error {
 			}
 		}
 
-		c.Secret.Data = sd
+		c.Secrets.Data = sd
 
 		return nil
 	}
 
 	// if it's in container mode, we need to read the secrets from the mounted file.
 
-	err := fs.EnsureFile(c.Secret.MountPath)
+	err := fs.EnsureFile(c.Secrets.MountPath)
 	if err != nil {
 		return fmt.Errorf("failed to ensure secrets file exist: %w", err)
 	}
 
-	err = fs.ReadJSONFile(c.Secret.MountPath, &c.Secret.Data)
+	err = fs.ReadJSONFile(c.Secrets.MountPath, &c.Secrets.Data)
 	if err != nil {
 		return fmt.Errorf("failed to read secrets file: %w", err)
 	}
