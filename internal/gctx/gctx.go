@@ -131,7 +131,7 @@ func (c *Context) GetVariable(name string) (interface{}, error) {
 	case "steps":
 		return c.Steps, nil
 	case "secrets":
-		return c.Secrets, nil
+		return c.Secrets.Data, nil
 	case "strategy":
 		return map[string]string{}, nil
 	case "matrix":
