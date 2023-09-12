@@ -16,7 +16,7 @@ import (
 var _ expression.VariableProvider = new(ExprContext)
 
 type ExprContext struct {
-	Github  GithubContext
+	Github  core.GithubContext
 	Runner  core.RunnerContext
 	Job     core.JobContext
 	Steps   map[string]core.StepContext
@@ -47,60 +47,13 @@ func NewExprContext() (*ExprContext, error) {
 		return nil, fmt.Errorf("failed to read secrets file: %w", err)
 	}
 
-	// event data
-	var event map[string]interface{}
-
-	err = fs.ReadJSONFile(os.Getenv("GITHUB_EVENT_PATH"), &event)
+	gc, err := LoadGithubContextFromEnv()
 	if err != nil {
-		return nil, fmt.Errorf("failed to read event file: %w", err)
+		return nil, fmt.Errorf("failed to create github context: %w", err)
 	}
 
 	return &ExprContext{
-		Github: GithubContext{
-			GithubRepositoryContext: core.GithubRepositoryContext{
-				Repository:        os.Getenv("GITHUB_REPOSITORY"),
-				RepositoryID:      os.Getenv("GITHUB_REPOSITORY_ID"),
-				RepositoryOwner:   os.Getenv("GITHUB_REPOSITORY_OWNER"),
-				RepositoryOwnerID: os.Getenv("GITHUB_REPOSITORY_OWNER_ID"),
-				RepositoryURL:     os.Getenv("GITHUB_REPOSITORY_URL"),
-				Workspace:         os.Getenv("GITHUB_WORKSPACE"),
-			},
-			GithubSecretsContext: core.GithubSecretsContext{
-				Token: os.Getenv("GITHUB_TOKEN"),
-			},
-			GithubURLContext: core.GithubURLContext{
-				ApiURL:     os.Getenv("GITHUB_API_URL"),
-				GraphqlURL: os.Getenv("GITHUB_GRAPHQL_URL"),
-				ServerURL:  os.Getenv("GITHUB_SERVER_URL"),
-			},
-			GithubWorkflowContext: core.GithubWorkflowContext{
-				Workflow:      os.Getenv("GITHUB_WORKFLOW"),
-				WorkflowRef:   os.Getenv("GITHUB_WORKFLOW_REF"),
-				WorkflowSHA:   os.Getenv("GITHUB_WORKFLOW_SHA"),
-				RunID:         os.Getenv("GITHUB_RUN_ID"),
-				RunNumber:     os.Getenv("GITHUB_RUN_NUMBER"),
-				RunAttempt:    os.Getenv("GITHUB_RUN_ATTEMPT"),
-				RetentionDays: os.Getenv("GITHUB_RETENTION_DAYS"),
-			},
-			GithubJobInfoContext: core.GithubJobInfoContext{
-				Job: os.Getenv("GITHUB_JOB"),
-			},
-			GithubRefContext: core.GithubRefContext{
-				Ref:          os.Getenv("GITHUB_REF"),
-				RefName:      os.Getenv("GITHUB_REF_NAME"),
-				RefType:      os.Getenv("GITHUB_REF_TYPE"),
-				RefProtected: os.Getenv("GITHUB_REF_PROTECTED") == "true",
-				HeadRef:      os.Getenv("GITHUB_HEAD_REF"),
-				BaseRef:      os.Getenv("GITHUB_BASE_REF"),
-			},
-			GithubEventContext: core.GithubEventContext{
-				EventName: os.Getenv("GITHUB_EVENT_NAME"),
-				EventPath: os.Getenv("GITHUB_EVENT_PATH"),
-				Event:     event,
-				SHA:       os.Getenv("GITHUB_SHA"),
-			},
-			GithubFilesContext: core.GithubFilesContext{ /* No initial values */ },
-		},
+		Github: *gc,
 		Runner: core.RunnerContext{
 			Name:      os.Getenv("RUNNER_NAME"),
 			OS:        os.Getenv("RUNNER_OS"),
@@ -118,27 +71,39 @@ func NewExprContext() (*ExprContext, error) {
 	}, nil
 }
 
-// GithubContext contains information about the workflow run and the event that triggered the run and event that
-// triggered the run.
-//
-// Contents of this context are managed by sub-contexts. This is just a composite context to provide variables for
-// expressions.
-//
-// See: https://docs.github.com/en/actions/learn-github-actions/contexts#github-context
-type GithubContext struct {
-	// Global contexts - these are applied to container and available to all steps.
-	core.GithubRepositoryContext
-	core.GithubSecretsContext
-	core.GithubURLContext
-	core.GithubWorkflowContext
-	core.GithubJobInfoContext
-	core.GithubRefContext
-	core.GithubEventContext
+func LoadGithubContextFromEnv() (*core.GithubContext, error) {
+	// event data
+	var event map[string]interface{}
 
-	// Local contexts - these contexts changes at course of the workflow run.
-	core.GithubFilesContext
+	err := fs.ReadJSONFile(os.Getenv("GITHUB_EVENT_PATH"), &event)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read event file: %w", err)
+	}
 
-	// TODO: add missing contexts when needed.
+	gc := &core.GithubContext{
+		Repository:        os.Getenv("GITHUB_REPOSITORY"),
+		RepositoryID:      os.Getenv("GITHUB_REPOSITORY_ID"),
+		RepositoryOwner:   os.Getenv("GITHUB_REPOSITORY_OWNER"),
+		RepositoryOwnerID: os.Getenv("GITHUB_REPOSITORY_OWNER_ID"),
+		RepositoryURL:     os.Getenv("GITHUB_REPOSITORY_URL"),
+		Workspace:         os.Getenv("GITHUB_WORKSPACE"),
+		APIURL:            os.Getenv("GITHUB_API_URL"),
+		GraphqlURL:        os.Getenv("GITHUB_GRAPHQL_URL"),
+		ServerURL:         os.Getenv("GITHUB_SERVER_URL"),
+		Ref:               os.Getenv("GITHUB_REF"),
+		RefName:           os.Getenv("GITHUB_REF_NAME"),
+		RefType:           os.Getenv("GITHUB_REF_TYPE"),
+		RefProtected:      os.Getenv("GITHUB_REF_PROTECTED") == "true",
+		HeadRef:           os.Getenv("GITHUB_HEAD_REF"),
+		BaseRef:           os.Getenv("GITHUB_BASE_REF"),
+		SHA:               os.Getenv("GITHUB_SHA"),
+		EventName:         os.Getenv("GITHUB_EVENT_NAME"),
+		EventPath:         os.Getenv("GITHUB_EVENT_PATH"),
+		Token:             os.Getenv("GITHUB_TOKEN"),
+		Event:             event,
+	}
+
+	return gc, nil
 }
 
 func (c *ExprContext) GetVariable(name string) (interface{}, error) {
@@ -177,28 +142,28 @@ func (c *ExprContext) GetVariable(name string) (interface{}, error) {
 // WithGithubEnv sets `github.env` from the given environment file. This is path of the temporary file that holds the
 // environment variables
 func (c *ExprContext) WithGithubEnv(path string) *ExprContext {
-	c.Github.GithubFilesContext.Env = path
+	c.Github.Env = path
 
 	return c
 }
 
 // WithoutGithubEnv removes `github.env` from the context.
 func (c *ExprContext) WithoutGithubEnv() *ExprContext {
-	c.Github.GithubFilesContext.Env = ""
+	c.Github.Env = ""
 
 	return c
 }
 
 // WithGithubPath sets `github.path` from the given environment file. This is path of the temporary file that holds the
 func (c *ExprContext) WithGithubPath(path string) *ExprContext {
-	c.Github.GithubFilesContext.Path = path
+	c.Github.Path = path
 
 	return c
 }
 
 // WithoutGithubPath removes `github.path` from the context.
 func (c *ExprContext) WithoutGithubPath() *ExprContext {
-	c.Github.GithubFilesContext.Path = ""
+	c.Github.Path = ""
 	return c
 }
 

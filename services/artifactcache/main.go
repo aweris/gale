@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/spf13/pflag"
+
+	"github.com/aweris/gale/internal/cmd"
 )
 
 func main() {
@@ -19,9 +20,9 @@ func main() {
 	pflag.StringVar(&port, "port", "8080", "Port to artifact service will listen on")
 	pflag.StringVar(&externalHostname, "external-hostname", "", "External hostname to use for download URLs")
 
-	bindEnv(pflag.Lookup("cache-dir"), "CACHE_DIR")
-	bindEnv(pflag.Lookup("port"), "PORT")
-	bindEnv(pflag.Lookup("external-hostname"), "EXTERNAL_HOSTNAME")
+	cmd.BindEnv(pflag.Lookup("cache-dir"), "CACHE_DIR")
+	cmd.BindEnv(pflag.Lookup("port"), "PORT")
+	cmd.BindEnv(pflag.Lookup("external-hostname"), "EXTERNAL_HOSTNAME")
 
 	pflag.Parse()
 
@@ -34,19 +35,5 @@ func main() {
 	if err := Serve(port, srv); err != nil {
 		fmt.Printf("Error starting artifact service: %s\n", err.Error())
 		os.Exit(1)
-	}
-}
-
-func bindEnv(fn *pflag.Flag, env string) {
-	if fn == nil || fn.Changed {
-		return
-	}
-
-	val := os.Getenv(env)
-
-	if len(val) > 0 {
-		if err := fn.Value.Set(val); err != nil {
-			log.Fatalf("failed to bind env: %v\n", err)
-		}
 	}
 }

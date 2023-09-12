@@ -163,5 +163,16 @@ func (r *Repository) loadWorkflow(ctx context.Context, path string, file *dagger
 		workflow.Name = path
 	}
 
+	// update job ID and names
+	for id, job := range workflow.Jobs {
+		job.ID = id
+
+		if job.Name == "" {
+			job.Name = id
+		}
+
+		workflow.Jobs[id] = job
+	}
+
 	return &workflow, nil
 }

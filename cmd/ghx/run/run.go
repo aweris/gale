@@ -1,33 +1,46 @@
 package run
 
 import (
+	"errors"
+
 	"github.com/spf13/cobra"
 
-	"github.com/aweris/gale/internal/config"
+	"github.com/aweris/gale/internal/cmd"
 	"github.com/aweris/gale/internal/core"
 	"github.com/aweris/gale/pkg/ghx"
 )
 
+var ErrWorkflowNotFound = errors.New("workflow not found")
+
 // NewCommand  creates a new root command.
 func NewCommand() *cobra.Command {
-	// TODO: improve DX here. It expects run-id as the first argument and config file should be stored in a specific location with a specific name
-	return &cobra.Command{
-		Use:   "run <run-id> [flags]",
+	var workflowsDir string // workflowsDir is the directory to load workflows from.
+
+	command := &cobra.Command{
+		Use:   "run <workflow> <job> [flags]",
 		Short: "Runs a job given run id",
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			runID := args[0]
-
-			var jr *core.JobRun
-
-			dir := config.Client().Host().Directory(config.GhxRunDir(runID))
-
-			jr, err := core.UnmarshalJobRunFromDir(cmd.Context(), dir)
+			// `gale` already mounts and configures the repository directory as working directory. So we can
+			// look for repository information in the current directory.
+			//
+			// TODO: do not make this call here. Pass info from `gale` to `ghx` instead. This is just easier for now.
+			repo, err := core.GetRepository("")
 			if err != nil {
 				return err
 			}
 
-			runner, err := ghx.Plan(jr)
+			workflows, err := repo.LoadWorkflows(cmd.Context(), core.RepositoryLoadWorkflowOpts{WorkflowsDir: workflowsDir})
+			if err != nil {
+				return err
+			}
+
+			wf, ok := workflows[args[0]]
+			if !ok {
+				return ErrWorkflowNotFound
+			}
+
+			runner, err := ghx.Plan(*wf, args[1])
 			if err != nil {
 				return err
 			}
@@ -35,4 +48,10 @@ func NewCommand() *cobra.Command {
 			return runner.Run(cmd.Context())
 		},
 	}
+
+	command.Flags().StringVar(&workflowsDir, "workflows-dir", "", "directory to load workflows from. If empty, workflows will be loaded from the default directory.")
+
+	cmd.BindEnv(command.Flags().Lookup("workflows-dir"), "GALE_WORKFLOWS_DIR")
+
+	return command
 }

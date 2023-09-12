@@ -10,45 +10,81 @@ import (
 
 	"github.com/aweris/gale/internal/config"
 	"github.com/aweris/gale/internal/core"
+	"github.com/aweris/gale/internal/expression"
 	"github.com/aweris/gale/internal/fs"
 	"github.com/aweris/gale/internal/log"
 )
 
+var _ TaskResult = new(StepResult)
+
+// StepResult represents the result of a step
+type StepResult struct {
+	StepID     string            `json:"step_id"`    // StepID is the id of the step
+	Conclusion core.Conclusion   `json:"conclusion"` // Conclusion is the result of a completed step after continue-on-error is applied
+	Outcome    core.Conclusion   `json:"outcome"`    // Outcome is  the result of a completed step before continue-on-error is applied
+	Outputs    map[string]string `json:"outputs"`    // Outputs is a map of output name to output value
+}
+
+// FailedStepResult returns a step result with failed conclusion and outcome.
+func FailedStepResult(stepID string) *StepResult {
+	return &StepResult{
+		StepID:     stepID,
+		Conclusion: core.ConclusionFailure,
+		Outcome:    core.ConclusionFailure,
+		Outputs:    make(map[string]string),
+	}
+}
+
+// SuccessStepResult returns a step result with success conclusion and outcome.
+func SuccessStepResult(stepID string) *StepResult {
+	return &StepResult{
+		StepID:     stepID,
+		Conclusion: core.ConclusionSuccess,
+		Outcome:    core.ConclusionSuccess,
+		Outputs:    make(map[string]string),
+	}
+}
+
+// GetConclusion returns the conclusion of the task.
+func (s StepResult) GetConclusion() core.Conclusion {
+	return s.Conclusion
+}
+
 // Step is an internal interface that defines contract for steps.
 type Step interface {
 	// condition returns the function that checks if the main execution condition is met.
-	condition() TaskConditionalFn
+	condition() TaskConditionalFn[StepResult]
 
 	// main returns the function that executes the main execution logic.
-	main() TaskExecutorFn
+	main() TaskExecutorFn[StepResult]
 }
 
 // SetupHook is the interface that defines contract for steps capable of performing a setup task.
 type SetupHook interface {
 	// setup returns the function that sets up the step before execution.
-	setup() TaskExecutorFn
+	setup() TaskExecutorFn[StepResult]
 }
 
 // PreHook is the interface that defines contract for steps capable of performing a pre execution task.
 type PreHook interface {
 	// preCondition returns the function that checks if the pre execution condition is met.
-	preCondition() TaskConditionalFn
+	preCondition() TaskConditionalFn[StepResult]
 
 	// pre returns the function that executes the pre execution logic just before the main execution.
-	pre() TaskExecutorFn
+	pre() TaskExecutorFn[StepResult]
 }
 
 // PostHook is the interface that defines contract for steps capable of performing a post execution task.
 type PostHook interface {
 	// postCondition returns the function that checks if the post execution condition is met.
-	postCondition() TaskConditionalFn
+	postCondition() TaskConditionalFn[StepResult]
 
 	// post returns the function that executes the post execution logic just after the main execution.
-	post() TaskExecutorFn
+	post() TaskExecutorFn[StepResult]
 }
 
 // NewStep creates a new step from the given step configuration.
-func NewStep(runner *Runner, s core.Step) (Step, error) {
+func NewStep(runner *JobRunner, s core.Step) (Step, error) {
 	var step Step
 
 	switch s.Type() {
@@ -74,17 +110,17 @@ var (
 
 // StepAction is a step that runs an action.
 type StepAction struct {
-	runner    *Runner
+	runner    *JobRunner
 	container *dagger.Container
 	Step      core.Step
 	Action    core.CustomAction
 }
 
-func (s *StepAction) setup() TaskExecutorFn {
-	return func(ctx context.Context) (core.Conclusion, error) {
+func (s *StepAction) setup() TaskExecutorFn[StepResult] {
+	return func(ctx context.Context) (*StepResult, error) {
 		ca, err := core.LoadActionFromSource(ctx, s.Step.Uses)
 		if err != nil {
-			return core.ConclusionFailure, err
+			return FailedStepResult(s.Step.ID), err
 		}
 
 		// update the step action with the loaded action
@@ -106,30 +142,30 @@ func (s *StepAction) setup() TaskExecutorFn {
 				s.container = config.Client().Container().From(strings.TrimPrefix(image, "docker://"))
 			default:
 				// This should never happen. Adding it for safety.
-				return core.ConclusionFailure, fmt.Errorf("invalid docker image: %s", image)
+				return FailedStepResult(s.Step.ID), fmt.Errorf("invalid docker image: %s", image)
 			}
 
 			// add repository to the container
 			s.container = s.container.WithMountedDirectory(workspace, workspaceDir).WithWorkdir(workspace)
 		}
 
-		return core.ConclusionSuccess, nil
+		return SuccessStepResult(s.Step.ID), nil
 	}
 }
 
-func (s *StepAction) preCondition() TaskConditionalFn {
-	return func(ctx context.Context) (bool, core.Conclusion, error) {
+func (s *StepAction) preCondition() TaskConditionalFn[StepResult] {
+	return func(ctx context.Context) (bool, *StepResult, error) {
 		run, condition := s.Action.Meta.Runs.PreCondition()
 		if !run {
-			return false, "", nil
+			return false, nil, nil
 		}
 
 		return evalStepCondition(condition, s.runner.context)
 	}
 }
 
-func (s *StepAction) pre() TaskExecutorFn {
-	return func(ctx context.Context) (core.Conclusion, error) {
+func (s *StepAction) pre() TaskExecutorFn[StepResult] {
+	return func(ctx context.Context) (*StepResult, error) {
 		var executor Executor
 
 		switch s.Action.Meta.Runs.Using {
@@ -138,25 +174,25 @@ func (s *StepAction) pre() TaskExecutorFn {
 		case core.ActionRunsUsingNode12, core.ActionRunsUsingNode16:
 			executor = NewCmdExecutorFromStepAction(s, s.Action.Meta.Runs.Pre)
 		default:
-			return core.ConclusionFailure, fmt.Errorf("invalid action runs using: %s", s.Action.Meta.Runs.Using)
+			return FailedStepResult(s.Step.ID), fmt.Errorf("invalid action runs using: %s", s.Action.Meta.Runs.Using)
 		}
 
 		if err := executor.Execute(ctx); err != nil && !s.Step.ContinueOnError {
-			return core.ConclusionFailure, err
+			return FailedStepResult(s.Step.ID), err
 		}
 
-		return core.ConclusionSuccess, nil
+		return SuccessStepResult(s.Step.ID), nil
 	}
 }
 
-func (s *StepAction) condition() TaskConditionalFn {
-	return func(ctx context.Context) (bool, core.Conclusion, error) {
+func (s *StepAction) condition() TaskConditionalFn[StepResult] {
+	return func(ctx context.Context) (bool, *StepResult, error) {
 		return evalStepCondition(s.Step.If, s.runner.context)
 	}
 }
 
-func (s *StepAction) main() TaskExecutorFn {
-	return func(ctx context.Context) (core.Conclusion, error) {
+func (s *StepAction) main() TaskExecutorFn[StepResult] {
+	return func(ctx context.Context) (*StepResult, error) {
 		var executor Executor
 
 		switch s.Action.Meta.Runs.Using {
@@ -165,30 +201,30 @@ func (s *StepAction) main() TaskExecutorFn {
 		case core.ActionRunsUsingNode12, core.ActionRunsUsingNode16:
 			executor = NewCmdExecutorFromStepAction(s, s.Action.Meta.Runs.Main)
 		default:
-			return core.ConclusionFailure, fmt.Errorf("invalid action runs using: %s", s.Action.Meta.Runs.Using)
+			return FailedStepResult(s.Step.ID), fmt.Errorf("invalid action runs using: %s", s.Action.Meta.Runs.Using)
 		}
 
 		if err := executor.Execute(ctx); err != nil && !s.Step.ContinueOnError {
-			return core.ConclusionFailure, err
+			return FailedStepResult(s.Step.ID), err
 		}
 
-		return core.ConclusionSuccess, nil
+		return SuccessStepResult(s.Step.ID), nil
 	}
 }
 
-func (s *StepAction) postCondition() TaskConditionalFn {
-	return func(ctx context.Context) (bool, core.Conclusion, error) {
+func (s *StepAction) postCondition() TaskConditionalFn[StepResult] {
+	return func(ctx context.Context) (bool, *StepResult, error) {
 		run, condition := s.Action.Meta.Runs.PostCondition()
 		if !run {
-			return false, "", nil
+			return false, nil, nil
 		}
 
 		return evalStepCondition(condition, s.runner.context)
 	}
 }
 
-func (s *StepAction) post() TaskExecutorFn {
-	return func(ctx context.Context) (core.Conclusion, error) {
+func (s *StepAction) post() TaskExecutorFn[StepResult] {
+	return func(ctx context.Context) (*StepResult, error) {
 		var executor Executor
 
 		switch s.Action.Meta.Runs.Using {
@@ -197,14 +233,14 @@ func (s *StepAction) post() TaskExecutorFn {
 		case core.ActionRunsUsingNode12, core.ActionRunsUsingNode16:
 			executor = NewCmdExecutorFromStepAction(s, s.Action.Meta.Runs.Post)
 		default:
-			return core.ConclusionFailure, fmt.Errorf("invalid action runs using: %s", s.Action.Meta.Runs.Using)
+			return FailedStepResult(s.Step.ID), fmt.Errorf("invalid action runs using: %s", s.Action.Meta.Runs.Using)
 		}
 
 		if err := executor.Execute(ctx); err != nil && !s.Step.ContinueOnError {
-			return core.ConclusionFailure, err
+			return FailedStepResult(s.Step.ID), err
 		}
 
-		return core.ConclusionSuccess, nil
+		return SuccessStepResult(s.Step.ID), nil
 	}
 }
 
@@ -212,7 +248,7 @@ var _ Step = new(StepRun)
 
 // StepRun is a step that runs a job.
 type StepRun struct {
-	runner    *Runner
+	runner    *JobRunner
 	Step      core.Step
 	Shell     string   // Shell is the shell to use to run the script.
 	ShellArgs []string // ShellArgs are the arguments to pass to the shell.
@@ -220,8 +256,8 @@ type StepRun struct {
 
 }
 
-func (s *StepRun) condition() TaskConditionalFn {
-	return func(ctx context.Context) (bool, core.Conclusion, error) {
+func (s *StepRun) condition() TaskConditionalFn[StepResult] {
+	return func(ctx context.Context) (bool, *StepResult, error) {
 		return evalStepCondition(s.Step.If, s.runner.context)
 	}
 }
@@ -232,8 +268,8 @@ const (
 	extPWSH = ".ps1"
 )
 
-func (s *StepRun) main() TaskExecutorFn {
-	return func(ctx context.Context) (core.Conclusion, error) {
+func (s *StepRun) main() TaskExecutorFn[StepResult] {
+	return func(ctx context.Context) (*StepResult, error) {
 		var (
 			pre   string
 			pos   string
@@ -241,7 +277,7 @@ func (s *StepRun) main() TaskExecutorFn {
 			shell = s.Step.Shell
 		)
 
-		path := filepath.Join(config.GhxRunDir(s.runner.jr.RunID), "scripts", s.Step.ID, "run.sh")
+		path := filepath.Join(config.GhxRunDir(s.runner.RunID), "scripts", s.Step.ID, "run.sh")
 
 		// TODO: add support and test for "pwsh" shell. This is not supported for now because we don't have a pwsh image,
 		//  and we don't have a way to test it for now. We'll add support for it later after making sure that it works.
@@ -272,20 +308,20 @@ func (s *StepRun) main() TaskExecutorFn {
 			path += extSH
 			args = []string{"-e", path}
 		default:
-			return core.ConclusionFailure, fmt.Errorf("not supported shell: %s", shell)
+			return FailedStepResult(s.Step.ID), fmt.Errorf("not supported shell: %s", shell)
 		}
 
 		// evaluate run script against the expressions
-		run, err := evalString(s.Step.Run, s.runner.context)
+		run, err := expression.NewString(s.Step.Run).Eval(s.runner.context)
 		if err != nil {
-			return core.ConclusionFailure, err
+			return FailedStepResult(s.Step.ID), err
 		}
 
 		content := []byte(fmt.Sprintf("%s\n%s\n%s", pre, run, pos))
 
 		err = fs.WriteFile(path, content, 0755)
 		if err != nil {
-			return core.ConclusionFailure, err
+			return FailedStepResult(s.Step.ID), err
 		}
 
 		s.Shell = shell
@@ -296,10 +332,10 @@ func (s *StepRun) main() TaskExecutorFn {
 
 		err = cmd.Execute(ctx)
 		if err != nil && !s.Step.ContinueOnError {
-			return core.ConclusionFailure, err
+			return FailedStepResult(s.Step.ID), err
 		}
 
-		return core.ConclusionSuccess, err
+		return SuccessStepResult(s.Step.ID), err
 	}
 }
 
@@ -309,13 +345,13 @@ var (
 )
 
 type StepDocker struct {
-	runner    *Runner
+	runner    *JobRunner
 	container *dagger.Container
 	Step      core.Step
 }
 
-func (s *StepDocker) setup() TaskExecutorFn {
-	return func(ctx context.Context) (core.Conclusion, error) {
+func (s *StepDocker) setup() TaskExecutorFn[StepResult] {
+	return func(ctx context.Context) (*StepResult, error) {
 		var (
 			image        = strings.TrimPrefix(s.Step.Uses, "docker://")
 			workspace    = s.runner.context.Github.Workspace
@@ -332,25 +368,25 @@ func (s *StepDocker) setup() TaskExecutorFn {
 		// TODO: This will be print same log line if the image used multiple times. However, this scenario is not really common and no benefit to fix this scenario for now.
 		log.Info(fmt.Sprintf("Pull '%s'", image))
 
-		return core.ConclusionSuccess, nil
+		return SuccessStepResult(s.Step.ID), nil
 	}
 }
 
-func (s *StepDocker) condition() TaskConditionalFn {
-	return func(ctx context.Context) (bool, core.Conclusion, error) {
+func (s *StepDocker) condition() TaskConditionalFn[StepResult] {
+	return func(ctx context.Context) (bool, *StepResult, error) {
 		return evalStepCondition(s.Step.If, s.runner.context)
 	}
 }
 
-func (s *StepDocker) main() TaskExecutorFn {
-	return func(ctx context.Context) (core.Conclusion, error) {
+func (s *StepDocker) main() TaskExecutorFn[StepResult] {
+	return func(ctx context.Context) (*StepResult, error) {
 		executor := NewContainerExecutorFromStepDocker(s)
 
 		err := executor.Execute(ctx)
 		if err != nil && !s.Step.ContinueOnError {
-			return core.ConclusionFailure, err
+			return FailedStepResult(s.Step.ID), err
 		}
 
-		return core.ConclusionSuccess, nil
+		return SuccessStepResult(s.Step.ID), nil
 	}
 }
