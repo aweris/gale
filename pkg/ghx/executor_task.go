@@ -9,6 +9,9 @@ import (
 	"github.com/aweris/gale/internal/log"
 )
 
+// TODO: make this implement Executor interface and remove the Run method
+// var _ Executor = new(TaskExecutor)
+
 // TaskExecutor is a task executor that runs a task and keeps status, conclusion and timing information about
 // the execution.
 type TaskExecutor struct {

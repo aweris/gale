@@ -2,7 +2,6 @@ package ghx
 
 import (
 	"bufio"
-	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -90,7 +89,7 @@ func NewCmdExecutorFromStepRun(sr *StepRun) *CmdExecutor {
 	}
 }
 
-func (c *CmdExecutor) Execute(ctx context.Context) error {
+func (c *CmdExecutor) Execute(ctx *gctx.Context) error {
 	//nolint:gosec // this is a command executor, we need to execute the command as it is
 	cmd := exec.Command(c.args[0], c.args[1:]...)
 

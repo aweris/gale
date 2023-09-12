@@ -2,7 +2,6 @@ package ghx
 
 import (
 	"bufio"
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -98,7 +97,7 @@ func NewContainerExecutorFromStepAction(sa *StepAction, entrypoint string) *Cont
 	}
 }
 
-func (c *ContainerExecutor) Execute(ctx context.Context) error {
+func (c *ContainerExecutor) Execute(ctx *gctx.Context) error {
 	// load environment files - this will create env files and load it to the environment. That's why we need to do this
 	// before setting the environment variables
 	err := c.loadEnvFiles()
@@ -158,7 +157,7 @@ func (c *ContainerExecutor) Execute(ctx context.Context) error {
 	// TODO: if no args are provided, we need to execute the container with the default entrypoint and args
 	//  however this is causing an error since Stdout is looking for last execs output. We need to find a way to
 	//  execute the container without execs and get the output.
-	out, err := c.container.Stdout(ctx)
+	out, err := c.container.Stdout(ctx.Context)
 	if err != nil {
 		return err
 	}

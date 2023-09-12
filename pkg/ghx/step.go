@@ -142,7 +142,7 @@ func (s *StepAction) pre() TaskExecutorFn {
 			return core.ConclusionFailure, fmt.Errorf("invalid action runs using: %s", s.Action.Meta.Runs.Using)
 		}
 
-		if err := executor.Execute(ctx.Context); err != nil && !s.Step.ContinueOnError {
+		if err := executor.Execute(ctx); err != nil && !s.Step.ContinueOnError {
 			return core.ConclusionFailure, err
 		}
 
@@ -169,7 +169,7 @@ func (s *StepAction) main() TaskExecutorFn {
 			return core.ConclusionFailure, fmt.Errorf("invalid action runs using: %s", s.Action.Meta.Runs.Using)
 		}
 
-		if err := executor.Execute(ctx.Context); err != nil && !s.Step.ContinueOnError {
+		if err := executor.Execute(ctx); err != nil && !s.Step.ContinueOnError {
 			return core.ConclusionFailure, err
 		}
 
@@ -201,7 +201,7 @@ func (s *StepAction) post() TaskExecutorFn {
 			return core.ConclusionFailure, fmt.Errorf("invalid action runs using: %s", s.Action.Meta.Runs.Using)
 		}
 
-		if err := executor.Execute(ctx.Context); err != nil && !s.Step.ContinueOnError {
+		if err := executor.Execute(ctx); err != nil && !s.Step.ContinueOnError {
 			return core.ConclusionFailure, err
 		}
 
@@ -295,7 +295,7 @@ func (s *StepRun) main() TaskExecutorFn {
 
 		cmd := NewCmdExecutorFromStepRun(s)
 
-		err = cmd.Execute(ctx.Context)
+		err = cmd.Execute(ctx)
 		if err != nil && !s.Step.ContinueOnError {
 			return core.ConclusionFailure, err
 		}
@@ -347,7 +347,7 @@ func (s *StepDocker) main() TaskExecutorFn {
 	return func(ctx *gctx.Context) (core.Conclusion, error) {
 		executor := NewContainerExecutorFromStepDocker(s)
 
-		err := executor.Execute(ctx.Context)
+		err := executor.Execute(ctx)
 		if err != nil && !s.Step.ContinueOnError {
 			return core.ConclusionFailure, err
 		}

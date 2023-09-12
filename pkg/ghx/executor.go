@@ -1,7 +1,6 @@
 package ghx
 
 import (
-	"context"
 	"fmt"
 	"os"
 
@@ -12,7 +11,7 @@ import (
 // Executor is the interface that defines contract for objects capable of performing an execution task.
 type Executor interface {
 	// Execute performs the execution of a specific task with the given context.
-	Execute(ctx context.Context) error
+	Execute(ctx *gctx.Context) error
 }
 
 type EnvironmentFiles struct {
@@ -22,12 +21,12 @@ type EnvironmentFiles struct {
 	StepSummary core.EnvironmentFile // StepSummary is the environment file that holds the step summary
 }
 
-func processEnvironmentFiles(ctx context.Context, stepID string, ef *EnvironmentFiles, ec *gctx.Context) error {
+func processEnvironmentFiles(ctx *gctx.Context, stepID string, ef *EnvironmentFiles, ec *gctx.Context) error {
 	if ef == nil {
 		return nil
 	}
 
-	env, err := ef.Env.ReadData(ctx)
+	env, err := ef.Env.ReadData(ctx.Context)
 	if err != nil {
 		return err
 	}
@@ -38,7 +37,7 @@ func processEnvironmentFiles(ctx context.Context, stepID string, ef *Environment
 		}
 	}
 
-	paths, err := ef.Path.ReadData(ctx)
+	paths, err := ef.Path.ReadData(ctx.Context)
 	if err != nil {
 		return err
 	}
@@ -53,7 +52,7 @@ func processEnvironmentFiles(ctx context.Context, stepID string, ef *Environment
 		return err
 	}
 
-	outputs, err := ef.Outputs.ReadData(ctx)
+	outputs, err := ef.Outputs.ReadData(ctx.Context)
 	if err != nil {
 		return err
 	}
@@ -62,7 +61,7 @@ func processEnvironmentFiles(ctx context.Context, stepID string, ef *Environment
 		ec.SetStepOutput(stepID, k, v)
 	}
 
-	stepSummary, err := ef.StepSummary.RawData(ctx)
+	stepSummary, err := ef.StepSummary.RawData(ctx.Context)
 	if err != nil {
 		return err
 	}
