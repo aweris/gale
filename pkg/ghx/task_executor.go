@@ -1,31 +1,25 @@
 package ghx
 
 import (
-	"context"
 	"fmt"
 	"time"
 
 	"github.com/aweris/gale/internal/core"
+	"github.com/aweris/gale/internal/gctx"
 	"github.com/aweris/gale/internal/log"
 )
 
 // TaskExecutor is a task executor that runs a task and keeps status, conclusion and timing information about
 // the execution.
-type TaskExecutor[T TaskResult] struct {
-	Name        string               // Name of the execution
-	Ran         bool                 // Ran indicates if the execution ran
-	Status      core.Status          // Status of the execution
-	Result      *T                   // Result of the execution
-	StartedAt   time.Time            // StartedAt time of the execution
-	CompletedAt time.Time            // CompletedAt time of the execution
-	executorFn  TaskExecutorFn[T]    // executorFn is the function to be executed
-	conditionFn TaskConditionalFn[T] // conditionFn is the function that determines if the task should be executed
-}
-
-// TaskResult is a marker interface for the response of the task executor.
-type TaskResult interface {
-	// GetConclusion returns the conclusion of the task.
-	GetConclusion() core.Conclusion
+type TaskExecutor struct {
+	Name        string            // Name of the execution
+	Ran         bool              // Ran indicates if the execution ran
+	Status      core.Status       // Status of the execution
+	Conclusion  core.Conclusion   // Conclusion of the execution
+	StartedAt   time.Time         // StartedAt time of the execution
+	CompletedAt time.Time         // CompletedAt time of the execution
+	executorFn  TaskExecutorFn    // executorFn is the function to be executed
+	conditionFn TaskConditionalFn // conditionFn is the function that determines if the task should be executed
 }
 
 // TaskExecutorFn is the function that will be executed by the task executor.
@@ -33,7 +27,7 @@ type TaskResult interface {
 // The return values are:
 //   - conclusion: conclusion of the execution
 //   - err: error if any
-type TaskExecutorFn[T TaskResult] func(ctx context.Context) (result *T, err error)
+type TaskExecutorFn func(ctx *gctx.Context) (conclusion core.Conclusion, err error)
 
 // TaskConditionalFn is the function that determines if the task should be executed. If the task should not be
 // executed, the conclusion is returned as well.
@@ -50,16 +44,16 @@ type TaskExecutorFn[T TaskResult] func(ctx context.Context) (result *T, err erro
 //   - If run is false, conclusion is empty and err is nil, invalid task. Ignore it completely. The reason this
 //     scenario exist is that the task is not invalid by itself. It is just not applicable to the current context, and
 //     we can't determine if it is invalid or not in planning phase.
-type TaskConditionalFn[T TaskResult] func(ctx context.Context) (run bool, result *T, err error)
+type TaskConditionalFn func(ctx *gctx.Context) (run bool, conclusion core.Conclusion, err error)
 
 // NewTaskExecutor creates a new task executor.
-func NewTaskExecutor[T TaskResult](name string, fn TaskExecutorFn[T]) TaskExecutor[T] {
+func NewTaskExecutor(name string, fn TaskExecutorFn) TaskExecutor {
 	return NewConditionalTaskExecutor(name, fn, nil)
 }
 
 // NewConditionalTaskExecutor creates a new task executor.
-func NewConditionalTaskExecutor[T TaskResult](name string, executorFn TaskExecutorFn[T], conditionalFn TaskConditionalFn[T]) TaskExecutor[T] {
-	return TaskExecutor[T]{
+func NewConditionalTaskExecutor(name string, executorFn TaskExecutorFn, conditionalFn TaskConditionalFn) TaskExecutor {
+	return TaskExecutor{
 		Name:        name,
 		Status:      core.StatusQueued,
 		executorFn:  executorFn,
@@ -68,26 +62,23 @@ func NewConditionalTaskExecutor[T TaskResult](name string, executorFn TaskExecut
 }
 
 // Run runs the task and updates the status, conclusion and timing information.
-func (t *TaskExecutor[T]) Run(ctx context.Context) (run bool, result *T, err error) {
+func (t *TaskExecutor) Run(ctx *gctx.Context) (run bool, conclusion core.Conclusion, err error) {
 	t.StartedAt = time.Now()
 	t.Status = core.StatusInProgress
 
 	if t.conditionFn != nil {
-		run, result, err = t.conditionFn(ctx)
+		run, conclusion, err = t.conditionFn(ctx)
 		if !run {
 			t.Ran = run
-			t.Result = result
+			t.Conclusion = conclusion
 			t.CompletedAt = time.Now()
 			t.Status = core.StatusCompleted
 
-			if result != nil {
-				// convert pointer type to value type to be able to access interface type methods.
-				val := *result
-
-				log.Info(fmt.Sprintf("%s (%s)", t.Name, val.GetConclusion()))
+			if conclusion != "" && conclusion != core.ConclusionSuccess {
+				log.Info(fmt.Sprintf("%s (%s)", t.Name, conclusion))
 			}
 
-			return run, result, err
+			return run, conclusion, err
 		}
 	}
 
@@ -96,12 +87,12 @@ func (t *TaskExecutor[T]) Run(ctx context.Context) (run bool, result *T, err err
 	log.StartGroup()
 	defer log.EndGroup()
 
-	result, err = t.executorFn(ctx)
+	conclusion, err = t.executorFn(ctx)
 
 	t.Ran = true
-	t.Result = result
+	t.Conclusion = conclusion
 	t.CompletedAt = time.Now()
 	t.Status = core.StatusCompleted
 
-	return run, result, err
+	return run, conclusion, err
 }

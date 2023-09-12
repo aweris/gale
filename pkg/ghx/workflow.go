@@ -1,7 +1,6 @@
 package ghx
 
 import (
-	"context"
 	"errors"
 	"fmt"
 
@@ -12,30 +11,17 @@ import (
 
 var ErrWorkflowNotFound = errors.New("workflow not found")
 
-var _ TaskResult = new(WorkflowResult)
-
-// WorkflowResult represents the result of a workflow
-type WorkflowResult struct {
-	RunID      string                `json:"run_id"`     // RunID is the run id of the job run
-	Conclusion core.Conclusion       `json:"conclusion"` // Conclusion is the result of a completed step after continue-on-error is applied
-	Jobs       map[string]*JobResult `json:"jobs"`       // Jobs is map of the job run id to its result
-}
-
-// GetConclusion returns the conclusion of the task.
-func (r WorkflowResult) GetConclusion() core.Conclusion {
-	return r.Conclusion
-}
-
 // WorkflowRunner is the runner that executes the workflow.
 type WorkflowRunner struct {
-	RunID          string                       // RunID is the ID of the run
-	RunNumber      string                       // RunNumber is the number of the run
-	RunAttempt     string                       // RunAttempt is the attempt number of the run
-	RetentionDays  string                       // RetentionDays is the number of days to keep the run logs
-	Workflow       core.Workflow                // Workflow is the workflow to run
-	ExecutionOrder []string                     // ExecutionOrder is the order of the jobs to run
-	Jobs           map[string]*JobResult        // Jobs is map of the job run id to its result
-	executor       TaskExecutor[WorkflowResult] // executor is the main task executor that executes the jobs and keeps the execution information.
+	context        *gctx.Context          // context is the expression context for the workflow run.
+	RunID          string                 // RunID is the ID of the run
+	RunNumber      string                 // RunNumber is the number of the run
+	RunAttempt     string                 // RunAttempt is the attempt number of the run
+	RetentionDays  string                 // RetentionDays is the number of days to keep the run logs
+	Workflow       core.Workflow          // Workflow is the workflow to run
+	ExecutionOrder []string               // ExecutionOrder is the order of the jobs to run
+	Jobs           map[string]core.JobRun // Jobs is map of the job run id to its result
+	executor       TaskExecutor           // executor is the main task executor that executes the jobs and keeps the execution information.
 }
 
 // Plan plans the workflow and returns the workflow runner.
@@ -51,12 +37,13 @@ func Plan(rc *gctx.Context, workflow, job string) (*WorkflowRunner, error) {
 	}
 
 	runner := &WorkflowRunner{
+		context:       rc,
 		RunID:         runID,
 		RunNumber:     "1",
 		RunAttempt:    "1",
 		RetentionDays: "0",
 		Workflow:      wf,
-		Jobs:          make(map[string]*JobResult),
+		Jobs:          make(map[string]core.JobRun),
 	}
 
 	jrs := make([]*JobRunner, 0)
@@ -68,7 +55,7 @@ func Plan(rc *gctx.Context, workflow, job string) (*WorkflowRunner, error) {
 				return nil, err
 			}
 
-			runner.Jobs[jm.ID] = &JobResult{
+			runner.Jobs[jm.ID] = core.JobRun{
 				RunID:      jobRunID,
 				Conclusion: core.ConclusionSkipped,
 				Outcome:    core.ConclusionSkipped,
@@ -85,42 +72,42 @@ func Plan(rc *gctx.Context, workflow, job string) (*WorkflowRunner, error) {
 
 		jrs = append(jrs, jr)
 
-		runner.Jobs[jm.ID] = &JobResult{Outputs: make(map[string]string)}
+		runner.Jobs[jm.ID] = core.JobRun{Outputs: make(map[string]string)}
 	}
 
 	if len(jrs) == 0 {
 		return nil, fmt.Errorf("job %s not found in workflow %s", job, wf.Name)
 	}
 
-	runner.executor = NewTaskExecutor[WorkflowResult](fmt.Sprintf("Workflow: %s", wf.Name), func(ctx context.Context) (*WorkflowResult, error) {
+	runner.executor = NewTaskExecutor(fmt.Sprintf("Workflow: %s", wf.Name), func(ctx *gctx.Context) (core.Conclusion, error) {
 		for _, jr := range jrs {
-			_, jobResult, err := jr.Run(ctx)
+			_, conclusion, err := jr.Run(ctx)
 
-			runner.Jobs[jr.Job.ID] = jobResult
+			result, ok := runner.Jobs[jr.Job.ID]
+			if !ok {
+				result = core.JobRun{RunID: jr.RunID, Outputs: make(map[string]string)}
+			}
+
+			result.Conclusion = conclusion
+			result.Outcome = conclusion
+
+			runner.Jobs[jr.Job.ID] = result
 
 			if err != nil {
-				res := &WorkflowResult{
-					RunID:      runID,
-					Conclusion: core.ConclusionFailure,
-					Jobs:       runner.Jobs,
-				}
-
-				return res, err
+				return core.ConclusionFailure, err
 			}
 		}
 
-		result := &WorkflowResult{RunID: runner.RunID, Conclusion: core.ConclusionSuccess, Jobs: runner.Jobs}
-
-		return result, nil
+		return core.ConclusionSuccess, nil
 	})
 
 	return runner, nil
 }
 
 // Run runs the workflow..
-func (r *WorkflowRunner) Run(ctx context.Context) error {
+func (r *WorkflowRunner) Run() error {
 	// ignore the result for now, we will use it later
-	_, _, err := r.executor.Run(ctx)
+	_, _, err := r.executor.Run(r.context)
 	if err != nil {
 		return err
 	}

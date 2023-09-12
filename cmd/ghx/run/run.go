@@ -31,7 +31,7 @@ func NewCommand() *cobra.Command {
 				return err
 			}
 
-			return runner.Run(cmd.Context())
+			return runner.Run()
 		},
 	}
 
