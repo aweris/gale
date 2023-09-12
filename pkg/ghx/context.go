@@ -12,12 +12,7 @@ import (
 var _ expression.VariableProvider = new(ExprContext)
 
 type ExprContext struct {
-	Github  gctx.GithubContext
-	Runner  gctx.RunnerContext
-	Job     gctx.JobContext
-	Steps   gctx.StepsContext
-	Secrets gctx.SecretsContext
-	Inputs  gctx.InputsContext
+	*gctx.Context
 
 	// TODO: add other contexts when needed.
 	//  - env context
@@ -31,14 +26,7 @@ type ExprContext struct {
 // TODO: we'll remove this slowly and replace it with the new context.
 
 func NewExprContext(ctx *gctx.Context) (*ExprContext, error) {
-	return &ExprContext{
-		Github:  ctx.Github,
-		Runner:  ctx.Runner,
-		Job:     ctx.Job,
-		Steps:   ctx.Steps,
-		Secrets: ctx.Secret,
-		Inputs:  ctx.Inputs,
-	}, nil
+	return &ExprContext{ctx}, nil
 }
 
 func (c *ExprContext) GetVariable(name string) (interface{}, error) {
