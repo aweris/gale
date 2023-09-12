@@ -21,13 +21,13 @@ type Step interface {
 	condition() TaskConditionalFn
 
 	// main returns the function that executes the main execution logic.
-	main() TaskExecutorFn
+	main() TaskRunFn
 }
 
 // SetupHook is the interface that defines contract for steps capable of performing a setup task.
 type SetupHook interface {
 	// setup returns the function that sets up the step before execution.
-	setup() TaskExecutorFn
+	setup() TaskRunFn
 }
 
 // PreHook is the interface that defines contract for steps capable of performing a pre execution task.
@@ -36,7 +36,7 @@ type PreHook interface {
 	preCondition() TaskConditionalFn
 
 	// pre returns the function that executes the pre execution logic just before the main execution.
-	pre() TaskExecutorFn
+	pre() TaskRunFn
 }
 
 // PostHook is the interface that defines contract for steps capable of performing a post execution task.
@@ -45,7 +45,7 @@ type PostHook interface {
 	postCondition() TaskConditionalFn
 
 	// post returns the function that executes the post execution logic just after the main execution.
-	post() TaskExecutorFn
+	post() TaskRunFn
 }
 
 // NewStep creates a new step from the given step configuration.
@@ -81,7 +81,7 @@ type StepAction struct {
 	Action    core.CustomAction
 }
 
-func (s *StepAction) setup() TaskExecutorFn {
+func (s *StepAction) setup() TaskRunFn {
 	return func(ctx *gctx.Context) (core.Conclusion, error) {
 		ca, err := core.LoadActionFromSource(ctx.Context, s.Step.Uses)
 		if err != nil {
@@ -129,7 +129,7 @@ func (s *StepAction) preCondition() TaskConditionalFn {
 	}
 }
 
-func (s *StepAction) pre() TaskExecutorFn {
+func (s *StepAction) pre() TaskRunFn {
 	return func(ctx *gctx.Context) (core.Conclusion, error) {
 		var executor Executor
 
@@ -156,7 +156,7 @@ func (s *StepAction) condition() TaskConditionalFn {
 	}
 }
 
-func (s *StepAction) main() TaskExecutorFn {
+func (s *StepAction) main() TaskRunFn {
 	return func(ctx *gctx.Context) (core.Conclusion, error) {
 		var executor Executor
 
@@ -188,7 +188,7 @@ func (s *StepAction) postCondition() TaskConditionalFn {
 	}
 }
 
-func (s *StepAction) post() TaskExecutorFn {
+func (s *StepAction) post() TaskRunFn {
 	return func(ctx *gctx.Context) (core.Conclusion, error) {
 		var executor Executor
 
@@ -233,7 +233,7 @@ const (
 	extPWSH = ".ps1"
 )
 
-func (s *StepRun) main() TaskExecutorFn {
+func (s *StepRun) main() TaskRunFn {
 	return func(ctx *gctx.Context) (core.Conclusion, error) {
 		var (
 			pre   string
@@ -315,7 +315,7 @@ type StepDocker struct {
 	Step      core.Step
 }
 
-func (s *StepDocker) setup() TaskExecutorFn {
+func (s *StepDocker) setup() TaskRunFn {
 	return func(ctx *gctx.Context) (core.Conclusion, error) {
 		var (
 			image        = strings.TrimPrefix(s.Step.Uses, "docker://")
@@ -343,7 +343,7 @@ func (s *StepDocker) condition() TaskConditionalFn {
 	}
 }
 
-func (s *StepDocker) main() TaskExecutorFn {
+func (s *StepDocker) main() TaskRunFn {
 	return func(ctx *gctx.Context) (core.Conclusion, error) {
 		executor := NewContainerExecutorFromStepDocker(s)
 

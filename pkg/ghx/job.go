@@ -12,14 +12,14 @@ import (
 
 // JobRunner is the runner that executes the job.
 type JobRunner struct {
-	RunID    string        // RunID is the run id of the job run.
-	Job      core.Job      // Job is the job to be executed.
-	context  *gctx.Context // context is the expression context for the job run.
-	executor TaskExecutor  // executor is the main task executor that executes the job and keeps the execution information.
+	RunID      string        // RunID is the run id of the job run.
+	Job        core.Job      // Job is the job to be executed.
+	context    *gctx.Context // context is the expression context for the job run.
+	taskRunner TaskRunner    // taskRunner is the main task taskRunner that executes the job and keeps the execution information.
 }
 
 func (r JobRunner) Run(ctx *gctx.Context) (bool, core.Conclusion, error) {
-	return r.executor.Run(ctx)
+	return r.taskRunner.Run(ctx)
 }
 
 // planJob plans the job and returns the job runner.
@@ -37,10 +37,10 @@ func planJob(rc *gctx.Context, job core.Job) (*JobRunner, error) {
 
 	// step task executors that execute the steps
 	var (
-		setupFns = make([]TaskExecutorFn, 0)
-		pre      = make([]TaskExecutor, 0)
-		main     = make([]TaskExecutor, 0)
-		post     = make([]TaskExecutor, 0)
+		setupFns = make([]TaskRunFn, 0)
+		pre      = make([]TaskRunner, 0)
+		main     = make([]TaskRunner, 0)
+		post     = make([]TaskRunner, 0)
 	)
 
 	for idx, step := range job.Steps {
@@ -54,15 +54,15 @@ func planJob(rc *gctx.Context, job core.Job) (*JobRunner, error) {
 		}
 
 		// if step implements setup hook, add the setup function to the setupFns slice to be executed
-		// by the setup task executor.
+		// by the setup task taskRunner.
 		if setup, ok := sr.(SetupHook); ok {
 			setupFns = append(setupFns, setup.setup())
 		}
 
-		// if step implements pre hook, add the pre task executor to the tasks slice.
+		// if step implements pre hook, add the pre task taskRunner to the tasks slice.
 		if hook, ok := sr.(PreHook); ok {
 			// pre task is added same index as the step index
-			pre = append(pre, NewConditionalTaskExecutor(getStepName("Pre", step), hook.pre(), hook.preCondition()))
+			pre = append(pre, NewConditionalTaskRunner(getStepName("Pre", step), hook.pre(), hook.preCondition()))
 		}
 
 		// main tasks starts after pre tasks. so index is step index + len(steps)
@@ -70,27 +70,27 @@ func planJob(rc *gctx.Context, job core.Job) (*JobRunner, error) {
 		if step.Name == "" {
 			prefix = "Run"
 		}
-		main = append(main, NewConditionalTaskExecutor(getStepName(prefix, step), sr.main(), sr.condition()))
+		main = append(main, NewConditionalTaskRunner(getStepName(prefix, step), sr.main(), sr.condition()))
 
 		if hook, ok := sr.(PostHook); ok {
-			post = append(post, NewConditionalTaskExecutor(getStepName("Post", step), hook.post(), hook.postCondition()))
+			post = append(post, NewConditionalTaskRunner(getStepName("Post", step), hook.post(), hook.postCondition()))
 		}
 	}
 
-	var tasks = make([]TaskExecutor, 0)
+	var tasks = make([]TaskRunner, 0)
 
-	tasks = append(tasks, NewTaskExecutor("Set up job", setup(runner, setup(runner, setupFns...))))
+	tasks = append(tasks, NewTaskRunner("Set up job", setup(runner, setup(runner, setupFns...))))
 	tasks = append(tasks, pre...)
 	tasks = append(tasks, main...)
 	tasks = append(tasks, post...)
-	tasks = append(tasks, NewTaskExecutor("Complete job", complete(runner)))
+	tasks = append(tasks, NewTaskRunner("Complete job", complete(runner)))
 
-	// main task executor that executes the job
-	runner.executor = NewTaskExecutor(fmt.Sprintf("Job: %s", job.Name), func(ctx *gctx.Context) (core.Conclusion, error) {
+	// main task taskRunner that executes the job
+	runner.taskRunner = NewTaskRunner(fmt.Sprintf("Job: %s", job.Name), func(ctx *gctx.Context) (core.Conclusion, error) {
 		for _, te := range tasks {
 			run, conclusion, err := te.Run(ctx)
 
-			// no need to continue if the task executor did not run.
+			// no need to continue if the task taskRunner did not run.
 			if !run {
 				continue
 			}
@@ -143,8 +143,8 @@ func planJob(rc *gctx.Context, job core.Job) (*JobRunner, error) {
 	return runner, nil
 }
 
-// setup returns a task executor function that will be executed by the task executor for the setup step.
-func setup(_ *JobRunner, setupFns ...TaskExecutorFn) TaskExecutorFn {
+// setup returns a task taskRunner function that will be executed by the task taskRunner for the setup step.
+func setup(_ *JobRunner, setupFns ...TaskRunFn) TaskRunFn {
 	return func(ctx *gctx.Context) (core.Conclusion, error) {
 		for _, setupFn := range setupFns {
 			conclusion, err := setupFn(ctx)
@@ -161,8 +161,8 @@ func setup(_ *JobRunner, setupFns ...TaskExecutorFn) TaskExecutorFn {
 // readability of the code.
 const MB = 1024 * 1024
 
-// complete returns a task executor function that will be executed by the task executor for the complete step.
-func complete(r *JobRunner) TaskExecutorFn {
+// complete returns a task taskRunner function that will be executed by the task taskRunner for the complete step.
+func complete(r *JobRunner) TaskRunFn {
 	return func(ctx *gctx.Context) (core.Conclusion, error) {
 		log.Infof("Complete", "job", r.Job.Name, "conclusion", r.context.Job.Status)
 

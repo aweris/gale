@@ -9,28 +9,25 @@ import (
 	"github.com/aweris/gale/internal/log"
 )
 
-// TODO: make this implement Executor interface and remove the Run method
-// var _ Executor = new(TaskExecutor)
-
-// TaskExecutor is a task executor that runs a task and keeps status, conclusion and timing information about
+// TaskRunner is a task taskRunner that runs a task and keeps status, conclusion and timing information about
 // the execution.
-type TaskExecutor struct {
+type TaskRunner struct {
 	Name        string            // Name of the execution
 	Ran         bool              // Ran indicates if the execution ran
 	Status      core.Status       // Status of the execution
 	Conclusion  core.Conclusion   // Conclusion of the execution
 	StartedAt   time.Time         // StartedAt time of the execution
 	CompletedAt time.Time         // CompletedAt time of the execution
-	executorFn  TaskExecutorFn    // executorFn is the function to be executed
+	runFn       TaskRunFn         // runFn is the function to be executed
 	conditionFn TaskConditionalFn // conditionFn is the function that determines if the task should be executed
 }
 
-// TaskExecutorFn is the function that will be executed by the task executor.
+// TaskRunFn is the function that will be executed by the task taskRunner.
 //
 // The return values are:
 //   - conclusion: conclusion of the execution
 //   - err: error if any
-type TaskExecutorFn func(ctx *gctx.Context) (conclusion core.Conclusion, err error)
+type TaskRunFn func(ctx *gctx.Context) (conclusion core.Conclusion, err error)
 
 // TaskConditionalFn is the function that determines if the task should be executed. If the task should not be
 // executed, the conclusion is returned as well.
@@ -49,23 +46,23 @@ type TaskExecutorFn func(ctx *gctx.Context) (conclusion core.Conclusion, err err
 //     we can't determine if it is invalid or not in planning phase.
 type TaskConditionalFn func(ctx *gctx.Context) (run bool, conclusion core.Conclusion, err error)
 
-// NewTaskExecutor creates a new task executor.
-func NewTaskExecutor(name string, fn TaskExecutorFn) TaskExecutor {
-	return NewConditionalTaskExecutor(name, fn, nil)
+// NewTaskRunner creates a new task taskRunner.
+func NewTaskRunner(name string, fn TaskRunFn) TaskRunner {
+	return NewConditionalTaskRunner(name, fn, nil)
 }
 
-// NewConditionalTaskExecutor creates a new task executor.
-func NewConditionalTaskExecutor(name string, executorFn TaskExecutorFn, conditionalFn TaskConditionalFn) TaskExecutor {
-	return TaskExecutor{
+// NewConditionalTaskRunner creates a new task taskRunner.
+func NewConditionalTaskRunner(name string, executorFn TaskRunFn, conditionalFn TaskConditionalFn) TaskRunner {
+	return TaskRunner{
 		Name:        name,
 		Status:      core.StatusQueued,
-		executorFn:  executorFn,
+		runFn:       executorFn,
 		conditionFn: conditionalFn,
 	}
 }
 
 // Run runs the task and updates the status, conclusion and timing information.
-func (t *TaskExecutor) Run(ctx *gctx.Context) (run bool, conclusion core.Conclusion, err error) {
+func (t *TaskRunner) Run(ctx *gctx.Context) (run bool, conclusion core.Conclusion, err error) {
 	t.StartedAt = time.Now()
 	t.Status = core.StatusInProgress
 
@@ -90,7 +87,7 @@ func (t *TaskExecutor) Run(ctx *gctx.Context) (run bool, conclusion core.Conclus
 	log.StartGroup()
 	defer log.EndGroup()
 
-	conclusion, err = t.executorFn(ctx)
+	conclusion, err = t.runFn(ctx)
 
 	t.Ran = true
 	t.Conclusion = conclusion

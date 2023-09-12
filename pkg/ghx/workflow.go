@@ -21,7 +21,7 @@ type WorkflowRunner struct {
 	Workflow       core.Workflow          // Workflow is the workflow to run
 	ExecutionOrder []string               // ExecutionOrder is the order of the jobs to run
 	Jobs           map[string]core.JobRun // Jobs is map of the job run id to its result
-	executor       TaskExecutor           // executor is the main task executor that executes the jobs and keeps the execution information.
+	taskRunner     TaskRunner             // taskRunner is the main task taskRunner that executes the jobs and keeps the execution information.
 }
 
 // Plan plans the workflow and returns the workflow runner.
@@ -79,7 +79,7 @@ func Plan(rc *gctx.Context, workflow, job string) (*WorkflowRunner, error) {
 		return nil, fmt.Errorf("job %s not found in workflow %s", job, wf.Name)
 	}
 
-	runner.executor = NewTaskExecutor(fmt.Sprintf("Workflow: %s", wf.Name), func(ctx *gctx.Context) (core.Conclusion, error) {
+	runner.taskRunner = NewTaskRunner(fmt.Sprintf("Workflow: %s", wf.Name), func(ctx *gctx.Context) (core.Conclusion, error) {
 		for _, jr := range jrs {
 			_, conclusion, err := jr.Run(ctx)
 
@@ -107,7 +107,7 @@ func Plan(rc *gctx.Context, workflow, job string) (*WorkflowRunner, error) {
 // Run runs the workflow..
 func (r *WorkflowRunner) Run() error {
 	// ignore the result for now, we will use it later
-	_, _, err := r.executor.Run(r.context)
+	_, _, err := r.taskRunner.Run(r.context)
 	if err != nil {
 		return err
 	}
