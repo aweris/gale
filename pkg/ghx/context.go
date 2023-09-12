@@ -1,65 +1,18 @@
 package ghx
 
 import (
-	"fmt"
-	"math"
-
 	"github.com/aweris/gale/internal/core"
-	"github.com/aweris/gale/internal/expression"
 	"github.com/aweris/gale/internal/gctx"
 )
 
-var _ expression.VariableProvider = new(ExprContext)
-
 type ExprContext struct {
 	*gctx.Context
-
-	// TODO: add other contexts when needed.
-	//  - env context
-	//  - vars context
-	//  - strategy context
-	//  - matrix context
-	//  - needs context
-	//  - jobs context
 }
 
 // TODO: we'll remove this slowly and replace it with the new context.
 
 func NewExprContext(ctx *gctx.Context) (*ExprContext, error) {
 	return &ExprContext{ctx}, nil
-}
-
-func (c *ExprContext) GetVariable(name string) (interface{}, error) {
-	switch name {
-	case "github":
-		return c.Github, nil
-	case "runner":
-		return c.Runner, nil
-	case "env":
-		return map[string]string{}, nil
-	case "vars":
-		return map[string]string{}, nil
-	case "job":
-		return c.Job, nil
-	case "steps":
-		return c.Steps, nil
-	case "secrets":
-		return c.Secrets.Data, nil
-	case "strategy":
-		return map[string]string{}, nil
-	case "matrix":
-		return map[string]string{}, nil
-	case "needs":
-		return map[string]string{}, nil
-	case "inputs":
-		return c.Inputs, nil
-	case "infinity":
-		return math.Inf(1), nil
-	case "nan":
-		return math.NaN(), nil
-	default:
-		return nil, fmt.Errorf("unknown variable: %s", name)
-	}
 }
 
 // WithGithubEnv sets `github.env` from the given environment file. This is path of the temporary file that holds the

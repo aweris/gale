@@ -2,12 +2,15 @@ package gctx
 
 import (
 	"context"
+	"fmt"
+	"math"
 	"os"
 
 	"dagger.io/dagger"
 
 	"github.com/aweris/gale/internal/core"
 	"github.com/aweris/gale/internal/dagger/helpers"
+	"github.com/aweris/gale/internal/expression"
 	"github.com/aweris/gale/pkg/data"
 )
 
@@ -78,6 +81,14 @@ func Load(ctx context.Context, debug bool) (*Context, error) {
 	return gctx, nil
 }
 
+// SetToken sets the Github API token in the context.
+func (c *Context) SetToken(token string) {
+	c.Secrets.SetToken(token)
+	c.Github.SetToken(token)
+}
+
+// helpers.WithContainerFuncHook interface to be loaded in the container.
+
 var _ helpers.WithContainerFuncHook = new(Context)
 
 func (c *Context) WithContainerFunc() dagger.WithContainerFunc {
@@ -101,7 +112,39 @@ func (c *Context) WithContainerFunc() dagger.WithContainerFunc {
 	}
 }
 
-func (c *Context) SetToken(token string) {
-	c.Secrets.SetToken(token)
-	c.Github.SetToken(token)
+// expression.VariableProvider interface to be used in expressions.
+
+var _ expression.VariableProvider = new(Context)
+
+func (c *Context) GetVariable(name string) (interface{}, error) {
+	switch name {
+	case "github":
+		return c.Github, nil
+	case "runner":
+		return c.Runner, nil
+	case "env":
+		return map[string]string{}, nil
+	case "vars":
+		return map[string]string{}, nil
+	case "job":
+		return c.Job, nil
+	case "steps":
+		return c.Steps, nil
+	case "secrets":
+		return c.Secrets, nil
+	case "strategy":
+		return map[string]string{}, nil
+	case "matrix":
+		return map[string]string{}, nil
+	case "needs":
+		return map[string]string{}, nil
+	case "inputs":
+		return c.Inputs, nil
+	case "infinity":
+		return math.Inf(1), nil
+	case "nan":
+		return math.NaN(), nil
+	default:
+		return nil, fmt.Errorf("unknown variable: %s", name)
+	}
 }
