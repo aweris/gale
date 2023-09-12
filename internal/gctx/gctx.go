@@ -75,7 +75,7 @@ func Load(ctx context.Context, debug bool) (*Context, error) {
 
 		gctx.SetToken(token)
 	} else {
-		gctx.Secrets.SetToken(gctx.Github.Token)
+		gctx.Secrets.setToken(gctx.Github.Token)
 	}
 
 	return gctx, nil
@@ -83,8 +83,8 @@ func Load(ctx context.Context, debug bool) (*Context, error) {
 
 // SetToken sets the Github API token in the context.
 func (c *Context) SetToken(token string) {
-	c.Secrets.SetToken(token)
-	c.Github.SetToken(token)
+	c.Secrets.setToken(token)
+	c.Github.setToken(token)
 }
 
 // helpers.WithContainerFuncHook interface to be loaded in the container.

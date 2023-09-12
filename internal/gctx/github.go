@@ -180,8 +180,8 @@ func (c *GithubContext) setRepo(repo *core.Repository) *GithubContext {
 	return c
 }
 
-// SetToken sets the token in the context.
-func (c *GithubContext) SetToken(token string) *GithubContext {
+// setToken sets the token in the context.
+func (c *GithubContext) setToken(token string) *GithubContext {
 	c.Token = token
 
 	return c
