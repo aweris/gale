@@ -1,11 +1,10 @@
 package validate
 
 import (
-	"dagger.io/dagger"
-
 	"github.com/spf13/cobra"
 
 	"github.com/aweris/gale/internal/config"
+	"github.com/aweris/gale/internal/dagger/helpers"
 	"github.com/aweris/gale/pkg/preflight"
 )
 
@@ -23,12 +22,19 @@ func NewCommand() *cobra.Command {
 		Hidden:       true, // It's hidden because it's not ready yet.
 		SilenceUsage: true, // don't print usage when error occurs
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			client, err := dagger.Connect(cmd.Context())
+			client, err := helpers.DefaultClient(cmd.Context())
 			if err != nil {
 				return err
 			}
 
 			config.SetClient(client)
+
+			clientNoLog, err := helpers.NoLogClient(cmd.Context())
+			if err != nil {
+				return err
+			}
+
+			config.SetClientNoLog(clientNoLog)
 
 			if runnerImage != "" {
 				config.SetRunnerImage(runnerImage)

@@ -56,7 +56,7 @@ func GetRepositoryRefFromDir(ctx context.Context, dir *dagger.Directory) (*Repos
 		sha     string
 	)
 
-	out, err := config.Client().
+	out, err := config.ClientNoLog().
 		Container().
 		From("alpine/git").
 		WithMountedDirectory("/src", dir).WithWorkdir("/src").
@@ -88,7 +88,7 @@ func GetRepositoryRefFromDir(ctx context.Context, dir *dagger.Directory) (*Repos
 }
 
 func getRepoSHA(ctx context.Context, dir *dagger.Directory) (string, error) {
-	out, err := config.Client().
+	out, err := config.ClientNoLog().
 		Container().
 		From("alpine/git").
 		WithMountedDirectory("/src", dir).WithWorkdir("/src").
