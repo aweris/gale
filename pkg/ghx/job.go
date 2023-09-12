@@ -6,6 +6,7 @@ import (
 
 	"github.com/aweris/gale/internal/core"
 	"github.com/aweris/gale/internal/expression"
+	"github.com/aweris/gale/internal/gctx"
 	"github.com/aweris/gale/internal/idgen"
 	"github.com/aweris/gale/internal/log"
 )
@@ -34,7 +35,7 @@ type JobRunner struct {
 }
 
 // planJob plans the job and returns the job runner.
-func planJob(job core.Job) (*JobRunner, error) {
+func planJob(rc *gctx.Context, job core.Job) (*JobRunner, error) {
 	runID, err := idgen.GenerateJobRunID()
 	if err != nil {
 		return nil, err
@@ -46,7 +47,7 @@ func planJob(job core.Job) (*JobRunner, error) {
 	}
 
 	// initialize the expression context
-	ec, err := NewExprContext()
+	ec, err := NewExprContext(rc)
 	if err != nil {
 		return nil, err
 	}

@@ -5,6 +5,7 @@ go 1.20
 require (
 	dagger.io/dagger v0.8.4
 	github.com/adrg/xdg v0.4.0
+	github.com/caarlos0/env/v9 v9.0.0
 	github.com/cli/go-gh/v2 v2.1.0
 	github.com/google/uuid v1.3.1
 	github.com/julienschmidt/httprouter v1.3.0

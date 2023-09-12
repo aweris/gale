@@ -20,6 +20,7 @@ const (
 	DirArtifacts = "artifacts"
 	DirRuns      = "runs"
 	DirActions   = "actions"
+	DirSecrets   = "secrets"
 )
 
 var _ helpers.WithContainerFuncHook = new(CacheVolume)
@@ -55,7 +56,8 @@ func source() *dagger.Directory {
 		WithNewDirectory(DirCache).
 		WithNewDirectory(DirArtifacts).
 		WithNewDirectory(DirRuns).
-		WithNewDirectory(DirActions)
+		WithNewDirectory(DirActions).
+		WithNewDirectory(DirSecrets)
 }
 
 func (c *CacheVolume) CacheVolume() *dagger.CacheVolume {
@@ -76,4 +78,8 @@ func RunsPath() string {
 
 func ActionsPath() string {
 	return filepath.Join(MountPath, DirActions)
+}
+
+func SecretsPath() string {
+	return filepath.Join(MountPath, DirSecrets)
 }

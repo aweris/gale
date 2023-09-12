@@ -7,14 +7,14 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/aweris/gale/internal/core"
 	"github.com/aweris/gale/internal/expression"
+	"github.com/aweris/gale/internal/gctx"
 )
 
 var _ expression.VariableProvider = new(TestContext)
 
 type TestContext struct {
-	Github core.GithubContext
+	Github gctx.GithubContext
 }
 
 func (c *TestContext) GetVariable(name string) (interface{}, error) {
@@ -32,7 +32,7 @@ func (c *TestContext) GetVariable(name string) (interface{}, error) {
 
 func TestString_Eval(t *testing.T) {
 	ctx := TestContext{
-		Github: core.GithubContext{
+		Github: gctx.GithubContext{
 			Token: "1234567890",
 		},
 	}
@@ -72,7 +72,7 @@ func TestString_Eval(t *testing.T) {
 
 func TestBool_Eval(t *testing.T) {
 	ctx := TestContext{
-		Github: core.GithubContext{
+		Github: gctx.GithubContext{
 			Token: "1234567890",
 		},
 	}
@@ -111,7 +111,7 @@ func TestBool_Eval(t *testing.T) {
 
 func TestInt_Eval(t *testing.T) {
 	ctx := TestContext{
-		Github: core.GithubContext{
+		Github: gctx.GithubContext{
 			Token: "1234567890",
 		},
 	}
@@ -148,7 +148,7 @@ func TestInt_Eval(t *testing.T) {
 
 func TestFloat_Eval(t *testing.T) {
 	ctx := TestContext{
-		Github: core.GithubContext{
+		Github: gctx.GithubContext{
 			Token: "1234567890",
 		},
 	}
