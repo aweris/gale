@@ -103,8 +103,8 @@ func Plan(rc *gctx.Context, workflow, job string) (*WorkflowRunner, error) {
 
 	opt := TaskOpts{
 		ConditionalFn: nil,
-		PreRunFn:      newTaskPreRunFnForWorkflow(wf),
-		PostRunFn:     newTaskPostRunFnForWorkflow(wf),
+		PreRunFn:      newTaskPreRunFnForWorkflow(runID, wf),
+		PostRunFn:     newTaskPostRunFnForWorkflow(),
 	}
 	runner.taskRunner = NewTaskRunner(fmt.Sprintf("Workflow: %s", wf.Name), runFn, opt)
 
@@ -122,16 +122,24 @@ func (r *WorkflowRunner) Run() error {
 	return nil
 }
 
-func newTaskPreRunFnForWorkflow(wf core.Workflow) TaskPreRunFn {
+func newTaskPreRunFnForWorkflow(runID string, wf core.Workflow) TaskPreRunFn {
 	return func(ctx *gctx.Context) error {
 
-		ctx.SetWorkflow(wf)
+		ctx.SetWorkflow(
+			&core.WorkflowRun{
+				RunID:         runID,
+				RunNumber:     "1",
+				RunAttempt:    "1",
+				RetentionDays: "0",
+				Workflow:      wf,
+			},
+		)
 
 		return nil
 	}
 }
 
-func newTaskPostRunFnForWorkflow(_ core.Workflow) TaskPostRunFn {
+func newTaskPostRunFnForWorkflow() TaskPostRunFn {
 	return func(ctx *gctx.Context) (err error) {
 
 		ctx.UnsetWorkflow()

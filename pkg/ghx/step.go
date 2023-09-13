@@ -49,16 +49,16 @@ type PostHook interface {
 }
 
 // NewStep creates a new step from the given step configuration.
-func NewStep(runner *JobRunner, s core.Step) (Step, error) {
+func NewStep(s core.Step) (Step, error) {
 	var step Step
 
 	switch s.Type() {
 	case core.StepTypeAction:
-		step = &StepAction{runner: runner, Step: s}
+		step = &StepAction{Step: s}
 	case core.StepTypeRun:
-		step = &StepRun{runner: runner, Step: s}
+		step = &StepRun{Step: s}
 	case core.StepTypeDocker:
-		step = &StepDocker{runner: runner, Step: s}
+		step = &StepDocker{Step: s}
 	default:
 		return nil, fmt.Errorf("unknown step type: %s", s.Type())
 	}
@@ -75,7 +75,6 @@ var (
 
 // StepAction is a step that runs an action.
 type StepAction struct {
-	runner    *JobRunner
 	container *dagger.Container
 	Step      core.Step
 	Action    core.CustomAction
@@ -96,7 +95,7 @@ func (s *StepAction) setup() TaskRunFn {
 		if s.Action.Meta.Runs.Using == core.ActionRunsUsingDocker {
 			var (
 				image        = ca.Meta.Runs.Image
-				workspace    = s.runner.context.Github.Workspace
+				workspace    = ctx.Github.Workspace
 				workspaceDir = config.Client().Host().Directory(workspace)
 			)
 
@@ -125,7 +124,7 @@ func (s *StepAction) preCondition() TaskConditionalFn {
 			return false, "", nil
 		}
 
-		return evalStepCondition(condition, s.runner.context)
+		return evalStepCondition(condition, ctx)
 	}
 }
 
@@ -135,9 +134,9 @@ func (s *StepAction) pre() TaskRunFn {
 
 		switch s.Action.Meta.Runs.Using {
 		case core.ActionRunsUsingDocker:
-			executor = NewContainerExecutorFromStepAction(s, s.Action.Meta.Runs.PreEntrypoint)
+			executor = NewContainerExecutorFromStepAction(ctx, s, s.Action.Meta.Runs.PreEntrypoint)
 		case core.ActionRunsUsingNode12, core.ActionRunsUsingNode16:
-			executor = NewCmdExecutorFromStepAction(s, s.Action.Meta.Runs.Pre)
+			executor = NewCmdExecutorFromStepAction(ctx, s, s.Action.Meta.Runs.Pre)
 		default:
 			return core.ConclusionFailure, fmt.Errorf("invalid action runs using: %s", s.Action.Meta.Runs.Using)
 		}
@@ -152,7 +151,7 @@ func (s *StepAction) pre() TaskRunFn {
 
 func (s *StepAction) condition() TaskConditionalFn {
 	return func(ctx *gctx.Context) (bool, core.Conclusion, error) {
-		return evalStepCondition(s.Step.If, s.runner.context)
+		return evalStepCondition(s.Step.If, ctx)
 	}
 }
 
@@ -162,9 +161,9 @@ func (s *StepAction) main() TaskRunFn {
 
 		switch s.Action.Meta.Runs.Using {
 		case core.ActionRunsUsingDocker:
-			executor = NewContainerExecutorFromStepAction(s, s.Action.Meta.Runs.Entrypoint)
+			executor = NewContainerExecutorFromStepAction(ctx, s, s.Action.Meta.Runs.Entrypoint)
 		case core.ActionRunsUsingNode12, core.ActionRunsUsingNode16:
-			executor = NewCmdExecutorFromStepAction(s, s.Action.Meta.Runs.Main)
+			executor = NewCmdExecutorFromStepAction(ctx, s, s.Action.Meta.Runs.Main)
 		default:
 			return core.ConclusionFailure, fmt.Errorf("invalid action runs using: %s", s.Action.Meta.Runs.Using)
 		}
@@ -184,7 +183,7 @@ func (s *StepAction) postCondition() TaskConditionalFn {
 			return false, "", nil
 		}
 
-		return evalStepCondition(condition, s.runner.context)
+		return evalStepCondition(condition, ctx)
 	}
 }
 
@@ -194,9 +193,9 @@ func (s *StepAction) post() TaskRunFn {
 
 		switch s.Action.Meta.Runs.Using {
 		case core.ActionRunsUsingDocker:
-			executor = NewContainerExecutorFromStepAction(s, s.Action.Meta.Runs.PostEntrypoint)
+			executor = NewContainerExecutorFromStepAction(ctx, s, s.Action.Meta.Runs.PostEntrypoint)
 		case core.ActionRunsUsingNode12, core.ActionRunsUsingNode16:
-			executor = NewCmdExecutorFromStepAction(s, s.Action.Meta.Runs.Post)
+			executor = NewCmdExecutorFromStepAction(ctx, s, s.Action.Meta.Runs.Post)
 		default:
 			return core.ConclusionFailure, fmt.Errorf("invalid action runs using: %s", s.Action.Meta.Runs.Using)
 		}
@@ -213,7 +212,6 @@ var _ Step = new(StepRun)
 
 // StepRun is a step that runs a job.
 type StepRun struct {
-	runner    *JobRunner
 	Step      core.Step
 	Shell     string   // Shell is the shell to use to run the script.
 	ShellArgs []string // ShellArgs are the arguments to pass to the shell.
@@ -223,7 +221,7 @@ type StepRun struct {
 
 func (s *StepRun) condition() TaskConditionalFn {
 	return func(ctx *gctx.Context) (bool, core.Conclusion, error) {
-		return evalStepCondition(s.Step.If, s.runner.context)
+		return evalStepCondition(s.Step.If, ctx)
 	}
 }
 
@@ -242,7 +240,12 @@ func (s *StepRun) main() TaskRunFn {
 			shell = s.Step.Shell
 		)
 
-		path := filepath.Join(config.GhxRunDir(s.runner.RunID), "scripts", s.Step.ID, "run.sh")
+		jrPath, err := ctx.GetJobRunPath()
+		if err != nil {
+			return core.ConclusionFailure, err
+		}
+
+		path := filepath.Join(jrPath, "scripts", s.Step.ID, "run.sh")
 
 		// TODO: add support and test for "pwsh" shell. This is not supported for now because we don't have a pwsh image,
 		//  and we don't have a way to test it for now. We'll add support for it later after making sure that it works.
@@ -277,7 +280,7 @@ func (s *StepRun) main() TaskRunFn {
 		}
 
 		// evaluate run script against the expressions
-		run, err := expression.NewString(s.Step.Run).Eval(s.runner.context)
+		run, err := expression.NewString(s.Step.Run).Eval(ctx)
 		if err != nil {
 			return core.ConclusionFailure, err
 		}
@@ -293,7 +296,7 @@ func (s *StepRun) main() TaskRunFn {
 		s.ShellArgs = args
 		s.Path = path
 
-		cmd := NewCmdExecutorFromStepRun(s)
+		cmd := NewCmdExecutorFromStepRun(ctx, s)
 
 		err = cmd.Execute(ctx)
 		if err != nil && !s.Step.ContinueOnError {
@@ -310,7 +313,6 @@ var (
 )
 
 type StepDocker struct {
-	runner    *JobRunner
 	container *dagger.Container
 	Step      core.Step
 }
@@ -319,7 +321,7 @@ func (s *StepDocker) setup() TaskRunFn {
 	return func(ctx *gctx.Context) (core.Conclusion, error) {
 		var (
 			image        = strings.TrimPrefix(s.Step.Uses, "docker://")
-			workspace    = s.runner.context.Github.Workspace
+			workspace    = ctx.Github.Workspace
 			workspaceDir = config.Client().Host().Directory(workspace)
 		)
 
@@ -339,13 +341,13 @@ func (s *StepDocker) setup() TaskRunFn {
 
 func (s *StepDocker) condition() TaskConditionalFn {
 	return func(ctx *gctx.Context) (bool, core.Conclusion, error) {
-		return evalStepCondition(s.Step.If, s.runner.context)
+		return evalStepCondition(s.Step.If, ctx)
 	}
 }
 
 func (s *StepDocker) main() TaskRunFn {
 	return func(ctx *gctx.Context) (core.Conclusion, error) {
-		executor := NewContainerExecutorFromStepDocker(s)
+		executor := NewContainerExecutorFromStepDocker(ctx, s)
 
 		err := executor.Execute(ctx)
 		if err != nil && !s.Step.ContinueOnError {
@@ -358,7 +360,6 @@ func (s *StepDocker) main() TaskRunFn {
 
 func newTaskPreRunFnForStep(step core.Step) TaskPreRunFn {
 	return func(ctx *gctx.Context) error {
-
 		ctx.SetStep(step)
 
 		return nil
@@ -367,7 +368,6 @@ func newTaskPreRunFnForStep(step core.Step) TaskPreRunFn {
 
 func newTaskPostRunFnForStep(_ core.Step) TaskPostRunFn {
 	return func(ctx *gctx.Context) (err error) {
-
 		ctx.UnsetStep()
 
 		return nil

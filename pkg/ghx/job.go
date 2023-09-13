@@ -48,7 +48,7 @@ func planJob(rc *gctx.Context, job core.Job) (*JobRunner, error) {
 			step.ID = fmt.Sprintf("%d", idx)
 		}
 
-		sr, err := NewStep(runner, step)
+		sr, err := NewStep(step)
 		if err != nil {
 			return nil, err
 		}
@@ -161,8 +161,8 @@ func planJob(rc *gctx.Context, job core.Job) (*JobRunner, error) {
 	// main task taskRunner that executes the job
 	opt := TaskOpts{
 		ConditionalFn: nil,
-		PreRunFn:      newTaskPreRunFnForJob(job),
-		PostRunFn:     newTaskPostRunFnForJob(job),
+		PreRunFn:      newTaskPreRunFnForJob(runID, job),
+		PostRunFn:     newTaskPostRunFnForJob(),
 	}
 	runner.taskRunner = NewTaskRunner(fmt.Sprintf("Job: %s", job.Name), runFn, opt)
 
@@ -196,18 +196,24 @@ func complete(r *JobRunner) TaskRunFn {
 	}
 }
 
-func newTaskPreRunFnForJob(job core.Job) TaskPreRunFn {
+func newTaskPreRunFnForJob(runID string, job core.Job) TaskPreRunFn {
 	return func(ctx *gctx.Context) error {
-
-		ctx.SetJob(job)
+		ctx.SetJob(
+			&core.JobRun{
+				RunID:      runID,
+				Job:        job,
+				Conclusion: "",
+				Outcome:    "",
+				Outputs:    make(map[string]string),
+			},
+		)
 
 		return nil
 	}
 }
 
-func newTaskPostRunFnForJob(_ core.Job) TaskPostRunFn {
+func newTaskPostRunFnForJob() TaskPostRunFn {
 	return func(ctx *gctx.Context) (err error) {
-
 		ctx.UnsetJob()
 
 		return nil
