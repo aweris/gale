@@ -154,7 +154,7 @@ func (c *CmdExecutor) Execute(ctx *gctx.Context) error {
 
 	waitErr := cmd.Wait()
 
-	if err := processEnvironmentFiles(ctx, c.ec.Execution.Step.ID, c.envFiles, c.ec); err != nil {
+	if err := processEnvironmentFiles(ctx, c.envFiles, c.ec); err != nil {
 		return err
 	}
 
@@ -239,9 +239,13 @@ func (c *CmdExecutor) processWorkflowCommands(cmd *core.WorkflowCommand) error {
 			return err
 		}
 	case "set-output":
-		c.ec.SetStepOutput(c.ec.Execution.Step.ID, cmd.Parameters["name"], cmd.Value)
+		if err := c.ec.SetStepOutput(cmd.Parameters["name"], cmd.Value); err != nil {
+			return err
+		}
 	case "save-state":
-		c.ec.SetStepState(c.ec.Execution.Step.ID, cmd.Parameters["name"], cmd.Value)
+		if err := c.ec.SetStepState(cmd.Parameters["name"], cmd.Value); err != nil {
+			return err
+		}
 	case "add-mask":
 		log.Info(fmt.Sprintf("[add-mask] %s", cmd.Value))
 	case "add-matcher":

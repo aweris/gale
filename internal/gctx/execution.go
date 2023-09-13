@@ -55,3 +55,71 @@ func (c *Context) SetStep(step core.Step) error {
 func (c *Context) UnsetStep() {
 	c.Execution.Step = nil
 }
+
+// SetStepOutput sets the output of the given step.
+func (c *Context) SetStepOutput(key, value string) error {
+	if c.Execution.Step == nil {
+		return errors.New("no step is set")
+	}
+
+	stepID := c.Execution.Step.ID
+
+	sc, ok := c.Steps[stepID]
+	if !ok {
+		sc = StepContext{}
+	}
+
+	if sc.Outputs == nil {
+		sc.Outputs = make(map[string]string)
+	}
+
+	sc.Outputs[key] = value
+
+	c.Steps[stepID] = sc
+
+	return nil
+}
+
+// SetStepSummary sets the summary of the given step.
+func (c *Context) SetStepSummary(summary string) error {
+	if c.Execution.Step == nil {
+		return errors.New("no step is set")
+	}
+
+	stepID := c.Execution.Step.ID
+
+	sc, ok := c.Steps[stepID]
+	if !ok {
+		sc = StepContext{}
+	}
+
+	sc.Summary = summary
+
+	c.Steps[stepID] = sc
+
+	return nil
+}
+
+// SetStepState sets the state of the given step.
+func (c *Context) SetStepState(key, value string) error {
+	if c.Execution.Step == nil {
+		return errors.New("no step is set")
+	}
+
+	stepID := c.Execution.Step.ID
+
+	sc, ok := c.Steps[stepID]
+	if !ok {
+		sc = StepContext{}
+	}
+
+	if sc.State == nil {
+		sc.State = make(map[string]string)
+	}
+
+	sc.State[key] = value
+
+	c.Steps[stepID] = sc
+
+	return nil
+}

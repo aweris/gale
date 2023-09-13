@@ -176,7 +176,7 @@ func (c *ContainerExecutor) Execute(ctx *gctx.Context) error {
 		}
 	}
 
-	return processEnvironmentFiles(ctx, c.ec.Execution.Step.ID, c.envFiles, c.ec)
+	return processEnvironmentFiles(ctx, c.envFiles, c.ec)
 }
 
 func (c *ContainerExecutor) loadEnvFiles() error {
@@ -229,9 +229,9 @@ func (c *ContainerExecutor) processWorkflowCommands(cmd *core.WorkflowCommand) e
 			return err
 		}
 	case "set-output":
-		c.ec.SetStepOutput(c.ec.Execution.Step.ID, cmd.Parameters["name"], cmd.Value)
+		c.ec.SetStepOutput(cmd.Parameters["name"], cmd.Value)
 	case "save-state":
-		c.ec.SetStepState(c.ec.Execution.Step.ID, cmd.Parameters["name"], cmd.Value)
+		c.ec.SetStepState(cmd.Parameters["name"], cmd.Value)
 	case "add-mask":
 		log.Info(fmt.Sprintf("[add-mask] %s", cmd.Value))
 	case "add-matcher":

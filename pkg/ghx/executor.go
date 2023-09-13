@@ -21,7 +21,7 @@ type EnvironmentFiles struct {
 	StepSummary core.EnvironmentFile // StepSummary is the environment file that holds the step summary
 }
 
-func processEnvironmentFiles(ctx *gctx.Context, stepID string, ef *EnvironmentFiles, ec *gctx.Context) error {
+func processEnvironmentFiles(ctx *gctx.Context, ef *EnvironmentFiles, ec *gctx.Context) error {
 	if ef == nil {
 		return nil
 	}
@@ -58,7 +58,7 @@ func processEnvironmentFiles(ctx *gctx.Context, stepID string, ef *EnvironmentFi
 	}
 
 	for k, v := range outputs {
-		ec.SetStepOutput(stepID, k, v)
+		ec.SetStepOutput(k, v)
 	}
 
 	stepSummary, err := ef.StepSummary.RawData(ctx.Context)
@@ -66,7 +66,7 @@ func processEnvironmentFiles(ctx *gctx.Context, stepID string, ef *EnvironmentFi
 		return err
 	}
 
-	ec.SetStepSummary(stepID, stepSummary)
+	ec.SetStepSummary(stepSummary)
 
 	return nil
 }

@@ -32,24 +32,6 @@ func (c *Context) WithoutGithubPath() *Context {
 	return c
 }
 
-// SetStepOutput sets the output of the given step.
-func (c *Context) SetStepOutput(stepID, key, value string) *Context {
-	sc, ok := c.Steps[stepID]
-	if !ok {
-		sc = StepContext{}
-	}
-
-	if sc.Outputs == nil {
-		sc.Outputs = make(map[string]string)
-	}
-
-	sc.Outputs[key] = value
-
-	c.Steps[stepID] = sc
-
-	return c
-}
-
 // SetStepResult sets the result of the given step.
 func (c *Context) SetStepResult(stepID string, outcome, conclusion core.Conclusion) *Context {
 	sc, ok := c.Steps[stepID]
@@ -59,38 +41,6 @@ func (c *Context) SetStepResult(stepID string, outcome, conclusion core.Conclusi
 
 	sc.Outcome = outcome
 	sc.Conclusion = conclusion
-
-	c.Steps[stepID] = sc
-
-	return c
-}
-
-// SetStepSummary sets the summary of the given step.
-func (c *Context) SetStepSummary(stepID, summary string) *Context {
-	sc, ok := c.Steps[stepID]
-	if !ok {
-		sc = StepContext{}
-	}
-
-	sc.Summary = summary
-
-	c.Steps[stepID] = sc
-
-	return c
-}
-
-// SetStepState sets the state of the given step.
-func (c *Context) SetStepState(stepID, key, value string) *Context {
-	sc, ok := c.Steps[stepID]
-	if !ok {
-		sc = StepContext{}
-	}
-
-	if sc.State == nil {
-		sc.State = make(map[string]string)
-	}
-
-	sc.State[key] = value
 
 	c.Steps[stepID] = sc
 
