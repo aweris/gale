@@ -10,29 +10,11 @@ import (
 	"github.com/aweris/gale/internal/log"
 )
 
-// JobRunner is the runner that executes the job.
-type JobRunner struct {
-	RunID      string        // RunID is the run id of the job run.
-	Job        core.Job      // Job is the job to be executed.
-	context    *gctx.Context // context is the expression context for the job run.
-	taskRunner TaskRunner    // taskRunner is the main task taskRunner that executes the job and keeps the execution information.
-}
-
-func (r JobRunner) Run(ctx *gctx.Context) (bool, core.Conclusion, error) {
-	return r.taskRunner.Run(ctx)
-}
-
 // planJob plans the job and returns the job runner.
-func planJob(rc *gctx.Context, job core.Job) (*JobRunner, error) {
+func planJob(job core.Job) (*TaskRunner, error) {
 	runID, err := idgen.GenerateJobRunID()
 	if err != nil {
 		return nil, err
-	}
-
-	runner := &JobRunner{
-		RunID:   runID,
-		Job:     job,
-		context: rc,
 	}
 
 	// step task executors that execute the steps
@@ -102,7 +84,7 @@ func planJob(rc *gctx.Context, job core.Job) (*JobRunner, error) {
 	tasks = append(tasks, pre...)
 	tasks = append(tasks, main...)
 	tasks = append(tasks, post...)
-	tasks = append(tasks, NewTaskRunner("Complete job", complete(runner)))
+	tasks = append(tasks, NewTaskRunner("Complete job", complete()))
 
 	runFn := func(ctx *gctx.Context) (core.Conclusion, error) {
 		for _, te := range tasks {
@@ -118,16 +100,16 @@ func planJob(rc *gctx.Context, job core.Job) (*JobRunner, error) {
 			}
 
 			// set the job status to the conclusion of the job status is success and the conclusion is not success.
-			if runner.context.Job.Status == core.ConclusionSuccess && conclusion != runner.context.Job.Status {
-				runner.context.SetJobStatus(conclusion)
+			if ctx.Job.Status == core.ConclusionSuccess && conclusion != ctx.Job.Status {
+				ctx.SetJobStatus(conclusion)
 			}
 		}
 
 		totalSize := 0
-		outputs := make(map[string]string, len(runner.Job.Outputs))
+		outputs := make(map[string]string, len(ctx.Execution.JobRun.Job.Outputs))
 
-		for k, v := range runner.Job.Outputs {
-			val, err := expression.NewString(v).Eval(runner.context)
+		for k, v := range ctx.Execution.JobRun.Job.Outputs {
+			val, err := expression.NewString(v).Eval(ctx)
 			if err != nil {
 				return core.ConclusionFailure, err
 			}
@@ -155,18 +137,18 @@ func planJob(rc *gctx.Context, job core.Job) (*JobRunner, error) {
 			log.Warnf("Total size of the outputs is bigger than 50MB", "size", fmt.Sprintf("%dMB", totalSize/MB))
 		}
 
-		return runner.context.Job.Status, nil
+		return ctx.Job.Status, nil
 	}
 
-	// main task taskRunner that executes the job
+	// task runner options for the job
 	opt := TaskOpts{
-		ConditionalFn: nil,
-		PreRunFn:      newTaskPreRunFnForJob(runID, job),
-		PostRunFn:     newTaskPostRunFnForJob(),
+		PreRunFn:  newTaskPreRunFnForJob(runID, job),
+		PostRunFn: newTaskPostRunFnForJob(),
 	}
-	runner.taskRunner = NewTaskRunner(fmt.Sprintf("Job: %s", job.Name), runFn, opt)
 
-	return runner, nil
+	runner := NewTaskRunner(fmt.Sprintf("Job: %s", job.Name), runFn, opt)
+
+	return &runner, nil
 }
 
 // setup returns a task taskRunner function that will be executed by the task taskRunner for the setup step.
@@ -188,9 +170,9 @@ func setup(setupFns ...TaskRunFn) TaskRunFn {
 const MB = 1024 * 1024
 
 // complete returns a task taskRunner function that will be executed by the task taskRunner for the complete step.
-func complete(r *JobRunner) TaskRunFn {
+func complete() TaskRunFn {
 	return func(ctx *gctx.Context) (core.Conclusion, error) {
-		log.Infof("Complete", "job", r.Job.Name, "conclusion", r.context.Job.Status)
+		log.Infof("Complete", "job", ctx.Execution.JobRun.Job.Name, "conclusion", ctx.Job.Status)
 
 		return core.ConclusionSuccess, nil
 	}

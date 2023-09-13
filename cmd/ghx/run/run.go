@@ -16,22 +16,35 @@ func NewCommand() *cobra.Command {
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Load context
-			rc, err := gctx.Load(cmd.Context(), config.Debug())
+			ctx, err := gctx.Load(cmd.Context(), config.Debug())
 			if err != nil {
 				return err
 			}
 
 			// Load repository
-			if err := rc.LoadCurrentRepo(); err != nil {
+			if err := ctx.LoadCurrentRepo(); err != nil {
 				return err
 			}
 
-			runner, err := ghx.Plan(rc, args[0], args[1])
+			// Load workflow
+			wf, ok := ctx.Repo.Workflows[args[0]]
+			if !ok {
+				return ghx.ErrWorkflowNotFound
+			}
+
+			// Create task runner for the workflow
+			runner, err := ghx.Plan(wf, args[1])
 			if err != nil {
 				return err
 			}
 
-			return runner.Run()
+			// Run the workflow
+			_, _, err = runner.Run(ctx)
+			if err != nil {
+				return err
+			}
+
+			return nil
 		},
 	}
 

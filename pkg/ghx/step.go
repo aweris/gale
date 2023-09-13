@@ -73,6 +73,9 @@ var (
 	_ SetupHook = new(StepAction)
 )
 
+// FIXME: Currently Steps and context holds the shared information. This is not a good design. We should refactor this
+//  to make sure that steps and context are not sharing the same information.
+
 // StepAction is a step that runs an action.
 type StepAction struct {
 	container *dagger.Container

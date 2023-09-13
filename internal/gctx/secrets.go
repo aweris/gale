@@ -72,17 +72,14 @@ func (c *SecretsContext) WithContainerFunc() dagger.WithContainerFunc {
 }
 
 // setToken sets the token in the context.
-func (c *SecretsContext) setToken(token string) *SecretsContext {
+func (c *SecretsContext) setToken(token string) {
 	c.Data["GITHUB_TOKEN"] = token // GITHUB_TOKEN is a special secret that is always available to the workflow.
-
-	return c
 }
 
 // SetSecrets sets the secrets to the context.
-func (c *SecretsContext) SetSecrets(secrets map[string]string) *SecretsContext {
+func (c *SecretsContext) SetSecrets(secrets map[string]string) {
 	for k, v := range secrets {
 		c.Data[k] = v
 	}
 
-	return c
 }
