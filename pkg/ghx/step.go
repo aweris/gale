@@ -2,7 +2,6 @@ package ghx
 
 import (
 	"fmt"
-	"github.com/aweris/gale/internal/gctx"
 	"path/filepath"
 	"strings"
 
@@ -12,6 +11,7 @@ import (
 	"github.com/aweris/gale/internal/core"
 	"github.com/aweris/gale/internal/expression"
 	"github.com/aweris/gale/internal/fs"
+	"github.com/aweris/gale/internal/gctx"
 	"github.com/aweris/gale/internal/log"
 )
 
@@ -353,5 +353,23 @@ func (s *StepDocker) main() TaskRunFn {
 		}
 
 		return core.ConclusionSuccess, nil
+	}
+}
+
+func newTaskPreRunFnForStep(_ core.Step) TaskPreRunFn {
+	return func(ctx *gctx.Context) error {
+
+		// TBD
+
+		return nil
+	}
+}
+
+func newTaskPostRunFnForStep(_ core.Step) TaskPostRunFn {
+	return func(ctx *gctx.Context) (err error) {
+
+		// TBD
+
+		return nil
 	}
 }

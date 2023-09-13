@@ -53,6 +53,9 @@ func planJob(rc *gctx.Context, job core.Job) (*JobRunner, error) {
 			return nil, err
 		}
 
+		preFn := newTaskPreRunFnForStep(step)
+		postFn := newTaskPostRunFnForStep(step)
+
 		// if step implements setup hook, add the setup function to the setupFns slice to be executed
 		// by the setup task taskRunner.
 		if setup, ok := sr.(SetupHook); ok {
@@ -61,8 +64,19 @@ func planJob(rc *gctx.Context, job core.Job) (*JobRunner, error) {
 
 		// if step implements pre hook, add the pre task taskRunner to the tasks slice.
 		if hook, ok := sr.(PreHook); ok {
-			// pre task is added same index as the step index
-			pre = append(pre, NewConditionalTaskRunner(getStepName("Pre", step), hook.pre(), hook.preCondition()))
+			opt := TaskOpts{
+				ConditionalFn: hook.preCondition(),
+				PreRunFn:      preFn,
+				PostRunFn:     postFn,
+			}
+			pre = append(pre, NewTaskRunner(getStepName("Pre", step), hook.pre(), opt))
+		}
+
+		// main task options
+		opt := TaskOpts{
+			ConditionalFn: sr.condition(),
+			PreRunFn:      preFn,
+			PostRunFn:     postFn,
 		}
 
 		// main tasks starts after pre tasks. so index is step index + len(steps)
@@ -70,10 +84,15 @@ func planJob(rc *gctx.Context, job core.Job) (*JobRunner, error) {
 		if step.Name == "" {
 			prefix = "Run"
 		}
-		main = append(main, NewConditionalTaskRunner(getStepName(prefix, step), sr.main(), sr.condition()))
+		main = append(main, NewTaskRunner(getStepName(prefix, step), sr.main(), opt))
 
 		if hook, ok := sr.(PostHook); ok {
-			post = append(post, NewConditionalTaskRunner(getStepName("Post", step), hook.post(), hook.postCondition()))
+			opt := TaskOpts{
+				ConditionalFn: hook.postCondition(),
+				PreRunFn:      preFn,
+				PostRunFn:     postFn,
+			}
+			post = append(post, NewTaskRunner(getStepName("Post", step), hook.post(), opt))
 		}
 	}
 
@@ -85,8 +104,7 @@ func planJob(rc *gctx.Context, job core.Job) (*JobRunner, error) {
 	tasks = append(tasks, post...)
 	tasks = append(tasks, NewTaskRunner("Complete job", complete(runner)))
 
-	// main task taskRunner that executes the job
-	runner.taskRunner = NewTaskRunner(fmt.Sprintf("Job: %s", job.Name), func(ctx *gctx.Context) (core.Conclusion, error) {
+	runFn := func(ctx *gctx.Context) (core.Conclusion, error) {
 		for _, te := range tasks {
 			run, conclusion, err := te.Run(ctx)
 
@@ -138,7 +156,15 @@ func planJob(rc *gctx.Context, job core.Job) (*JobRunner, error) {
 		}
 
 		return runner.context.Job.Status, nil
-	})
+	}
+
+	// main task taskRunner that executes the job
+	opt := TaskOpts{
+		ConditionalFn: nil,
+		PreRunFn:      newTaskPreRunFnForJob(job),
+		PostRunFn:     newTaskPostRunFnForJob(job),
+	}
+	runner.taskRunner = NewTaskRunner(fmt.Sprintf("Job: %s", job.Name), runFn, opt)
 
 	return runner, nil
 }
@@ -167,5 +193,23 @@ func complete(r *JobRunner) TaskRunFn {
 		log.Infof("Complete", "job", r.Job.Name, "conclusion", r.context.Job.Status)
 
 		return core.ConclusionSuccess, nil
+	}
+}
+
+func newTaskPreRunFnForJob(_ core.Job) TaskPreRunFn {
+	return func(ctx *gctx.Context) error {
+
+		// TBD
+
+		return nil
+	}
+}
+
+func newTaskPostRunFnForJob(_ core.Job) TaskPostRunFn {
+	return func(ctx *gctx.Context) (err error) {
+
+		// TBD
+
+		return nil
 	}
 }

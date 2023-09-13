@@ -20,6 +20,8 @@ type TaskRunner struct {
 	CompletedAt time.Time         // CompletedAt time of the execution
 	runFn       TaskRunFn         // runFn is the function to be executed
 	conditionFn TaskConditionalFn // conditionFn is the function that determines if the task should be executed
+	preFn       TaskPreRunFn      // preFn is the function that will be executed before the task is executed
+	postFn      TaskPostRunFn     // postFn is the function that will be executed after the task is executed
 }
 
 // TaskRunFn is the function that will be executed by the task taskRunner.
@@ -46,18 +48,38 @@ type TaskRunFn func(ctx *gctx.Context) (conclusion core.Conclusion, err error)
 //     we can't determine if it is invalid or not in planning phase.
 type TaskConditionalFn func(ctx *gctx.Context) (run bool, conclusion core.Conclusion, err error)
 
-// NewTaskRunner creates a new task taskRunner.
-func NewTaskRunner(name string, fn TaskRunFn) TaskRunner {
-	return NewConditionalTaskRunner(name, fn, nil)
+// TaskPreRunFn is the function that will be executed before the task is executed. If the function returns an error,
+// the task will not be executed. PreRunFn is useful for tasks that need to perform some actions before the execution
+// starts.
+type TaskPreRunFn func(ctx *gctx.Context) (err error)
+
+// TaskPostRunFn is the function that will be executed after the task is executed. If the function returns an error,
+// the task will be marked as failed. PostRunFn is useful for tasks that need to perform some actions after the
+// execution ends.
+type TaskPostRunFn func(ctx *gctx.Context) (err error)
+
+// TaskOpts is the options that can be used to configure a task.
+type TaskOpts struct {
+	PreRunFn      TaskPreRunFn
+	PostRunFn     TaskPostRunFn
+	ConditionalFn TaskConditionalFn
 }
 
-// NewConditionalTaskRunner creates a new task taskRunner.
-func NewConditionalTaskRunner(name string, executorFn TaskRunFn, conditionalFn TaskConditionalFn) TaskRunner {
+// NewTaskRunner creates a new task taskRunner. Optionally, it can be configured with the given options. Only first
+// option is used if multiple options are provided.
+func NewTaskRunner(name string, fn TaskRunFn, opts ...TaskOpts) TaskRunner {
+	var opt TaskOpts
+	if len(opts) > 0 {
+		opt = opts[0]
+	}
+
 	return TaskRunner{
 		Name:        name,
 		Status:      core.StatusQueued,
-		runFn:       executorFn,
-		conditionFn: conditionalFn,
+		runFn:       fn,
+		conditionFn: opt.ConditionalFn,
+		preFn:       opt.PreRunFn,
+		postFn:      opt.PostRunFn,
 	}
 }
 
@@ -87,6 +109,19 @@ func (t *TaskRunner) Run(ctx *gctx.Context) (run bool, conclusion core.Conclusio
 	log.StartGroup()
 	defer log.EndGroup()
 
+	// run preFn if any
+	if t.preFn != nil {
+		if err := t.preFn(ctx); err != nil {
+			t.Ran = true
+			t.Conclusion = core.ConclusionFailure
+			t.CompletedAt = time.Now()
+			t.Status = core.StatusCompleted
+
+			return false, core.ConclusionFailure, err
+		}
+	}
+
+	// run the task
 	conclusion, err = t.runFn(ctx)
 
 	t.Ran = true
@@ -94,5 +129,19 @@ func (t *TaskRunner) Run(ctx *gctx.Context) (run bool, conclusion core.Conclusio
 	t.CompletedAt = time.Now()
 	t.Status = core.StatusCompleted
 
-	return run, conclusion, err
+	if err != nil {
+		return run, conclusion, err
+	}
+
+	// run postFn if any
+	if t.postFn != nil {
+		if err := t.postFn(ctx); err != nil {
+			t.Conclusion = core.ConclusionFailure
+			t.Status = core.StatusCompleted
+
+			return false, core.ConclusionFailure, err
+		}
+	}
+
+	return run, conclusion, nil
 }

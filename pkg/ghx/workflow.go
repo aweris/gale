@@ -79,7 +79,7 @@ func Plan(rc *gctx.Context, workflow, job string) (*WorkflowRunner, error) {
 		return nil, fmt.Errorf("job %s not found in workflow %s", job, wf.Name)
 	}
 
-	runner.taskRunner = NewTaskRunner(fmt.Sprintf("Workflow: %s", wf.Name), func(ctx *gctx.Context) (core.Conclusion, error) {
+	runFn := func(ctx *gctx.Context) (core.Conclusion, error) {
 		for _, jr := range jrs {
 			_, conclusion, err := jr.Run(ctx)
 
@@ -99,7 +99,14 @@ func Plan(rc *gctx.Context, workflow, job string) (*WorkflowRunner, error) {
 		}
 
 		return core.ConclusionSuccess, nil
-	})
+	}
+
+	opt := TaskOpts{
+		ConditionalFn: nil,
+		PreRunFn:      newTaskPreRunFnForWorkflow(wf),
+		PostRunFn:     newTaskPostRunFnForWorkflow(wf),
+	}
+	runner.taskRunner = NewTaskRunner(fmt.Sprintf("Workflow: %s", wf.Name), runFn, opt)
 
 	return runner, nil
 }
@@ -113,4 +120,22 @@ func (r *WorkflowRunner) Run() error {
 	}
 
 	return nil
+}
+
+func newTaskPreRunFnForWorkflow(_ core.Workflow) TaskPreRunFn {
+	return func(ctx *gctx.Context) error {
+
+		// TBD
+
+		return nil
+	}
+}
+
+func newTaskPostRunFnForWorkflow(_ core.Workflow) TaskPostRunFn {
+	return func(ctx *gctx.Context) (err error) {
+
+		// TBD
+
+		return nil
+	}
 }
