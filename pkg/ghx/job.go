@@ -98,7 +98,7 @@ func planJob(rc *gctx.Context, job core.Job) (*JobRunner, error) {
 
 	var tasks = make([]TaskRunner, 0)
 
-	tasks = append(tasks, NewTaskRunner("Set up job", setup(runner, setup(runner, setupFns...))))
+	tasks = append(tasks, NewTaskRunner("Set up job", setup(setupFns...)))
 	tasks = append(tasks, pre...)
 	tasks = append(tasks, main...)
 	tasks = append(tasks, post...)
@@ -170,7 +170,7 @@ func planJob(rc *gctx.Context, job core.Job) (*JobRunner, error) {
 }
 
 // setup returns a task taskRunner function that will be executed by the task taskRunner for the setup step.
-func setup(_ *JobRunner, setupFns ...TaskRunFn) TaskRunFn {
+func setup(setupFns ...TaskRunFn) TaskRunFn {
 	return func(ctx *gctx.Context) (core.Conclusion, error) {
 		for _, setupFn := range setupFns {
 			conclusion, err := setupFn(ctx)
