@@ -356,10 +356,10 @@ func (s *StepDocker) main() TaskRunFn {
 	}
 }
 
-func newTaskPreRunFnForStep(_ core.Step) TaskPreRunFn {
+func newTaskPreRunFnForStep(step core.Step) TaskPreRunFn {
 	return func(ctx *gctx.Context) error {
 
-		// TBD
+		ctx.SetStep(step)
 
 		return nil
 	}
@@ -368,7 +368,7 @@ func newTaskPreRunFnForStep(_ core.Step) TaskPreRunFn {
 func newTaskPostRunFnForStep(_ core.Step) TaskPostRunFn {
 	return func(ctx *gctx.Context) (err error) {
 
-		// TBD
+		ctx.UnsetStep()
 
 		return nil
 	}

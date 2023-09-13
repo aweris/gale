@@ -122,10 +122,10 @@ func (r *WorkflowRunner) Run() error {
 	return nil
 }
 
-func newTaskPreRunFnForWorkflow(_ core.Workflow) TaskPreRunFn {
+func newTaskPreRunFnForWorkflow(wf core.Workflow) TaskPreRunFn {
 	return func(ctx *gctx.Context) error {
 
-		// TBD
+		ctx.SetWorkflow(wf)
 
 		return nil
 	}
@@ -134,7 +134,7 @@ func newTaskPreRunFnForWorkflow(_ core.Workflow) TaskPreRunFn {
 func newTaskPostRunFnForWorkflow(_ core.Workflow) TaskPostRunFn {
 	return func(ctx *gctx.Context) (err error) {
 
-		// TBD
+		ctx.UnsetWorkflow()
 
 		return nil
 	}

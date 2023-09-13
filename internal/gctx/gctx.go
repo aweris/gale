@@ -15,11 +15,12 @@ import (
 )
 
 type Context struct {
-	isContainer bool            // isContainer indicates whether the workflow is running in a container.
-	debug       bool            // debug indicates whether the workflow is running in debug mode.
-	path        string          // path is the data path for the context to be mounted from the host or to be used in the container.
-	Context     context.Context // Context is the current context of the workflow.
-	Repo        RepoContext     // Repo is the context for the repository.
+	isContainer bool             // isContainer indicates whether the workflow is running in a container.
+	debug       bool             // debug indicates whether the workflow is running in debug mode.
+	path        string           // path is the data path for the context to be mounted from the host or to be used in the container.
+	Context     context.Context  // Context is the current context of the workflow.
+	Repo        RepoContext      // Repo is the context for the repository.
+	Execution   ExecutionContext // Execution is the context for the execution.
 
 	// Github Expression Contexts
 	Runner  RunnerContext

@@ -196,10 +196,10 @@ func complete(r *JobRunner) TaskRunFn {
 	}
 }
 
-func newTaskPreRunFnForJob(_ core.Job) TaskPreRunFn {
+func newTaskPreRunFnForJob(job core.Job) TaskPreRunFn {
 	return func(ctx *gctx.Context) error {
 
-		// TBD
+		ctx.SetJob(job)
 
 		return nil
 	}
@@ -208,7 +208,7 @@ func newTaskPreRunFnForJob(_ core.Job) TaskPreRunFn {
 func newTaskPostRunFnForJob(_ core.Job) TaskPostRunFn {
 	return func(ctx *gctx.Context) (err error) {
 
-		// TBD
+		ctx.UnsetJob()
 
 		return nil
 	}
