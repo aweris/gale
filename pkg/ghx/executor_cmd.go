@@ -17,7 +17,6 @@ import (
 var _ Executor = new(CmdExecutor)
 
 type CmdExecutor struct {
-	stepID   string                  // stepID is the id of the step
 	args     []string                // args to pass to the command
 	env      map[string]string       // env to pass to the command as environment variables
 	ec       *gctx.Context           // ec is the expression context to evaluate the github expressions
@@ -57,10 +56,9 @@ func NewCmdExecutorFromStepAction(sa *StepAction, entrypoint string) *CmdExecuto
 	}
 
 	return &CmdExecutor{
-		stepID: sa.Step.ID,
-		args:   []string{"node", fmt.Sprintf("%s/%s", sa.Action.Path, entrypoint)},
-		env:    env,
-		ec:     sa.runner.context,
+		args: []string{"node", fmt.Sprintf("%s/%s", sa.Action.Path, entrypoint)},
+		env:  env,
+		ec:   sa.runner.context,
 	}
 }
 
@@ -82,10 +80,9 @@ func NewCmdExecutorFromStepRun(sr *StepRun) *CmdExecutor {
 	}
 
 	return &CmdExecutor{
-		stepID: sr.Step.ID,
-		args:   args,
-		env:    env,
-		ec:     sr.runner.context,
+		args: args,
+		env:  env,
+		ec:   sr.runner.context,
 	}
 }
 
@@ -157,7 +154,7 @@ func (c *CmdExecutor) Execute(ctx *gctx.Context) error {
 
 	waitErr := cmd.Wait()
 
-	if err := processEnvironmentFiles(ctx, c.stepID, c.envFiles, c.ec); err != nil {
+	if err := processEnvironmentFiles(ctx, c.ec.Execution.Step.ID, c.envFiles, c.ec); err != nil {
 		return err
 	}
 
@@ -242,9 +239,9 @@ func (c *CmdExecutor) processWorkflowCommands(cmd *core.WorkflowCommand) error {
 			return err
 		}
 	case "set-output":
-		c.ec.SetStepOutput(c.stepID, cmd.Parameters["name"], cmd.Value)
+		c.ec.SetStepOutput(c.ec.Execution.Step.ID, cmd.Parameters["name"], cmd.Value)
 	case "save-state":
-		c.ec.SetStepState(c.stepID, cmd.Parameters["name"], cmd.Value)
+		c.ec.SetStepState(c.ec.Execution.Step.ID, cmd.Parameters["name"], cmd.Value)
 	case "add-mask":
 		log.Info(fmt.Sprintf("[add-mask] %s", cmd.Value))
 	case "add-matcher":

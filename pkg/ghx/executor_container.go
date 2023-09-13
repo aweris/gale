@@ -20,7 +20,6 @@ var _ Executor = new(ContainerExecutor)
 
 type ContainerExecutor struct {
 	container  *dagger.Container       // container is the container to execute
-	stepID     string                  // stepID is the ID of the step
 	entrypoint string                  // entrypoint is the entrypoint of the container
 	args       []string                // args is the arguments of the container
 	env        map[string]string       // env to pass to the command as environment variables
@@ -32,7 +31,6 @@ type ContainerExecutor struct {
 
 func NewContainerExecutorFromStepDocker(sd *StepDocker) *ContainerExecutor {
 	return &ContainerExecutor{
-		stepID:     sd.Step.ID,
 		entrypoint: sd.Step.With["entrypoint"],
 		args:       []string{sd.Step.With["args"]},
 		env:        sd.Step.Environment,
@@ -87,7 +85,6 @@ func NewContainerExecutorFromStepAction(sa *StepAction, entrypoint string) *Cont
 	args = append(args, sa.Action.Meta.Runs.Args...)
 
 	return &ContainerExecutor{
-		stepID:     sa.Step.ID,
 		entrypoint: entrypoint,
 		args:       args,
 		env:        env,
@@ -179,7 +176,7 @@ func (c *ContainerExecutor) Execute(ctx *gctx.Context) error {
 		}
 	}
 
-	return processEnvironmentFiles(ctx, c.stepID, c.envFiles, c.ec)
+	return processEnvironmentFiles(ctx, c.ec.Execution.Step.ID, c.envFiles, c.ec)
 }
 
 func (c *ContainerExecutor) loadEnvFiles() error {
@@ -232,9 +229,9 @@ func (c *ContainerExecutor) processWorkflowCommands(cmd *core.WorkflowCommand) e
 			return err
 		}
 	case "set-output":
-		c.ec.SetStepOutput(c.stepID, cmd.Parameters["name"], cmd.Value)
+		c.ec.SetStepOutput(c.ec.Execution.Step.ID, cmd.Parameters["name"], cmd.Value)
 	case "save-state":
-		c.ec.SetStepState(c.stepID, cmd.Parameters["name"], cmd.Value)
+		c.ec.SetStepState(c.ec.Execution.Step.ID, cmd.Parameters["name"], cmd.Value)
 	case "add-mask":
 		log.Info(fmt.Sprintf("[add-mask] %s", cmd.Value))
 	case "add-matcher":
