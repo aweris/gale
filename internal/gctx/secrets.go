@@ -81,5 +81,4 @@ func (c *SecretsContext) SetSecrets(secrets map[string]string) {
 	for k, v := range secrets {
 		c.Data[k] = v
 	}
-
 }

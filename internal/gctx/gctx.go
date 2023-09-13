@@ -57,16 +57,6 @@ func Load(ctx context.Context, debug bool) (*Context, error) {
 		return nil, err
 	}
 
-	err = gctx.LoadJob()
-	if err != nil {
-		return nil, err
-	}
-
-	err = gctx.LoadSteps()
-	if err != nil {
-		return nil, err
-	}
-
 	// If we can get the token from the environment, we'll use it. Otherwise, we'll try to get it github cli
 	if gctx.Github.Token == "" {
 		token, err := core.GetToken()
@@ -80,12 +70,6 @@ func Load(ctx context.Context, debug bool) (*Context, error) {
 	}
 
 	return gctx, nil
-}
-
-// SetToken sets the Github API token in the context.
-func (c *Context) SetToken(token string) {
-	c.Secrets.setToken(token)
-	c.Github.setToken(token)
 }
 
 // helpers.WithContainerFuncHook interface to be loaded in the container.

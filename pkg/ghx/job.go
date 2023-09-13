@@ -12,11 +12,6 @@ import (
 
 // planJob plans the job and returns the job runner.
 func planJob(job core.Job) (*TaskRunner, error) {
-	runID, err := idgen.GenerateJobRunID()
-	if err != nil {
-		return nil, err
-	}
-
 	// step task executors that execute the steps
 	var (
 		setupFns = make([]TaskRunFn, 0)
@@ -35,9 +30,6 @@ func planJob(job core.Job) (*TaskRunner, error) {
 			return nil, err
 		}
 
-		preFn := newTaskPreRunFnForStep(step)
-		postFn := newTaskPostRunFnForStep(step)
-
 		// if step implements setup hook, add the setup function to the setupFns slice to be executed
 		// by the setup task taskRunner.
 		if setup, ok := sr.(SetupHook); ok {
@@ -48,8 +40,8 @@ func planJob(job core.Job) (*TaskRunner, error) {
 		if hook, ok := sr.(PreHook); ok {
 			opt := TaskOpts{
 				ConditionalFn: hook.preCondition(),
-				PreRunFn:      preFn,
-				PostRunFn:     postFn,
+				PreRunFn:      newTaskPreRunFnForStep(core.StepStagePre, step),
+				PostRunFn:     newTaskPostRunFnForStep(),
 			}
 			pre = append(pre, NewTaskRunner(getStepName("Pre", step), hook.pre(), opt))
 		}
@@ -57,8 +49,8 @@ func planJob(job core.Job) (*TaskRunner, error) {
 		// main task options
 		opt := TaskOpts{
 			ConditionalFn: sr.condition(),
-			PreRunFn:      preFn,
-			PostRunFn:     postFn,
+			PreRunFn:      newTaskPreRunFnForStep(core.StepStageMain, step),
+			PostRunFn:     newTaskPostRunFnForStep(),
 		}
 
 		// main tasks starts after pre tasks. so index is step index + len(steps)
@@ -71,8 +63,8 @@ func planJob(job core.Job) (*TaskRunner, error) {
 		if hook, ok := sr.(PostHook); ok {
 			opt := TaskOpts{
 				ConditionalFn: hook.postCondition(),
-				PreRunFn:      preFn,
-				PostRunFn:     postFn,
+				PreRunFn:      newTaskPreRunFnForStep(core.StepStagePost, step),
+				PostRunFn:     newTaskPostRunFnForStep(),
 			}
 			post = append(post, NewTaskRunner(getStepName("Post", step), hook.post(), opt))
 		}
@@ -101,7 +93,7 @@ func planJob(job core.Job) (*TaskRunner, error) {
 
 			// set the job status to the conclusion of the job status is success and the conclusion is not success.
 			if ctx.Job.Status == core.ConclusionSuccess && conclusion != ctx.Job.Status {
-				ctx.SetJobStatus(conclusion)
+				ctx.Job.Status = conclusion
 			}
 		}
 
@@ -137,12 +129,16 @@ func planJob(job core.Job) (*TaskRunner, error) {
 			log.Warnf("Total size of the outputs is bigger than 50MB", "size", fmt.Sprintf("%dMB", totalSize/MB))
 		}
 
+		// TODO: refactor this later into properly. It's added just to make results available for the context.
+
+		ctx.SetJobResults(ctx.Job.Status, ctx.Job.Status, outputs)
+
 		return ctx.Job.Status, nil
 	}
 
 	// task runner options for the job
 	opt := TaskOpts{
-		PreRunFn:  newTaskPreRunFnForJob(runID, job),
+		PreRunFn:  newTaskPreRunFnForJob(job),
 		PostRunFn: newTaskPostRunFnForJob(),
 	}
 
@@ -178,19 +174,14 @@ func complete() TaskRunFn {
 	}
 }
 
-func newTaskPreRunFnForJob(runID string, job core.Job) TaskPreRunFn {
+func newTaskPreRunFnForJob(job core.Job) TaskPreRunFn {
 	return func(ctx *gctx.Context) error {
-		ctx.SetJob(
-			&core.JobRun{
-				RunID:      runID,
-				Job:        job,
-				Conclusion: "",
-				Outcome:    "",
-				Outputs:    make(map[string]string),
-			},
-		)
+		runID, err := idgen.GenerateJobRunID()
+		if err != nil {
+			return fmt.Errorf("failed to generate job run id: %w", err)
+		}
 
-		return nil
+		return ctx.SetJob(&core.JobRun{RunID: runID, Job: job, Outputs: make(map[string]string)})
 	}
 }
 

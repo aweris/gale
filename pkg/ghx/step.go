@@ -144,11 +144,8 @@ func (s *StepAction) pre() TaskRunFn {
 			return core.ConclusionFailure, fmt.Errorf("invalid action runs using: %s", s.Action.Meta.Runs.Using)
 		}
 
-		if err := executor.Execute(ctx); err != nil && !s.Step.ContinueOnError {
-			return core.ConclusionFailure, err
-		}
-
-		return core.ConclusionSuccess, nil
+		// execute the step
+		return executeStep(ctx, executor, s.Step.ContinueOnError)
 	}
 }
 
@@ -171,11 +168,8 @@ func (s *StepAction) main() TaskRunFn {
 			return core.ConclusionFailure, fmt.Errorf("invalid action runs using: %s", s.Action.Meta.Runs.Using)
 		}
 
-		if err := executor.Execute(ctx); err != nil && !s.Step.ContinueOnError {
-			return core.ConclusionFailure, err
-		}
-
-		return core.ConclusionSuccess, nil
+		// execute the step
+		return executeStep(ctx, executor, s.Step.ContinueOnError)
 	}
 }
 
@@ -203,11 +197,8 @@ func (s *StepAction) post() TaskRunFn {
 			return core.ConclusionFailure, fmt.Errorf("invalid action runs using: %s", s.Action.Meta.Runs.Using)
 		}
 
-		if err := executor.Execute(ctx); err != nil && !s.Step.ContinueOnError {
-			return core.ConclusionFailure, err
-		}
-
-		return core.ConclusionSuccess, nil
+		// execute the step
+		return executeStep(ctx, executor, s.Step.ContinueOnError)
 	}
 }
 
@@ -299,14 +290,28 @@ func (s *StepRun) main() TaskRunFn {
 		s.ShellArgs = args
 		s.Path = path
 
-		cmd := NewCmdExecutorFromStepRun(ctx, s)
+		executor := NewCmdExecutorFromStepRun(ctx, s)
 
-		err = cmd.Execute(ctx)
-		if err != nil && !s.Step.ContinueOnError {
+		// execute the step
+		if err := executor.Execute(ctx); err != nil {
+			if s.Step.ContinueOnError {
+				// execution failed and the step is configured to continue on error. So, fail the outcome but succeed the
+				// conclusion.
+				ctx.SetStepResults(core.ConclusionSuccess, core.ConclusionFailure)
+
+				return core.ConclusionSuccess, nil
+			}
+
+			// execution failed and the step is not configured to continue on error. So, we need to fail the step.
+			ctx.SetStepResults(core.ConclusionFailure, core.ConclusionFailure)
+
 			return core.ConclusionFailure, err
 		}
 
-		return core.ConclusionSuccess, err
+		// update the step outputs
+		ctx.SetStepResults(core.ConclusionSuccess, core.ConclusionSuccess)
+
+		return core.ConclusionSuccess, nil
 	}
 }
 
@@ -352,27 +357,45 @@ func (s *StepDocker) main() TaskRunFn {
 	return func(ctx *gctx.Context) (core.Conclusion, error) {
 		executor := NewContainerExecutorFromStepDocker(ctx, s)
 
-		err := executor.Execute(ctx)
-		if err != nil && !s.Step.ContinueOnError {
-			return core.ConclusionFailure, err
+		return executeStep(ctx, executor, s.Step.ContinueOnError)
+	}
+}
+
+func newTaskPreRunFnForStep(stage core.StepStage, step core.Step) TaskPreRunFn {
+	return func(ctx *gctx.Context) error {
+		return ctx.SetStep(
+			&core.StepRun{
+				Step:    step,
+				Stage:   stage,
+				Outputs: make(map[string]string),
+				State:   make(map[string]string),
+			},
+		)
+	}
+}
+
+func newTaskPostRunFnForStep() TaskPostRunFn {
+	return func(ctx *gctx.Context) (err error) {
+		return ctx.UnsetStep()
+	}
+}
+
+func executeStep(ctx *gctx.Context, executor Executor, continueOnError bool) (core.Conclusion, error) {
+	// execute the step
+	if err := executor.Execute(ctx); err != nil {
+		if continueOnError {
+			ctx.SetStepResults(core.ConclusionSuccess, core.ConclusionFailure)
+
+			return core.ConclusionSuccess, nil
 		}
 
-		return core.ConclusionSuccess, nil
+		ctx.SetStepResults(core.ConclusionFailure, core.ConclusionFailure)
+
+		return core.ConclusionFailure, err
 	}
-}
 
-func newTaskPreRunFnForStep(step core.Step) TaskPreRunFn {
-	return func(ctx *gctx.Context) error {
-		ctx.SetStep(step)
+	// update the step outputs
+	ctx.SetStepResults(core.ConclusionSuccess, core.ConclusionSuccess)
 
-		return nil
-	}
-}
-
-func newTaskPostRunFnForStep(_ core.Step) TaskPostRunFn {
-	return func(ctx *gctx.Context) (err error) {
-		ctx.UnsetStep()
-
-		return nil
-	}
+	return core.ConclusionSuccess, nil
 }

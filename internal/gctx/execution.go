@@ -11,19 +11,23 @@ import (
 type ExecutionContext struct {
 	WorkflowRun *core.WorkflowRun // Workflow is the current workflow that is being executed.
 	JobRun      *core.JobRun      // Job is the current job that is being executed.
-	Step        *core.Step        // Step is the current step that is being executed.
+	StepRun     *core.StepRun     // Step is the current step that is being executed.
+}
+
+// SetToken sets the Github API token in the context.
+func (c *Context) SetToken(token string) {
+	c.Secrets.setToken(token)
+	c.Github.setToken(token)
 }
 
 // SetWorkflow creates a new execution context with the given workflow and sets it to the context.
 func (c *Context) SetWorkflow(wr *core.WorkflowRun) error {
 	c.Execution = ExecutionContext{WorkflowRun: wr}
 
-	return nil
-}
+	// set the workflow run info to the github context
+	c.Github.setWorkflow(wr)
 
-// UnsetWorkflow unsets the workflow from the execution context.
-func (c *Context) UnsetWorkflow() {
-	c.Execution.WorkflowRun = nil
+	return nil
 }
 
 // SetJob sets the given job to the execution context.
@@ -32,14 +36,34 @@ func (c *Context) SetJob(jr *core.JobRun) error {
 		return errors.New("no workflow is set")
 	}
 
+	// set the job run to the execution context
 	c.Execution.JobRun = jr
+	c.Execution.WorkflowRun.Jobs[jr.Job.ID] = *jr
 
-	return nil
+	// set the job run to the github context
+	c.Github.Job = jr.Job.ID
+
+	// load the job context
+	if err := c.LoadJob(); err != nil {
+		return err
+	}
+
+	// load the steps context
+	return c.LoadSteps()
 }
 
 // UnsetJob unsets the job from the execution context.
 func (c *Context) UnsetJob() {
+	jr := c.Execution.JobRun
+
+	// update the job run in the workflow run
+	c.Execution.WorkflowRun.Jobs[jr.Job.ID] = *jr
+
+	// unset the job run from the execution context
 	c.Execution.JobRun = nil
+
+	// unset the job run from the github context
+	c.Github.Job = ""
 }
 
 // GetJobRunPath returns the path of the current job run path. If the path does not exist, it creates it.
@@ -57,86 +81,104 @@ func (c *Context) GetJobRunPath() (string, error) {
 	return path, nil
 }
 
-// SetStep sets the given step to the execution context.
-func (c *Context) SetStep(step core.Step) error {
+// SetJobResults sets the status of the job.
+func (c *Context) SetJobResults(conclusion, outcome core.Conclusion, outputs map[string]string) error {
 	if c.Execution.JobRun == nil {
 		return errors.New("no job is set")
 	}
 
-	c.Execution.Step = &step
+	// update current job run
+	c.Execution.JobRun.Conclusion = conclusion
+	c.Execution.JobRun.Outcome = outcome
+	c.Execution.JobRun.Outputs = outputs
+
+	// update job context
+	c.Job.Status = conclusion
+
+	return nil
+}
+
+// SetStep sets the given step to the execution context.
+func (c *Context) SetStep(sr *core.StepRun) error {
+	if c.Execution.JobRun == nil {
+		return errors.New("no job is set")
+	}
+
+	c.Execution.StepRun = sr
 
 	return nil
 }
 
 // UnsetStep unsets the step from the execution context.
-func (c *Context) UnsetStep() {
-	c.Execution.Step = nil
-}
-
-// SetStepOutput sets the output of the given step.
-func (c *Context) SetStepOutput(key, value string) error {
-	if c.Execution.Step == nil {
+func (c *Context) UnsetStep() error {
+	if c.Execution.StepRun == nil {
 		return errors.New("no step is set")
 	}
 
-	stepID := c.Execution.Step.ID
+	sr := c.Execution.StepRun
 
-	sc, ok := c.Steps[stepID]
+	// update the step run in the job run
+	c.Execution.JobRun.Steps = append(c.Execution.JobRun.Steps, *sr)
+
+	sc, ok := c.Steps[sr.Step.ID]
 	if !ok {
 		sc = StepContext{}
 	}
 
-	if sc.Outputs == nil {
-		sc.Outputs = make(map[string]string)
+	// TODO: double check this, different step stages might have different update logic for the step context
+	sc.State = sr.State
+	sc.Summary = sr.Summary
+	sc.Outputs = sr.Outputs
+	sc.Outcome = sr.Outcome
+	sc.Conclusion = sr.Conclusion
+
+	c.Steps[sr.Step.ID] = sc
+
+	c.Execution.StepRun = nil
+
+	return nil
+}
+
+func (c *Context) SetStepResults(conclusion, outcome core.Conclusion) error {
+	if c.Execution.StepRun == nil {
+		return errors.New("no step is set")
 	}
 
-	sc.Outputs[key] = value
+	c.Execution.StepRun.Conclusion = conclusion
+	c.Execution.StepRun.Outcome = outcome
 
-	c.Steps[stepID] = sc
+	return nil
+}
+
+// SetStepOutput sets the output of the given step.
+func (c *Context) SetStepOutput(key, value string) error {
+	if c.Execution.StepRun == nil {
+		return errors.New("no step is set")
+	}
+
+	c.Execution.StepRun.Outputs[key] = value
 
 	return nil
 }
 
 // SetStepSummary sets the summary of the given step.
 func (c *Context) SetStepSummary(summary string) error {
-	if c.Execution.Step == nil {
+	if c.Execution.StepRun == nil {
 		return errors.New("no step is set")
 	}
 
-	stepID := c.Execution.Step.ID
-
-	sc, ok := c.Steps[stepID]
-	if !ok {
-		sc = StepContext{}
-	}
-
-	sc.Summary = summary
-
-	c.Steps[stepID] = sc
+	c.Execution.StepRun.Summary = summary
 
 	return nil
 }
 
 // SetStepState sets the state of the given step.
 func (c *Context) SetStepState(key, value string) error {
-	if c.Execution.Step == nil {
+	if c.Execution.StepRun == nil {
 		return errors.New("no step is set")
 	}
 
-	stepID := c.Execution.Step.ID
-
-	sc, ok := c.Steps[stepID]
-	if !ok {
-		sc = StepContext{}
-	}
-
-	if sc.State == nil {
-		sc.State = make(map[string]string)
-	}
-
-	sc.State[key] = value
-
-	c.Steps[stepID] = sc
+	c.Execution.StepRun.State[key] = value
 
 	return nil
 }

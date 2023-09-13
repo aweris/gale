@@ -13,11 +13,6 @@ var ErrWorkflowNotFound = errors.New("workflow not found")
 
 // Plan plans the workflow and returns the workflow runner.
 func Plan(workflow core.Workflow, job string) (*TaskRunner, error) {
-	runID, err := idgen.GenerateWorkflowRunID()
-	if err != nil {
-		return nil, err
-	}
-
 	runFn := func(ctx *gctx.Context) (core.Conclusion, error) {
 		jm, ok := workflow.Jobs[job]
 		if !ok {
@@ -38,19 +33,21 @@ func Plan(workflow core.Workflow, job string) (*TaskRunner, error) {
 	}
 
 	// workflow task options
-	opt := TaskOpts{
-		PreRunFn:  newTaskPreRunFnForWorkflow(runID, workflow),
-		PostRunFn: newTaskPostRunFnForWorkflow(),
-	}
+	opt := TaskOpts{PreRunFn: newTaskPreRunFnForWorkflow(workflow)}
 
 	runner := NewTaskRunner(fmt.Sprintf("Workflow: %s", workflow.Name), runFn, opt)
 
 	return &runner, nil
 }
 
-func newTaskPreRunFnForWorkflow(runID string, wf core.Workflow) TaskPreRunFn {
+func newTaskPreRunFnForWorkflow(wf core.Workflow) TaskPreRunFn {
 	return func(ctx *gctx.Context) error {
-		ctx.SetWorkflow(
+		runID, err := idgen.GenerateWorkflowRunID()
+		if err != nil {
+			return fmt.Errorf("failed to generate workflow run id: %w", err)
+		}
+
+		return ctx.SetWorkflow(
 			&core.WorkflowRun{
 				RunID:         runID,
 				RunNumber:     "1",
@@ -60,15 +57,5 @@ func newTaskPreRunFnForWorkflow(runID string, wf core.Workflow) TaskPreRunFn {
 				Jobs:          make(map[string]core.JobRun),
 			},
 		)
-
-		return nil
-	}
-}
-
-func newTaskPostRunFnForWorkflow() TaskPostRunFn {
-	return func(ctx *gctx.Context) (err error) {
-		ctx.UnsetWorkflow()
-
-		return nil
 	}
 }

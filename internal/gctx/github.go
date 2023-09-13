@@ -187,6 +187,20 @@ func (c *GithubContext) setToken(token string) *GithubContext {
 	return c
 }
 
+// setWorkflow sets the workflow information in the context.
+func (c *GithubContext) setWorkflow(wr *core.WorkflowRun) *GithubContext {
+	c.RunID = wr.RunID
+	c.RunNumber = wr.RunNumber
+	c.RunAttempt = wr.RunAttempt
+	c.RetentionDays = wr.RetentionDays
+	c.Workflow = wr.Workflow.Name
+	c.WorkflowRef = fmt.Sprintf("%s/%s@%s", c.Repository, wr.Workflow.Path, c.Ref)
+	// TODO: double check this. It should be ok for know since we're loading the workflow from the repository only.
+	c.WorkflowSHA = c.SHA
+
+	return c
+}
+
 // helpers.WithContainerFuncHook interface to be loaded in the container.
 
 var _ helpers.WithContainerFuncHook = new(GithubContext)
