@@ -8,7 +8,6 @@ import (
 
 	"dagger.io/dagger"
 
-	"github.com/aweris/gale/internal/config"
 	"github.com/aweris/gale/internal/core"
 )
 
@@ -19,8 +18,6 @@ func TestCustomActionManager_GetCustomAction(t *testing.T) {
 	}
 	defer os.RemoveAll(dir)
 
-	config.SetGhxHome(dir)
-
 	ctx := context.Background()
 
 	client, err := dagger.Connect(ctx)
@@ -28,10 +25,8 @@ func TestCustomActionManager_GetCustomAction(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	config.SetClient(client)
-
 	t.Run("download missing action", func(t *testing.T) {
-		ca, err := core.LoadActionFromSource(ctx, "actions/checkout@v2")
+		ca, err := core.LoadActionFromSource(ctx, client, "actions/checkout@v2", filepath.Join(dir, "actions"))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -67,7 +62,7 @@ func TestCustomActionManager_GetCustomAction(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		ca, err := core.LoadActionFromSource(ctx, "some/action@v1")
+		ca, err := core.LoadActionFromSource(ctx, client, "some/action@v1", filepath.Join(dir, "actions"))
 		if err != nil {
 			t.Fatal(err)
 		}

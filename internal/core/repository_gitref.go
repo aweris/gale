@@ -6,8 +6,6 @@ import (
 	"strings"
 
 	"dagger.io/dagger"
-
-	"github.com/aweris/gale/internal/config"
 )
 
 // RepositoryGitRef represents a Git ref (branch or tag) in a repository
@@ -20,13 +18,13 @@ type RepositoryGitRef struct {
 }
 
 // GetRepositoryGitRef returns a Git ref (branch or tag) in a repository. If name is empty, the current repository will be used.
-func GetRepositoryGitRef(ctx context.Context, url string, refType RefType, refName string) (*RepositoryGitRef, error) {
+func GetRepositoryGitRef(ctx context.Context, client *dagger.Client, url string, refType RefType, refName string) (*RepositoryGitRef, error) {
 	var (
 		ref string
 		dir *dagger.Directory
 	)
 
-	git := config.Client().Git(url, dagger.GitOpts{KeepGitDir: true})
+	git := client.Git(url, dagger.GitOpts{KeepGitDir: true})
 
 	switch refType {
 	case RefTypeBranch:
@@ -39,7 +37,7 @@ func GetRepositoryGitRef(ctx context.Context, url string, refType RefType, refNa
 		return nil, fmt.Errorf("invalid ref type: %s", refType)
 	}
 
-	sha, err := getRepoSHA(ctx, dir)
+	sha, err := getRepoSHA(ctx, client, dir)
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +46,7 @@ func GetRepositoryGitRef(ctx context.Context, url string, refType RefType, refNa
 }
 
 // GetRepositoryRefFromDir returns a Git ref (branch or tag) from given directory. If dir is empty or not git repository, it will return an error.
-func GetRepositoryRefFromDir(ctx context.Context, dir *dagger.Directory) (*RepositoryGitRef, error) {
+func GetRepositoryRefFromDir(ctx context.Context, client *dagger.Client, dir *dagger.Directory) (*RepositoryGitRef, error) {
 	var (
 		ref     string
 		refType RefType
@@ -56,7 +54,7 @@ func GetRepositoryRefFromDir(ctx context.Context, dir *dagger.Directory) (*Repos
 		sha     string
 	)
 
-	out, err := config.ClientNoLog().
+	out, err := client.
 		Container().
 		From("alpine/git").
 		WithMountedDirectory("/src", dir).WithWorkdir("/src").
@@ -79,7 +77,7 @@ func GetRepositoryRefFromDir(ctx context.Context, dir *dagger.Directory) (*Repos
 		return nil, fmt.Errorf("invalid ref type: %s", refType)
 	}
 
-	sha, err = getRepoSHA(ctx, dir)
+	sha, err = getRepoSHA(ctx, client, dir)
 	if err != nil {
 		return nil, err
 	}
@@ -87,8 +85,8 @@ func GetRepositoryRefFromDir(ctx context.Context, dir *dagger.Directory) (*Repos
 	return &RepositoryGitRef{Ref: ref, RefName: refName, RefType: refType, SHA: sha, Dir: dir}, nil
 }
 
-func getRepoSHA(ctx context.Context, dir *dagger.Directory) (string, error) {
-	out, err := config.ClientNoLog().
+func getRepoSHA(ctx context.Context, client *dagger.Client, dir *dagger.Directory) (string, error) {
+	out, err := client.
 		Container().
 		From("alpine/git").
 		WithMountedDirectory("/src", dir).WithWorkdir("/src").

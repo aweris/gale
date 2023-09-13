@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/cli/go-gh/v2"
+	"dagger.io/dagger"
 
-	"github.com/aweris/gale/internal/config"
+	"github.com/cli/go-gh/v2"
 )
 
 // Repository represents a GitHub repository
@@ -45,12 +45,12 @@ type GetRepositoryOpts struct {
 }
 
 // GetCurrentRepository returns current repository information. This is a wrapper around GetRepository with empty name.
-func GetCurrentRepository(opts ...GetRepositoryOpts) (*Repository, error) {
-	return GetRepository("", opts...)
+func GetCurrentRepository(ctx context.Context, client *dagger.Client, opts ...GetRepositoryOpts) (*Repository, error) {
+	return GetRepository(ctx, client, "", opts...)
 }
 
 // GetRepository returns repository information. If name is empty, the current repository will be used.
-func GetRepository(name string, opts ...GetRepositoryOpts) (*Repository, error) {
+func GetRepository(ctx context.Context, client *dagger.Client, name string, opts ...GetRepositoryOpts) (*Repository, error) {
 	var repo Repository
 
 	stdout, stderr, err := gh.Exec("repo", "view", name, "--json", "id,name,owner,nameWithOwner,url,defaultBranchRef")
@@ -71,23 +71,23 @@ func GetRepository(name string, opts ...GetRepositoryOpts) (*Repository, error) 
 	// load repo tree based on the options precedence
 	switch {
 	case opt.Tag != "":
-		repo.GitRef, err = GetRepositoryGitRef(context.Background(), repo.URL, RefTypeTag, opt.Tag)
+		repo.GitRef, err = GetRepositoryGitRef(ctx, client, repo.URL, RefTypeTag, opt.Tag)
 		if err != nil {
 			return nil, err
 		}
 	case opt.Branch != "":
-		repo.GitRef, err = GetRepositoryGitRef(context.Background(), repo.URL, RefTypeBranch, opt.Branch)
+		repo.GitRef, err = GetRepositoryGitRef(ctx, client, repo.URL, RefTypeBranch, opt.Branch)
 		if err != nil {
 			return nil, err
 		}
 	case name != "":
-		repo.GitRef, err = GetRepositoryGitRef(context.Background(), repo.URL, RefTypeBranch, repo.DefaultBranchRef.Name)
+		repo.GitRef, err = GetRepositoryGitRef(ctx, client, repo.URL, RefTypeBranch, repo.DefaultBranchRef.Name)
 		if err != nil {
 			return nil, err
 		}
 	default:
 		// TODO: current directory could be a subdirectory of the repository. Should we handle this case?
-		repo.GitRef, err = GetRepositoryRefFromDir(context.Background(), config.Client().Host().Directory("."))
+		repo.GitRef, err = GetRepositoryRefFromDir(ctx, client, client.Host().Directory("."))
 		if err != nil {
 			return nil, err
 		}

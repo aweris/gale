@@ -85,7 +85,7 @@ type StepAction struct {
 
 func (s *StepAction) setup() TaskRunFn {
 	return func(ctx *gctx.Context) (core.Conclusion, error) {
-		ca, err := core.LoadActionFromSource(ctx.Context, s.Step.Uses)
+		ca, err := core.LoadActionFromSource(ctx.Context, config.Client(), s.Step.Uses, config.GhxActionsDir())
 		if err != nil {
 			return core.ConclusionFailure, err
 		}

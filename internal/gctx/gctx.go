@@ -19,6 +19,7 @@ type Context struct {
 	debug       bool             // debug indicates whether the workflow is running in debug mode.
 	path        string           // path is the data path for the context to be mounted from the host or to be used in the container.
 	Context     context.Context  // Context is the current context of the workflow.
+	Dagger      DaggerContext    // Dagger is the context for the dagger engine.
 	Repo        RepoContext      // Repo is the context for the repository.
 	Execution   ExecutionContext // Execution is the context for the execution.
 
@@ -36,8 +37,14 @@ func Load(ctx context.Context, debug bool) (*Context, error) {
 
 	gctx := &Context{isContainer: isContainer, debug: debug, Context: ctx, path: data.MountPath}
 
+	// load dagger context
+	err := gctx.LoadDaggerContext()
+	if err != nil {
+		return nil, err
+	}
+
 	// load the repository context
-	err := gctx.LoadRunnerContext()
+	err = gctx.LoadRunnerContext()
 	if err != nil {
 		return nil, err
 	}
@@ -84,6 +91,7 @@ func (c *Context) WithContainerFunc() dagger.WithContainerFunc {
 		container = container.WithEnvVariable(EnvVariableGaleRunner, "true")
 
 		// apply sub-contexts
+		container = container.With(c.Dagger.WithContainerFunc())
 		container = container.With(c.Repo.WithContainerFunc())
 		container = container.With(c.Github.WithContainerFunc())
 		container = container.With(c.Secrets.WithContainerFunc())

@@ -1,4 +1,4 @@
-package core
+package gctx
 
 import (
 	"os"
@@ -10,8 +10,6 @@ import (
 	"github.com/aweris/gale/internal/dagger/helpers"
 )
 
-var _ helpers.WithContainerFuncHook = new(DaggerContext)
-
 // DaggerContext represents the dagger engine connection information should be passed to the container
 type DaggerContext struct {
 	RunnerHost string // RunnerHost where the dagger engine is running
@@ -19,8 +17,10 @@ type DaggerContext struct {
 	DockerSock string // DockerSock is the path to the docker socket. This is used to as a fallback when the dagger host or session is not provided.
 }
 
-// NewDaggerContextFromEnv creates a new dagger context from environment variables
-func NewDaggerContextFromEnv() *DaggerContext {
+// TODO: this is not enough. Most of users can't use gale because of this. We need to find a better way to handle this.
+
+// LoadDaggerContext loads a new dagger context from environment variables
+func (c *Context) LoadDaggerContext() error {
 	// check if DOCKER_HOST should override the default docker socket location
 	hostDockerSocket := "/var/run/docker.sock"
 
@@ -28,12 +28,18 @@ func NewDaggerContextFromEnv() *DaggerContext {
 		hostDockerSocket = strings.TrimPrefix(dockerHost, "unix://")
 	}
 
-	return &DaggerContext{
+	c.Dagger = DaggerContext{
 		RunnerHost: os.Getenv("_EXPERIMENTAL_DAGGER_RUNNER_HOST"),
 		Session:    os.Getenv("DAGGER_SESSION"),
 		DockerSock: hostDockerSocket,
 	}
+
+	return nil
 }
+
+// helpers.WithContainerFuncHook interface to be loaded in the container.
+
+var _ helpers.WithContainerFuncHook = new(DaggerContext)
 
 func (d *DaggerContext) WithContainerFunc() dagger.WithContainerFunc {
 	return func(container *dagger.Container) *dagger.Container {
