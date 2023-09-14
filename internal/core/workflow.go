@@ -18,5 +18,6 @@ type WorkflowRun struct {
 	RunAttempt    string            `json:"run_attempt"`    // RunAttempt is the attempt number of the run
 	RetentionDays string            `json:"retention_days"` // RetentionDays is the number of days to keep the run logs
 	Workflow      Workflow          `json:"workflow"`       // Workflow is the workflow to run
+	Conclusion    Conclusion        `json:"conclusion"`     // Conclusion is the result of a completed workflow run after continue-on-error is applied
 	Jobs          map[string]JobRun `json:"jobs"`           // Jobs is map of the job run id to its result
 }

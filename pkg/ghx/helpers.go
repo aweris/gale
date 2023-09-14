@@ -25,9 +25,9 @@ func getStepName(prefix string, s core.Step) string {
 	}
 }
 
-// evalStepCondition evaluates the given condition and returns the result. If the condition is empty, then it uses
+// evalCondition evaluates the given condition and returns the result. If the condition is empty, then it uses
 // success() as default.
-func evalStepCondition(condition string, ac *gctx.Context) (bool, core.Conclusion, error) {
+func evalCondition(condition string, ac *gctx.Context) (bool, core.Conclusion, error) {
 	// if condition is empty, then use success() as default
 	if condition == "" {
 		condition = "success()"

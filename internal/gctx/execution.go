@@ -22,10 +22,14 @@ func (c *Context) SetToken(token string) {
 
 // SetWorkflow creates a new execution context with the given workflow and sets it to the context.
 func (c *Context) SetWorkflow(wr *core.WorkflowRun) error {
+	// set the workflow run to the execution context
 	c.Execution = ExecutionContext{WorkflowRun: wr}
 
 	// set the workflow run info to the github context
 	c.Github.setWorkflow(wr)
+
+	// set workflow conclusion to success explicitly
+	c.Execution.WorkflowRun.Conclusion = core.ConclusionSuccess
 
 	return nil
 }
@@ -44,12 +48,24 @@ func (c *Context) SetJob(jr *core.JobRun) error {
 	c.Github.Job = jr.Job.ID
 
 	// load the job context
-	if err := c.LoadJob(); err != nil {
+	if err := c.LoadJob(c.Execution.WorkflowRun.Conclusion); err != nil {
 		return err
 	}
 
 	// load the steps context
-	return c.LoadSteps()
+	if err := c.LoadSteps(); err != nil {
+		return err
+	}
+
+	var needs []core.JobRun
+
+	if len(jr.Job.Needs) > 0 {
+		for _, need := range jr.Job.Needs {
+			needs = append(needs, c.Execution.WorkflowRun.Jobs[need])
+		}
+	}
+
+	return c.LoadNeeds(needs...)
 }
 
 // UnsetJob unsets the job from the execution context.
@@ -58,6 +74,11 @@ func (c *Context) UnsetJob() {
 
 	// update the job run in the workflow run
 	c.Execution.WorkflowRun.Jobs[jr.Job.ID] = *jr
+
+	// update workflow conclusion
+	if c.Execution.WorkflowRun.Conclusion == core.ConclusionSuccess && jr.Conclusion != core.ConclusionSuccess {
+		c.Execution.WorkflowRun.Conclusion = jr.Conclusion
+	}
 
 	// unset the job run from the execution context
 	c.Execution.JobRun = nil

@@ -127,7 +127,7 @@ func (s *StepAction) preCondition() TaskConditionalFn {
 			return false, "", nil
 		}
 
-		return evalStepCondition(condition, ctx)
+		return evalCondition(condition, ctx)
 	}
 }
 
@@ -151,7 +151,7 @@ func (s *StepAction) pre() TaskRunFn {
 
 func (s *StepAction) condition() TaskConditionalFn {
 	return func(ctx *gctx.Context) (bool, core.Conclusion, error) {
-		return evalStepCondition(s.Step.If, ctx)
+		return evalCondition(s.Step.If, ctx)
 	}
 }
 
@@ -180,7 +180,7 @@ func (s *StepAction) postCondition() TaskConditionalFn {
 			return false, "", nil
 		}
 
-		return evalStepCondition(condition, ctx)
+		return evalCondition(condition, ctx)
 	}
 }
 
@@ -215,7 +215,7 @@ type StepRun struct {
 
 func (s *StepRun) condition() TaskConditionalFn {
 	return func(ctx *gctx.Context) (bool, core.Conclusion, error) {
-		return evalStepCondition(s.Step.If, ctx)
+		return evalCondition(s.Step.If, ctx)
 	}
 }
 
@@ -349,7 +349,7 @@ func (s *StepDocker) setup() TaskRunFn {
 
 func (s *StepDocker) condition() TaskConditionalFn {
 	return func(ctx *gctx.Context) (bool, core.Conclusion, error) {
-		return evalStepCondition(s.Step.If, ctx)
+		return evalCondition(s.Step.If, ctx)
 	}
 }
 
