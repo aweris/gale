@@ -12,7 +12,6 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/aweris/gale/internal/config"
 	"github.com/aweris/gale/internal/fs"
 	"github.com/aweris/gale/internal/log"
 )
@@ -164,12 +163,14 @@ func (c *CustomActionRuns) PostCondition() (bool, string) {
 // LoadActionFromSource loads an action from given source to the target directory. If the source is a local action,
 // the target directory will be the same as the source. If the source is a remote action, the action will be downloaded
 // to the target directory using the source as the reference(e.g. {target}/{owner}/{repo}/{path}@{ref}).
-func LoadActionFromSource(ctx context.Context, client *dagger.Client, source, target string) (*CustomAction, error) {
+func LoadActionFromSource(ctx context.Context, client *dagger.Client, source, targetDir string) (*CustomAction, error) {
+	var target string
+
 	// no need to load action if it is a local action
 	if isLocalAction(source) {
 		target = source
 	} else {
-		target = filepath.Join(config.GhxActionsDir(), source)
+		target = filepath.Join(targetDir, source)
 
 		// ensure action exists locally
 		if err := ensureActionExistsLocally(ctx, client, source, target); err != nil {
