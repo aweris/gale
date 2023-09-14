@@ -13,20 +13,33 @@ var ErrWorkflowNotFound = errors.New("workflow not found")
 
 // Plan plans the workflow and returns the workflow runner.
 func Plan(workflow core.Workflow, job string) (*TaskRunner, error) {
+	var order []string
+
+	if job != "" {
+		order = []string{job}
+	} else {
+		// TODO: order jobs based on dependencies. For now, just run all jobs in the workflow.
+		for name := range workflow.Jobs {
+			order = append(order, name)
+		}
+	}
+
 	runFn := func(ctx *gctx.Context) (core.Conclusion, error) {
-		jm, ok := workflow.Jobs[job]
-		if !ok {
-			return core.ConclusionFailure, ErrWorkflowNotFound
-		}
+		for _, job := range order {
+			jm, ok := workflow.Jobs[job]
+			if !ok {
+				return core.ConclusionFailure, ErrWorkflowNotFound
+			}
 
-		jr, err := planJob(jm)
-		if err != nil {
-			return core.ConclusionFailure, err
-		}
+			jr, err := planJob(jm)
+			if err != nil {
+				return core.ConclusionFailure, err
+			}
 
-		_, _, err = jr.Run(ctx)
-		if err != nil {
-			return core.ConclusionFailure, err
+			_, _, err = jr.Run(ctx)
+			if err != nil {
+				return core.ConclusionFailure, err
+			}
 		}
 
 		return core.ConclusionSuccess, nil
