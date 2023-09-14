@@ -2,21 +2,26 @@ package gctx
 
 import (
 	"context"
+	"fmt"
+	"math"
 	"os"
 
 	"dagger.io/dagger"
 
 	"github.com/aweris/gale/internal/core"
 	"github.com/aweris/gale/internal/dagger/helpers"
+	"github.com/aweris/gale/internal/expression"
 	"github.com/aweris/gale/pkg/data"
 )
 
 type Context struct {
-	isContainer bool            // isContainer indicates whether the workflow is running in a container.
-	debug       bool            // debug indicates whether the workflow is running in debug mode.
-	path        string          // path is the data path for the context to be mounted from the host or to be used in the container.
-	Context     context.Context // Context is the current context of the workflow.
-	Repo        RepoContext     // Repo is the context for the repository.
+	isContainer bool             // isContainer indicates whether the workflow is running in a container.
+	debug       bool             // debug indicates whether the workflow is running in debug mode.
+	path        string           // path is the data path for the context to be mounted from the host or to be used in the container.
+	Context     context.Context  // Context is the current context of the workflow.
+	Dagger      DaggerContext    // Dagger is the context for the dagger engine.
+	Repo        RepoContext      // Repo is the context for the repository.
+	Execution   ExecutionContext // Execution is the context for the execution.
 
 	// Github Expression Contexts
 	Runner  RunnerContext
@@ -32,8 +37,14 @@ func Load(ctx context.Context, debug bool) (*Context, error) {
 
 	gctx := &Context{isContainer: isContainer, debug: debug, Context: ctx, path: data.MountPath}
 
+	// load dagger context
+	err := gctx.LoadDaggerContext()
+	if err != nil {
+		return nil, err
+	}
+
 	// load the repository context
-	err := gctx.LoadRunnerContext()
+	err = gctx.LoadRunnerContext()
 	if err != nil {
 		return nil, err
 	}
@@ -53,16 +64,6 @@ func Load(ctx context.Context, debug bool) (*Context, error) {
 		return nil, err
 	}
 
-	err = gctx.LoadJob()
-	if err != nil {
-		return nil, err
-	}
-
-	err = gctx.LoadSteps()
-	if err != nil {
-		return nil, err
-	}
-
 	// If we can get the token from the environment, we'll use it. Otherwise, we'll try to get it github cli
 	if gctx.Github.Token == "" {
 		token, err := core.GetToken()
@@ -72,11 +73,13 @@ func Load(ctx context.Context, debug bool) (*Context, error) {
 
 		gctx.SetToken(token)
 	} else {
-		gctx.Secrets.SetToken(gctx.Github.Token)
+		gctx.Secrets.setToken(gctx.Github.Token)
 	}
 
 	return gctx, nil
 }
+
+// helpers.WithContainerFuncHook interface to be loaded in the container.
 
 var _ helpers.WithContainerFuncHook = new(Context)
 
@@ -88,6 +91,7 @@ func (c *Context) WithContainerFunc() dagger.WithContainerFunc {
 		container = container.WithEnvVariable(EnvVariableGaleRunner, "true")
 
 		// apply sub-contexts
+		container = container.With(c.Dagger.WithContainerFunc())
 		container = container.With(c.Repo.WithContainerFunc())
 		container = container.With(c.Github.WithContainerFunc())
 		container = container.With(c.Secrets.WithContainerFunc())
@@ -101,7 +105,39 @@ func (c *Context) WithContainerFunc() dagger.WithContainerFunc {
 	}
 }
 
-func (c *Context) SetToken(token string) {
-	c.Secrets.SetToken(token)
-	c.Github.SetToken(token)
+// expression.VariableProvider interface to be used in expressions.
+
+var _ expression.VariableProvider = new(Context)
+
+func (c *Context) GetVariable(name string) (interface{}, error) {
+	switch name {
+	case "github":
+		return c.Github, nil
+	case "runner":
+		return c.Runner, nil
+	case "env":
+		return map[string]string{}, nil
+	case "vars":
+		return map[string]string{}, nil
+	case "job":
+		return c.Job, nil
+	case "steps":
+		return c.Steps, nil
+	case "secrets":
+		return c.Secrets.Data, nil
+	case "strategy":
+		return map[string]string{}, nil
+	case "matrix":
+		return map[string]string{}, nil
+	case "needs":
+		return map[string]string{}, nil
+	case "inputs":
+		return c.Inputs, nil
+	case "infinity":
+		return math.Inf(1), nil
+	case "nan":
+		return math.NaN(), nil
+	default:
+		return nil, fmt.Errorf("unknown variable: %s", name)
+	}
 }

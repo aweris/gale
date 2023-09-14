@@ -12,7 +12,6 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/aweris/gale/internal/config"
 	"github.com/aweris/gale/internal/fs"
 	"github.com/aweris/gale/internal/log"
 )
@@ -161,23 +160,25 @@ func (c *CustomActionRuns) PostCondition() (bool, string) {
 	return true, c.PostIf
 }
 
-// LoadActionFromSource loads an action from given source. Source can be a local directory or a remote repository.
-func LoadActionFromSource(ctx context.Context, source string) (*CustomAction, error) {
+// LoadActionFromSource loads an action from given source to the target directory. If the source is a local action,
+// the target directory will be the same as the source. If the source is a remote action, the action will be downloaded
+// to the target directory using the source as the reference(e.g. {target}/{owner}/{repo}/{path}@{ref}).
+func LoadActionFromSource(ctx context.Context, client *dagger.Client, source, targetDir string) (*CustomAction, error) {
 	var target string
 
 	// no need to load action if it is a local action
 	if isLocalAction(source) {
 		target = source
 	} else {
-		target = filepath.Join(config.GhxActionsDir(), source)
+		target = filepath.Join(targetDir, source)
 
 		// ensure action exists locally
-		if err := ensureActionExistsLocally(ctx, source, target); err != nil {
+		if err := ensureActionExistsLocally(ctx, client, source, target); err != nil {
 			return nil, err
 		}
 	}
 
-	dir, err := getActionDirectory(target)
+	dir, err := getActionDirectory(client, target)
 	if err != nil {
 		return nil, err
 	}
@@ -197,7 +198,7 @@ func isLocalAction(source string) bool {
 
 // ensureActionExistsLocally ensures that the action exists locally. If the action does not exist locally, it will be
 // downloaded from the source to the target directory.
-func ensureActionExistsLocally(ctx context.Context, source, target string) error {
+func ensureActionExistsLocally(ctx context.Context, client *dagger.Client, source, target string) error {
 	// check if action exists locally
 	exist, err := fs.Exists(target)
 	if err != nil {
@@ -212,7 +213,7 @@ func ensureActionExistsLocally(ctx context.Context, source, target string) error
 
 	log.Debugf("action does not exist locally, downloading...", "source", source, "target", target)
 
-	dir, err := getActionDirectory(source)
+	dir, err := getActionDirectory(client, source)
 	if err != nil {
 		return err
 	}
@@ -249,10 +250,10 @@ func getCustomActionMeta(ctx context.Context, actionDir *dagger.Directory) (*Cus
 }
 
 // getActionDirectory returns the directory of the action from given source.
-func getActionDirectory(source string) (*dagger.Directory, error) {
+func getActionDirectory(client *dagger.Client, source string) (*dagger.Directory, error) {
 	// if path is relative, use the host to resolve the path
 	if isLocalAction(source) {
-		return config.Client().Host().Directory(source), nil
+		return client.Host().Directory(source), nil
 	}
 
 	// if path is not a relative path, it must be a remote repository in the format "{owner}/{repo}/{path}@{ref}"
@@ -263,7 +264,7 @@ func getActionDirectory(source string) (*dagger.Directory, error) {
 	}
 
 	// TODO: handle enterprise github instances as well
-	gitRepo := config.Client().Git(path.Join("github.com", actionRepo))
+	gitRepo := client.Git(path.Join("github.com", actionRepo))
 
 	var gitRef *dagger.GitRef
 

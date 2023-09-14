@@ -9,6 +9,9 @@ import (
 	"github.com/adrg/xdg"
 )
 
+// FIXME: global config was a mistake. It's hard to maintain and track where it's used. We should refactor this to
+//  something more maintainable.
+
 // cfg is the global configuration for ghx. No other package should access it directly.
 var cfg = new(config)
 

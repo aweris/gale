@@ -5,7 +5,6 @@ import (
 
 	"dagger.io/dagger"
 
-	"github.com/aweris/gale/internal/core"
 	"github.com/aweris/gale/internal/gctx"
 )
 
@@ -30,8 +29,8 @@ func New(rc *gctx.Context) *Gale {
 // ExecutionEnv returns a dagger function that sets the execution environment of the gale to the given container.
 func (g *Gale) ExecutionEnv(_ context.Context) dagger.WithContainerFunc {
 	return func(container *dagger.Container) *dagger.Container {
-		// pass dagger context to the container
-		container = container.With(core.NewDaggerContextFromEnv().WithContainerFunc())
+		// context configuration
+		container = container.With(g.rc.WithContainerFunc())
 
 		// tools
 		container = container.With(g.ghx.WithContainerFunc())
@@ -39,9 +38,6 @@ func (g *Gale) ExecutionEnv(_ context.Context) dagger.WithContainerFunc {
 		// services
 		container = container.With(g.artifactSVC.WithContainerFunc())
 		container = container.With(g.artifactCacheSVC.WithContainerFunc())
-
-		// context configuration
-		container = container.With(g.rc.WithContainerFunc())
 
 		return container
 	}

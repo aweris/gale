@@ -2,7 +2,6 @@ package ghx
 
 import (
 	"bufio"
-	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -11,22 +10,21 @@ import (
 
 	"github.com/aweris/gale/internal/core"
 	"github.com/aweris/gale/internal/expression"
+	"github.com/aweris/gale/internal/gctx"
 	"github.com/aweris/gale/internal/log"
 )
 
 var _ Executor = new(CmdExecutor)
 
 type CmdExecutor struct {
-	stepID   string                  // stepID is the id of the step
 	args     []string                // args to pass to the command
 	env      map[string]string       // env to pass to the command as environment variables
-	ec       *ExprContext            // ec is the expression context to evaluate the github expressions
 	commands []*core.WorkflowCommand // commands is the list of commands that are executed in the step
 	envFiles *EnvironmentFiles       // envFiles contains temporary files that can be used to perform certain actions
 
 }
 
-func NewCmdExecutorFromStepAction(sa *StepAction, entrypoint string) *CmdExecutor {
+func NewCmdExecutorFromStepAction(ctx *gctx.Context, sa *StepAction, entrypoint string) *CmdExecutor {
 	env := make(map[string]string)
 
 	for k, v := range sa.Step.With {
@@ -47,7 +45,7 @@ func NewCmdExecutorFromStepAction(sa *StepAction, entrypoint string) *CmdExecuto
 	}
 
 	// add step state to the environment
-	for k, v := range sa.runner.context.Steps[sa.Step.ID].State {
+	for k, v := range ctx.Steps[sa.Step.ID].State {
 		env[fmt.Sprintf("STATE_%s", k)] = v
 	}
 
@@ -57,14 +55,12 @@ func NewCmdExecutorFromStepAction(sa *StepAction, entrypoint string) *CmdExecuto
 	}
 
 	return &CmdExecutor{
-		stepID: sa.Step.ID,
-		args:   []string{"node", fmt.Sprintf("%s/%s", sa.Action.Path, entrypoint)},
-		env:    env,
-		ec:     sa.runner.context,
+		args: []string{"node", fmt.Sprintf("%s/%s", sa.Action.Path, entrypoint)},
+		env:  env,
 	}
 }
 
-func NewCmdExecutorFromStepRun(sr *StepRun) *CmdExecutor {
+func NewCmdExecutorFromStepRun(ctx *gctx.Context, sr *StepRun) *CmdExecutor {
 	args := []string{sr.Shell}
 
 	args = append(args, sr.ShellArgs...)
@@ -72,7 +68,7 @@ func NewCmdExecutorFromStepRun(sr *StepRun) *CmdExecutor {
 	env := make(map[string]string)
 
 	// add step state to the environment
-	for k, v := range sr.runner.context.Steps[sr.Step.ID].State {
+	for k, v := range ctx.Steps[sr.Step.ID].State {
 		env[fmt.Sprintf("STATE_%s", k)] = v
 	}
 
@@ -82,24 +78,22 @@ func NewCmdExecutorFromStepRun(sr *StepRun) *CmdExecutor {
 	}
 
 	return &CmdExecutor{
-		stepID: sr.Step.ID,
-		args:   args,
-		env:    env,
-		ec:     sr.runner.context,
+		args: args,
+		env:  env,
 	}
 }
 
-func (c *CmdExecutor) Execute(ctx context.Context) error {
+func (c *CmdExecutor) Execute(ctx *gctx.Context) error {
 	//nolint:gosec // this is a command executor, we need to execute the command as it is
 	cmd := exec.Command(c.args[0], c.args[1:]...)
 
 	// load environment files - this will create env files and load it to the environment. That's why we need to do this
 	// before setting the environment variables
-	err := c.loadEnvFiles()
+	err := c.loadEnvFiles(ctx)
 	if err != nil {
 		return err
 	}
-	defer c.unloadEnvFiles()
+	defer c.unloadEnvFiles(ctx)
 
 	// add environment variables
 
@@ -110,7 +104,7 @@ func (c *CmdExecutor) Execute(ctx context.Context) error {
 		str := expression.NewString(v)
 
 		// evaluate the expression
-		res, err := str.Eval(c.ec)
+		res, err := str.Eval(ctx)
 		if err != nil {
 			log.Errorf("failed to evaluate value", "error", err.Error(), "key", k, "value", v)
 
@@ -148,7 +142,7 @@ func (c *CmdExecutor) Execute(ctx context.Context) error {
 				continue
 			}
 
-			err := c.processWorkflowCommands(command)
+			err := c.processWorkflowCommands(ctx, command)
 			if err != nil {
 				log.Errorf("failed to process workflow command", "error", err.Error(), "output", output)
 			}
@@ -157,14 +151,14 @@ func (c *CmdExecutor) Execute(ctx context.Context) error {
 
 	waitErr := cmd.Wait()
 
-	if err := processEnvironmentFiles(ctx, c.stepID, c.envFiles, c.ec); err != nil {
+	if err := processEnvironmentFiles(ctx, c.envFiles, ctx); err != nil {
 		return err
 	}
 
 	return waitErr
 }
 
-func (c *CmdExecutor) loadEnvFiles() error {
+func (c *CmdExecutor) loadEnvFiles(ctx *gctx.Context) error {
 	if c.envFiles == nil {
 		c.envFiles = &EnvironmentFiles{}
 	}
@@ -208,21 +202,21 @@ func (c *CmdExecutor) loadEnvFiles() error {
 	c.envFiles.StepSummary = stepSummary
 
 	// update the expression context with the environment files
-	c.ec.WithGithubEnv(env.Path).WithGithubPath(path.Path)
+	ctx.WithGithubEnv(env.Path).WithGithubPath(path.Path)
 
 	return nil
 }
 
 // unloadEnvFiles removes the environment files from the expression context
-func (c *CmdExecutor) unloadEnvFiles() {
+func (c *CmdExecutor) unloadEnvFiles(ctx *gctx.Context) {
 	if c.envFiles == nil {
 		return
 	}
 
-	c.ec.WithoutGithubEnv().WithoutGithubPath()
+	ctx.WithoutGithubEnv().WithoutGithubPath()
 }
 
-func (c *CmdExecutor) processWorkflowCommands(cmd *core.WorkflowCommand) error {
+func (c *CmdExecutor) processWorkflowCommands(ctx *gctx.Context, cmd *core.WorkflowCommand) error {
 	switch cmd.Name {
 	case "group":
 		log.Info(cmd.Value)
@@ -242,9 +236,13 @@ func (c *CmdExecutor) processWorkflowCommands(cmd *core.WorkflowCommand) error {
 			return err
 		}
 	case "set-output":
-		c.ec.SetStepOutput(c.stepID, cmd.Parameters["name"], cmd.Value)
+		if err := ctx.SetStepOutput(cmd.Parameters["name"], cmd.Value); err != nil {
+			return err
+		}
 	case "save-state":
-		c.ec.SetStepState(c.stepID, cmd.Parameters["name"], cmd.Value)
+		if err := ctx.SetStepState(cmd.Parameters["name"], cmd.Value); err != nil {
+			return err
+		}
 	case "add-mask":
 		log.Info(fmt.Sprintf("[add-mask] %s", cmd.Value))
 	case "add-matcher":

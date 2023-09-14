@@ -7,7 +7,6 @@ import (
 
 	"dagger.io/dagger"
 
-	"github.com/aweris/gale/internal/config"
 	"github.com/aweris/gale/internal/core"
 )
 
@@ -21,10 +20,8 @@ func TestGetCurrentRepository(t *testing.T) {
 	}
 	defer client.Close()
 
-	config.SetClient(client)
-
 	// get current repository with current directory. This will load tests directory as repository. It's ok for testing.
-	repo, err := core.GetCurrentRepository()
+	repo, err := core.GetCurrentRepository(ctx, client)
 	if err != nil {
 		t.Fatalf("Failed to get current repository: %s", err)
 	}
@@ -66,10 +63,8 @@ func TestGetRepository(t *testing.T) {
 	}
 	defer client.Close()
 
-	config.SetClient(client)
-
 	// get repository with default branch
-	repo, err := core.GetRepository("aweris/gale")
+	repo, err := core.GetRepository(ctx, client, "aweris/gale")
 	if err != nil {
 		t.Fatalf("Failed to get current repository: %s", err)
 	}

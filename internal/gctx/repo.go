@@ -39,7 +39,7 @@ func (c *Context) LoadRepo(repo string, opts ...LoadRepoOpts) error {
 		opt = opts[0]
 	}
 
-	r, err := core.GetRepository(repo, core.GetRepositoryOpts{Branch: opt.Branch, Tag: opt.Tag})
+	r, err := core.GetRepository(c.Context, config.ClientNoLog(), repo, core.GetRepositoryOpts{Branch: opt.Branch, Tag: opt.Tag})
 	if err != nil {
 		return err
 	}

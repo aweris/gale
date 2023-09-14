@@ -2,7 +2,6 @@ package ghx
 
 import (
 	"bufio"
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -13,6 +12,7 @@ import (
 	"github.com/aweris/gale/internal/config"
 	"github.com/aweris/gale/internal/core"
 	"github.com/aweris/gale/internal/expression"
+	"github.com/aweris/gale/internal/gctx"
 	"github.com/aweris/gale/internal/log"
 )
 
@@ -20,32 +20,28 @@ var _ Executor = new(ContainerExecutor)
 
 type ContainerExecutor struct {
 	container  *dagger.Container       // container is the container to execute
-	stepID     string                  // stepID is the ID of the step
 	entrypoint string                  // entrypoint is the entrypoint of the container
 	args       []string                // args is the arguments of the container
 	env        map[string]string       // env to pass to the command as environment variables
-	ec         *ExprContext            // ec is the expression context to evaluate the github expressions
-	dec        *ExprContext            // dec is the dagger expression context to evaluate action meta files. TODO: temporary solution, we need to find a better way to do this
+	dec        *gctx.Context           // dec is the dagger expression context to evaluate action meta files. TODO: temporary solution, we need to find a better way to do this
 	commands   []*core.WorkflowCommand // commands is the list of commands that are executed in the step
 	envFiles   *EnvironmentFiles       // envFiles contains temporary files that can be used to perform certain actions
 }
 
-func NewContainerExecutorFromStepDocker(sd *StepDocker) *ContainerExecutor {
+func NewContainerExecutorFromStepDocker(ctx *gctx.Context, sd *StepDocker) *ContainerExecutor {
 	return &ContainerExecutor{
-		stepID:     sd.Step.ID,
 		entrypoint: sd.Step.With["entrypoint"],
 		args:       []string{sd.Step.With["args"]},
 		env:        sd.Step.Environment,
-		dec:        sd.runner.context,
-		ec:         sd.runner.context,
+		dec:        ctx,
 		container:  sd.container,
 	}
 }
 
-func NewContainerExecutorFromStepAction(sa *StepAction, entrypoint string) *ContainerExecutor {
+func NewContainerExecutorFromStepAction(ctx *gctx.Context, sa *StepAction, entrypoint string) *ContainerExecutor {
 	// get context as value to avoid changing the original context. We need to do this because we are going to change
 	// inputs context and we don't want to change the original context.
-	dec := *sa.runner.context
+	dec := *ctx
 
 	env := make(map[string]string)
 
@@ -73,7 +69,7 @@ func NewContainerExecutorFromStepAction(sa *StepAction, entrypoint string) *Cont
 	}
 
 	// add step state to the environment
-	for k, v := range sa.runner.context.Steps[sa.Step.ID].State {
+	for k, v := range ctx.Steps[sa.Step.ID].State {
 		env[fmt.Sprintf("STATE_%s", k)] = v
 	}
 
@@ -87,24 +83,22 @@ func NewContainerExecutorFromStepAction(sa *StepAction, entrypoint string) *Cont
 	args = append(args, sa.Action.Meta.Runs.Args...)
 
 	return &ContainerExecutor{
-		stepID:     sa.Step.ID,
 		entrypoint: entrypoint,
 		args:       args,
 		env:        env,
-		ec:         sa.runner.context,
 		dec:        &dec,
 		container:  sa.container,
 	}
 }
 
-func (c *ContainerExecutor) Execute(ctx context.Context) error {
+func (c *ContainerExecutor) Execute(ctx *gctx.Context) error {
 	// load environment files - this will create env files and load it to the environment. That's why we need to do this
 	// before setting the environment variables
-	err := c.loadEnvFiles()
+	err := c.loadEnvFiles(ctx)
 	if err != nil {
 		return err
 	}
-	defer c.unloadEnvFiles()
+	defer c.unloadEnvFiles(ctx)
 
 	entrypoint := c.entrypoint
 
@@ -112,7 +106,7 @@ func (c *ContainerExecutor) Execute(ctx context.Context) error {
 		res := expression.NewString(entrypoint)
 
 		// evaluate the expression
-		entrypoint, err := res.Eval(c.ec)
+		entrypoint, err := res.Eval(ctx)
 		if err != nil {
 			log.Errorf("failed to evaluate value", "error", err.Error(), "entrypoint", entrypoint)
 
@@ -157,7 +151,7 @@ func (c *ContainerExecutor) Execute(ctx context.Context) error {
 	// TODO: if no args are provided, we need to execute the container with the default entrypoint and args
 	//  however this is causing an error since Stdout is looking for last execs output. We need to find a way to
 	//  execute the container without execs and get the output.
-	out, err := c.container.Stdout(ctx)
+	out, err := c.container.Stdout(ctx.Context)
 	if err != nil {
 		return err
 	}
@@ -173,16 +167,16 @@ func (c *ContainerExecutor) Execute(ctx context.Context) error {
 			continue
 		}
 
-		err := c.processWorkflowCommands(command)
+		err := c.processWorkflowCommands(ctx, command)
 		if err != nil {
 			log.Errorf("failed to process workflow command", "error", err.Error(), "output", output)
 		}
 	}
 
-	return processEnvironmentFiles(ctx, c.stepID, c.envFiles, c.ec)
+	return processEnvironmentFiles(ctx, c.envFiles, ctx)
 }
 
-func (c *ContainerExecutor) loadEnvFiles() error {
+func (c *ContainerExecutor) loadEnvFiles(ctx *gctx.Context) error {
 	dir := config.Client().
 		Directory().
 		WithNewFile("env", "").
@@ -211,30 +205,30 @@ func (c *ContainerExecutor) loadEnvFiles() error {
 		WithEnvVariable(core.EnvFileNameGithubStepSummary, stepSummary)
 
 	// update the expression context with the environment files
-	c.ec.WithGithubEnv(env).WithGithubPath(path)
+	ctx.WithGithubEnv(env).WithGithubPath(path)
 
 	return nil
 }
 
 // unloadEnvFiles removes the environment files from the expression context
-func (c *ContainerExecutor) unloadEnvFiles() {
+func (c *ContainerExecutor) unloadEnvFiles(ctx *gctx.Context) {
 	if c.envFiles == nil {
 		return
 	}
 
-	c.ec.WithoutGithubEnv().WithoutGithubPath()
+	ctx.WithoutGithubEnv().WithoutGithubPath()
 }
 
-func (c *ContainerExecutor) processWorkflowCommands(cmd *core.WorkflowCommand) error {
+func (c *ContainerExecutor) processWorkflowCommands(ctx *gctx.Context, cmd *core.WorkflowCommand) error {
 	switch cmd.Name {
 	case "set-env":
 		if err := os.Setenv(cmd.Parameters["name"], cmd.Value); err != nil {
 			return err
 		}
 	case "set-output":
-		c.ec.SetStepOutput(c.stepID, cmd.Parameters["name"], cmd.Value)
+		ctx.SetStepOutput(cmd.Parameters["name"], cmd.Value)
 	case "save-state":
-		c.ec.SetStepState(c.stepID, cmd.Parameters["name"], cmd.Value)
+		ctx.SetStepState(cmd.Parameters["name"], cmd.Value)
 	case "add-mask":
 		log.Info(fmt.Sprintf("[add-mask] %s", cmd.Value))
 	case "add-matcher":

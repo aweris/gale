@@ -8,7 +8,6 @@ import (
 
 	"dagger.io/dagger"
 
-	"github.com/aweris/gale/internal/config"
 	"github.com/aweris/gale/internal/core"
 )
 
@@ -128,8 +127,6 @@ func TestDaggerEnvironmentFile_ReadData(t *testing.T) {
 	}
 	defer client.Close()
 
-	config.SetClient(client)
-
 	// Prepare a temporary test file.
 	// Note: test data contains single key and key value pairs in a same file, however, this is happening in a real.
 	testData := `
@@ -183,8 +180,6 @@ func TestDaggerEnvironmentFile_RawData(t *testing.T) {
 		t.Fatalf("Failed to connect to dagger: %v", err)
 	}
 	defer client.Close()
-
-	config.SetClient(client)
 
 	// Prepare a temporary test file.
 	// Note: test data contains single key and key value pairs in a same file, however, this is happening in a real.

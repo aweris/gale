@@ -43,3 +43,12 @@ const (
 	// StepTypeUnknown represents a step type that is not supported by the runner.
 	StepTypeUnknown StepType = "unknown"
 )
+
+// StepStage is the stage of the step during the execution of the job. Possible values are: setup, pre, main, post, complete.
+type StepStage string
+
+const (
+	StepStagePre  StepStage = "pre"
+	StepStageMain StepStage = "main"
+	StepStagePost StepStage = "post"
+)

@@ -1,17 +1,17 @@
 package ghx
 
 import (
-	"context"
 	"fmt"
 	"os"
 
 	"github.com/aweris/gale/internal/core"
+	"github.com/aweris/gale/internal/gctx"
 )
 
 // Executor is the interface that defines contract for objects capable of performing an execution task.
 type Executor interface {
 	// Execute performs the execution of a specific task with the given context.
-	Execute(ctx context.Context) error
+	Execute(ctx *gctx.Context) error
 }
 
 type EnvironmentFiles struct {
@@ -21,12 +21,12 @@ type EnvironmentFiles struct {
 	StepSummary core.EnvironmentFile // StepSummary is the environment file that holds the step summary
 }
 
-func processEnvironmentFiles(ctx context.Context, stepID string, ef *EnvironmentFiles, ec *ExprContext) error {
+func processEnvironmentFiles(ctx *gctx.Context, ef *EnvironmentFiles, ec *gctx.Context) error {
 	if ef == nil {
 		return nil
 	}
 
-	env, err := ef.Env.ReadData(ctx)
+	env, err := ef.Env.ReadData(ctx.Context)
 	if err != nil {
 		return err
 	}
@@ -37,7 +37,7 @@ func processEnvironmentFiles(ctx context.Context, stepID string, ef *Environment
 		}
 	}
 
-	paths, err := ef.Path.ReadData(ctx)
+	paths, err := ef.Path.ReadData(ctx.Context)
 	if err != nil {
 		return err
 	}
@@ -52,21 +52,21 @@ func processEnvironmentFiles(ctx context.Context, stepID string, ef *Environment
 		return err
 	}
 
-	outputs, err := ef.Outputs.ReadData(ctx)
+	outputs, err := ef.Outputs.ReadData(ctx.Context)
 	if err != nil {
 		return err
 	}
 
 	for k, v := range outputs {
-		ec.SetStepOutput(stepID, k, v)
+		ec.SetStepOutput(k, v)
 	}
 
-	stepSummary, err := ef.StepSummary.RawData(ctx)
+	stepSummary, err := ef.StepSummary.RawData(ctx.Context)
 	if err != nil {
 		return err
 	}
 
-	ec.SetStepSummary(stepID, stepSummary)
+	ec.SetStepSummary(stepSummary)
 
 	return nil
 }
