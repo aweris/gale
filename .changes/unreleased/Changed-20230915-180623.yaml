@@ -1,0 +1,6 @@
+kind: Changed
+body: Job name is now optional for `gale run` command
+time: 2023-09-15T18:06:23.461862+02:00
+custom:
+  Author: aweris
+  PR: "125"
