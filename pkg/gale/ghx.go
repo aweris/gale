@@ -50,6 +50,10 @@ func (g *Ghx) WithContainerFunc() dagger.WithContainerFunc {
 
 func (g *Ghx) Run(workflow, job string) dagger.WithContainerFunc {
 	return func(container *dagger.Container) *dagger.Container {
-		return container.WithExec([]string{"/usr/local/bin/ghx", "run", workflow, job})
+		if job != "" {
+			return container.WithExec([]string{"/usr/local/bin/ghx", "run", workflow, "--job", job})
+		}
+
+		return container.WithExec([]string{"/usr/local/bin/ghx", "run", workflow})
 	}
 }

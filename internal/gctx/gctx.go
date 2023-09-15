@@ -30,6 +30,7 @@ type Context struct {
 	Inputs  InputsContext
 	Job     JobContext
 	Steps   StepsContext
+	Needs   NeedsContext
 }
 
 func Load(ctx context.Context, debug bool) (*Context, error) {
@@ -130,7 +131,7 @@ func (c *Context) GetVariable(name string) (interface{}, error) {
 	case "matrix":
 		return map[string]string{}, nil
 	case "needs":
-		return map[string]string{}, nil
+		return c.Needs, nil
 	case "inputs":
 		return c.Inputs, nil
 	case "infinity":

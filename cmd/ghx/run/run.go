@@ -10,10 +10,12 @@ import (
 
 // NewCommand  creates a new root command.
 func NewCommand() *cobra.Command {
+	var job string
+
 	command := &cobra.Command{
-		Use:   "run <workflow> <job> [flags]",
+		Use:   "run <workflow> [flags]",
 		Short: "Runs a job given run id",
-		Args:  cobra.ExactArgs(2),
+		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Load context
 			ctx, err := gctx.Load(cmd.Context(), config.Debug())
@@ -33,7 +35,7 @@ func NewCommand() *cobra.Command {
 			}
 
 			// Create task runner for the workflow
-			runner, err := ghx.Plan(wf, args[1])
+			runner, err := ghx.Plan(wf, job)
 			if err != nil {
 				return err
 			}
@@ -47,6 +49,8 @@ func NewCommand() *cobra.Command {
 			return nil
 		},
 	}
+
+	command.Flags().StringVarP(&job, "job", "j", "", "job name to run")
 
 	return command
 }

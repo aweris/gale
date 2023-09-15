@@ -85,63 +85,52 @@ func NewTaskRunner(name string, fn TaskRunFn, opts ...TaskOpts) TaskRunner {
 
 // Run runs the task and updates the status, conclusion and timing information.
 func (t *TaskRunner) Run(ctx *gctx.Context) (run bool, conclusion core.Conclusion, err error) {
+	run = true
 	t.StartedAt = time.Now()
 	t.Status = core.StatusInProgress
 
+	// run preFn if any
+	if t.preFn != nil && t.preFn(ctx) != nil {
+		return t.failFast(core.ConclusionFailure, err)
+	}
+
 	if t.conditionFn != nil {
 		run, conclusion, err = t.conditionFn(ctx)
-		if !run {
-			t.Ran = run
-			t.Conclusion = conclusion
-			t.CompletedAt = time.Now()
-			t.Status = core.StatusCompleted
-
-			if conclusion != "" && conclusion != core.ConclusionSuccess {
-				log.Info(fmt.Sprintf("%s (%s)", t.Name, conclusion))
-			}
-
-			return run, conclusion, err
-		}
 	}
 
-	// create ger group for step
-	log.Info(t.Name)
-	log.StartGroup()
-	defer log.EndGroup()
+	if run {
+		// create ger group for step
+		log.Info(t.Name)
+		log.StartGroup()
+		defer log.EndGroup()
 
-	// run preFn if any
-	if t.preFn != nil {
-		if err := t.preFn(ctx); err != nil {
-			t.Ran = true
-			t.Conclusion = core.ConclusionFailure
-			t.CompletedAt = time.Now()
-			t.Status = core.StatusCompleted
-
-			return false, core.ConclusionFailure, err
-		}
+		// run the task update named return values
+		conclusion, err = t.runFn(ctx)
+	} else if conclusion != "" && conclusion != core.ConclusionSuccess {
+		// if the task should not be executed, log the conclusion
+		log.Info(fmt.Sprintf("%s (%s)", t.Name, conclusion))
 	}
 
-	// run the task
-	conclusion, err = t.runFn(ctx)
+	// task is completed, set the status, conclusion and timing information
+	t.setTaskCompletion(run, conclusion)
 
-	t.Ran = true
+	// run postFn if any
+	if t.postFn != nil && t.postFn(ctx) != nil {
+		return t.failFast(core.ConclusionFailure, t.postFn(ctx))
+	}
+
+	// return the named return values from the task
+	return run, conclusion, err
+}
+
+func (t *TaskRunner) failFast(conclusion core.Conclusion, err error) (bool, core.Conclusion, error) {
+	t.setTaskCompletion(true, conclusion)
+	return false, conclusion, err
+}
+
+func (t *TaskRunner) setTaskCompletion(run bool, conclusion core.Conclusion) {
+	t.Ran = run
 	t.Conclusion = conclusion
 	t.CompletedAt = time.Now()
 	t.Status = core.StatusCompleted
-
-	if err != nil {
-		return run, conclusion, err
-	}
-
-	// run postFn if any
-	if t.postFn != nil {
-		if err := t.postFn(ctx); err != nil {
-			t.Conclusion = core.ConclusionFailure
-			t.Status = core.StatusCompleted
-
-			return false, core.ConclusionFailure, err
-		}
-	}
-
-	return run, conclusion, nil
 }

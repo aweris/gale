@@ -138,8 +138,9 @@ func planJob(job core.Job) (*TaskRunner, error) {
 
 	// task runner options for the job
 	opt := TaskOpts{
-		PreRunFn:  newTaskPreRunFnForJob(job),
-		PostRunFn: newTaskPostRunFnForJob(),
+		ConditionalFn: newTaskConditionalFnForJob(job),
+		PreRunFn:      newTaskPreRunFnForJob(job),
+		PostRunFn:     newTaskPostRunFnForJob(),
 	}
 
 	runner := NewTaskRunner(fmt.Sprintf("Job: %s", job.Name), runFn, opt)
@@ -150,6 +151,16 @@ func planJob(job core.Job) (*TaskRunner, error) {
 // setup returns a task taskRunner function that will be executed by the task taskRunner for the setup step.
 func setup(setupFns ...TaskRunFn) TaskRunFn {
 	return func(ctx *gctx.Context) (core.Conclusion, error) {
+		// To accurately evaluate conditions like always() or failure(), context inherits the workflow status.
+		// This inheritance allow us to evaluate the conditions like always() or failure() correctly. However,
+		// we need to reset the status of the job to success before running the steps. Otherwise, the
+		// setup steps will not run if the workflow status is failure.
+		//
+		// To work around this, we're setting the job status to success as a first step of the setup task taskRunner.
+		// This will allow us to reset the job status to success after job condition check and before running the
+		// actual job steps.
+		ctx.Job.Status = core.ConclusionSuccess
+
 		for _, setupFn := range setupFns {
 			conclusion, err := setupFn(ctx)
 			if err != nil {
@@ -171,6 +182,12 @@ func complete() TaskRunFn {
 		log.Infof("Complete", "job", ctx.Execution.JobRun.Job.Name, "conclusion", ctx.Job.Status)
 
 		return core.ConclusionSuccess, nil
+	}
+}
+
+func newTaskConditionalFnForJob(job core.Job) TaskConditionalFn {
+	return func(ctx *gctx.Context) (bool, core.Conclusion, error) {
+		return evalCondition(job.If, ctx)
 	}
 }
 

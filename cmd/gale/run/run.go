@@ -18,14 +18,15 @@ func NewCommand() *cobra.Command {
 		branch       string            // branch is the branch to load workflows from.
 		tag          string            // tag is the tag to load workflows from.
 		workflowsDir string            // workflowsDir is the directory to load workflows from.
+		job          string            // job is the job name to run.
 		secrets      map[string]string // secrets is the map of secrets to be used in the workflow.
 		rc           *gctx.Context
 	)
 
 	cmd := &cobra.Command{
-		Use:          "run <workflow> <job> [flags]",
+		Use:          "run <workflow> [flags]",
 		Short:        "Run Github Actions by providing workflow and job name",
-		Args:         cobra.ExactArgs(2),
+		Args:         cobra.ExactArgs(1),
 		SilenceUsage: true, // don't print usage when error occurs
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			client, err := helpers.DefaultClient(cmd.Context())
@@ -74,7 +75,7 @@ func NewCommand() *cobra.Command {
 			_, err := config.Client().Container().
 				From(config.RunnerImage()).
 				With(gi.ExecutionEnv(cmd.Context())).
-				With(gi.Run(args[0], args[1])).
+				With(gi.Run(args[0], job)).
 				Sync(cmd.Context())
 
 			if err != nil {
@@ -91,6 +92,7 @@ func NewCommand() *cobra.Command {
 	cmd.Flags().StringVar(&branch, "branch", "", "branch to load workflows from. Only one of branch or tag can be used. Precedence is as follows: tag, branch.")
 	cmd.Flags().StringVar(&tag, "tag", "", "tag to load workflows from. Only one of branch or tag can be used. Precedence is as follows: tag, branch.")
 	cmd.Flags().StringVar(&workflowsDir, "workflows-dir", "", "directory to load workflows from. If empty, workflows will be loaded from the default directory.")
+	cmd.Flags().StringVarP(&job, "job", "j", "", "job name to run")
 	cmd.Flags().StringToStringVar(&secrets, "secret", nil, "secrets to be used in the workflow. Format: --secret name=value")
 
 	return cmd
