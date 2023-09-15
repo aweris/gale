@@ -1,106 +1,127 @@
 # GitHub Action Local Executor
 
-The GitHub Action Local Executor, or `gale` for short, is a customizable GitHub Action environment that can be run locally.
-The goal of this project is to combine the features of the Dagger and GitHub Actions together to create a local
-environment that can be used to run GitHub Actions as if they were running on GitHub.
+Welcome to project `gale`!
 
-**Please Note:** This project is in active development, commands and APIs subject to change without notice. Frequent updates planned for project improvement.
+The purpose of this project is to provide an environment for running GitHub Actions as if they were running on GitHub.
+The project `gale` harnessed the power of [dagger](https://dagger.io) to create a customizable GitHub Action environment 
+that can be run locally or anywhere you can run Dagger.
 
-## Getting Started
+With `gale`, you can get to enjoy a series of perks:
 
-### Prerequisites
+- **Speedy Execution**: Get your workflows running faster compared to the usual GitHub Action Workflow.
 
-Before you can use `gale` to execute workflows locally, make sure you have the following tools available on your machine:
+- **Cache Support**: Save time on repetitive tasks with enhanced caching features.
 
-1. **[GitHub CLI](https://docs.github.com/en/github-cli/github-cli/quickstart)**:
-    - Install and authenticate the GitHub CLI to communicate with the GitHub API.
+- **Programmable Environment**: Customize your execution environment to your liking, making it more adaptable and extensible.
 
-2. **[Docker](https://www.docker.com/)** and **[Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)**:
-    - Dagger, which is utilized by `gale`, requires Docker and Git for running workflows.
+**Heads up:** We are continually working to enhance `gale`. As it is in active development, you might notice changes in 
+commands and APIs over time. Your understanding and support are greatly appreciated!
 
-Optional:
+## Before You Begin
 
-3. **[Dagger CLI](https://docs.dagger.io/cli/465058/install)**:
-    - You may optionally install the Dagger CLI for using `gale` with dagger's TUI
+### Things You Need
 
-With these prerequisites in place, you'll be ready to set up and run `gale` on your local machine, executing GitHub Actions locally.
+To start using `gale`, make sure your computer has these tools:
 
+1. **GitHub CLI**: Helps `gale` connect with GitHub. [Learn how to get it here](https://docs.github.com/en/github-cli/github-cli/quickstart).
 
-### Installation
+2. **Docker and Git**: Dagger, which is utilized by `gale`, requires Docker and Git for running workflows. [Find Docker here](https://www.docker.com/) and [Git here](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git).
 
-You can download the latest release of `gale` from the [releases page](https://github.com/aweris/gale/releases). 
+3. **Dagger CLI (Optional)**: Enhance `gale` with a special TUI from Dagger. [See how to install it here](https://docs.dagger.io/cli/465058/install).
 
-or you can install `gale` using:
+Once you have these tools, you are ready to install and use `gale`.
+
+## How to Install
+
+You can get `gale` in two ways:
+
+1. **Install from GitHub**: You can download the latest release of `gale` from the [releases page](https://github.com/aweris/gale/releases).
+2. **Install using script**: Run the following command to install `gale` to your current directory:
 
 ```bash!
-curl -sfLo install.sh https://raw.githubusercontent.com/aweris/gale/main/hack/install.sh; sh ./install.sh
+curl -sfLo install.sh https://raw.githubusercontent.com/aweris/gale/main/hack/install.sh && sh ./install.sh
 ```
 
-The following command will install latest version of `gale` to your current directory. You can also specify following environment variables,
+You can customize the installation by specifying the following environment variables:
 
 - `GALE_VERSION` to specify the version of `gale` to install, e.g. `GALE_VERSION=v0.0.1` default is `latest`
 - `BIN_DIR` to specify the directory to install `gale` to, e.g. `BIN_DIR=/usr/local/bin` default is current directory
 
 ```bash!
-curl -sfLo install.sh https://raw.githubusercontent.com/aweris/gale/main/hack/install.sh; sudo GALE_VERSION=v0.0.2 BIN_DIR=/usr/local/bin sh ./install.sh
+curl -sfLo install.sh https://raw.githubusercontent.com/aweris/gale/main/hack/install.sh && sudo GALE_VERSION=v0.0.7 BIN_DIR=/usr/local/bin sh ./install.sh
 ```
 
-**Note:** It's not possible install `gale` using `go install` because `gale` requires the version information to be 
-embedded in the binary and `go install` doesn't compile the binary with version information.
+**Note:** You cannot install `gale` with `go install` because this method doesn't include the necessary version information in the compiled binary.
 
-### List workflows and jobs
+## How to Use
+
+### Viewing Workflows and Jobs
+
+Command: 
+
+```bash!
+> gale list --help
+List all workflows and jobs under it
+
+Usage:
+  gale list [flags]
+
+Flags:
+      --branch string          branch to load workflows from. Only one of branch or tag can be used. Precedence is as follows: tag, branch.
+  -h, --help                   help for list
+      --repo string            owner/repo to load workflows from. If empty, repository information of the current directory will be used.
+      --tag string             tag to load workflows from. Only one of branch or tag can be used. Precedence is as follows: tag, branch.
+      --workflows-dir string   directory to load workflows from. If empty, workflows will be loaded from the default directory.
+```
+
+To list all workflows and jobs for the `goreleaser/goreleaser` repository under tag `v1.19.2`, use:
 
 ```bash!
 dagger run gale list --repo goreleaser/goreleaser --tag v1.19.2
 ```
 
-This command lists all workflows and jobs under it for the repository (`goreleaser/goreleaser`) and tag (`v1.19.2`). The `--workflows-dir` flag specifies the directory to load workflows from, which, if empty, defaults to `.github/workflows`.
-
-An example execution for the command described above:
+This command lists all workflows and jobs under given remote repository and tag. The output is similar to the following:
 
 ![list-workflows](https://github.com/aweris/gale/assets/9319656/ebbf343e-dcac-4942-8570-32f4eced6173)
 
-### Run a job
+### Running a Workflow
+
+Command: 
 
 ```bash!
-dagger run gale run --workflows-dir ci/workflows ci/workflows/lint.yaml golangci-lint
+> gale run --help
+
+Run Github Actions by providing workflow name.
+
+Usage:
+  gale run <workflow> [flags]
+
+Flags:
+      --branch string           branch to load workflows from. Only one of branch or tag can be used. Precedence is as follows: tag, branch.
+      --debug                   enable debug mode
+  -h, --help                    help for run
+  -j, --job string              job name to run. if empty, all jobs will be run in the workflow.
+      --repo string             owner/repo to load workflows from. If empty, repository information of the current directory will be used.
+      --runner string           runner image or path to Dockerfile to use for running the actions. If empty, the default runner image will be used.
+      --secret stringToString   secrets to be used in the workflow. Format: --secret name=value (default [])
+      --tag string              tag to load workflows from. Only one of branch or tag can be used. Precedence is as follows: tag, branch.
+      --workflows-dir string    directory to load workflows from. If empty, workflows will be loaded from the default directory.
 ```
 
-This command runs a specific job (`golangci-lint`) from the workflow defined in `ci/workflows/lint.yaml` file. Since `--repo` 
-flag is not specified, repository information of the current directory will be used. 
+To run the `ci/workflows/lint.yaml` workflow for the current directory's repository, use:
 
-An example execution for the command described above:
+```bash!
+dagger run gale run --workflows-dir ci/workflows ci/workflows/lint.yaml
+```
 
-![run-only-gale](https://github.com/aweris/gale/assets/9319656/aa39b487-982a-44e5-b373-17c5aa251d9f)
+This commands runs the `lint.yaml` workflow from the `ci/workflows` directory. The output is similar to the following:
+
+![run-only-gale](https://github.com/aweris/gale/assets/9319656/11f580bb-bfc7-4279-9135-48566079437c)
+
+The file path is used as the workflow name since it's not defined like in GitHub 
+([Learn more](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#name)). 
 
 Since `dagger run` is an optional command, it's omitted in the example above. So we can keep size of the gif small.
-
-### Configuration options
-
-For commands described above all parameters are optional. 
-
-Common parameters for `list` and `run` commands are:
-
-```
-  --repo string            owner/repo to load workflows from. If empty, repository information of the current directory will be used.
-  --branch string          branch to load workflows from. Only one of branch or tag can be used. Precedence is as follows: tag, branch.
-  --tag string             tag to load workflows from. Only one of branch or tag can be used. Precedence is as follows: tag, branch.
-  --workflows-dir string   directory to load workflows from. If empty, workflows will be loaded from the default directory.
-```
-
-For `run` command, following parameters are also available:
-
-```
-  --runner string           runner image to use for running the actions. If empty, the default image will be used.
-```
-This parameter is useful when you want to use a custom runner image for running the actions. For example, if you want
- to use a custom runner image for running the actions, you can use the following command:
-
-```bash!
-dagger run gale run --runner my-custom-runner-image --workflows-dir ci/workflows ci/workflows/lint.yaml golangci-lint
-```
-
-Also, running commands with `dagger run` command optional as well but it's preferred execution method to enhance `gale` with `TUI`.
 
 ## Feedback and Collaboration
 
