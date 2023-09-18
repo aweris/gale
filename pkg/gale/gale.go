@@ -35,9 +35,11 @@ func (g *Gale) ExecutionEnv(_ context.Context) dagger.WithContainerFunc {
 		// tools
 		container = container.With(g.ghx.WithContainerFunc())
 
+		// FIXME: test this later. I didn't able to run services with zenith at the moment.
+
 		// services
-		container = container.With(g.artifactSVC.WithContainerFunc())
-		container = container.With(g.artifactCacheSVC.WithContainerFunc())
+		// container = container.With(g.artifactSVC.WithContainerFunc())
+		// container = container.With(g.artifactCacheSVC.WithContainerFunc())
 
 		return container
 	}
