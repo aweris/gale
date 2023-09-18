@@ -3,7 +3,7 @@ module github.com/aweris/gale
 go 1.20
 
 require (
-	dagger.io/dagger v0.8.5
+	dagger.io/dagger v0.8.6
 	github.com/adrg/xdg v0.4.0
 	github.com/caarlos0/env/v9 v9.0.0
 	github.com/cli/go-gh/v2 v2.1.0
