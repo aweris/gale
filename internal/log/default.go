@@ -3,11 +3,6 @@ package log
 // logger is the default global logger.
 var logger = NewLogger()
 
-// Default returns the default logger.
-func Default() *Logger {
-	return logger
-}
-
 // StartGroup starts a new group in the default logger.
 func StartGroup() {
 	logger.StartGroup()

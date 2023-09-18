@@ -1,10 +1,13 @@
+# I could make more generic solution, but I don't want to spend time on it now. I'm too lazy for that. This is
+# Temporary solution to keep zenith specific stuff in one place.
 on:
   push:
-    tags:
-      - '*'
+    branches:
+      - aweris/zenith
+      - aweris/zenith-*
 
 permissions:
-  contents: write
+  contents: read
   packages: write
 
 jobs:
@@ -18,6 +21,8 @@ jobs:
 
       - name: Set up Go
         uses: actions/setup-go@v4
+        with:
+          go-version: 1.21
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v2
@@ -27,4 +32,4 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish docker image
-        run: ./hack/mage docker:publish ${{ github.ref_name }}
+        run: ./hack/mage docker:publish v0.0.0-zenith
