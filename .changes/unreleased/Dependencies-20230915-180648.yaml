@@ -1,6 +1,0 @@
-kind: Dependencies
-body: Bumped dagger to v0.8.5
-time: 2023-09-15T18:06:48.185924+02:00
-custom:
-  Author: aweris
-  PR: "126"
