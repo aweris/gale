@@ -3,12 +3,9 @@
 package main
 
 import (
+	//mage:import docker
+	_ "github.com/aweris/gale/internal/mage/docker"
+
 	//mage:import dev
 	_ "github.com/aweris/gale/internal/mage/dev"
-
-	//mage:import tools
-	_ "github.com/aweris/gale/internal/mage/tools"
-
-	//mage:import services
-	_ "github.com/aweris/gale/internal/mage/services"
 )
