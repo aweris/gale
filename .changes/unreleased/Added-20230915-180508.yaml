@@ -1,6 +1,0 @@
-kind: Added
-body: Added support for `jobs.<job-id>.outputs
-time: 2023-09-15T18:05:08.467811+02:00
-custom:
-  Author: aweris
-  PR: "118"
