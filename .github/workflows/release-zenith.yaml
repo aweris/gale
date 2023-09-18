@@ -1,0 +1,34 @@
+# I could make more generic solution, but I don't want to spend time on it now. I'm too lazy for that. This is
+# Temporary solution to keep zenith specific stuff in one place.
+on:
+  push:
+    branches:
+      - aweris/zenith
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: 1.21
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor  }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish docker image
+        run: ./hack/mage docker:publish v0.0.0-zenith
