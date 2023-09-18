@@ -28,7 +28,9 @@ func NewArtifactService(cache *data.CacheVolume) *ArtifactService {
 
 	tag := v.GitVersion
 
-	container := config.Client().Container().From("ghcr.io/aweris/gale/services/artifact:" + tag)
+	container := config.Client().Container().
+		From("ghcr.io/aweris/gale:" + tag).
+		WithEntrypoint([]string{"/usr/local/bin/artifact-service"})
 
 	// port configuration
 	container = container.WithEnvVariable("PORT", "8080").WithExposedPort(8080)

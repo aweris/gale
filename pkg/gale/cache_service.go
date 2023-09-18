@@ -30,7 +30,9 @@ func NewArtifactCacheService(cache *data.CacheVolume) *ArtifactCacheService {
 		port  = 8080
 	)
 
-	container := config.Client().Container().From("ghcr.io/aweris/gale/services/artifactcache:" + tag)
+	container := config.Client().Container().
+		From("ghcr.io/aweris/gale:" + tag).
+		WithEntrypoint([]string{"/usr/local/bin/artifactcache-service"})
 
 	// external hostname configuration
 

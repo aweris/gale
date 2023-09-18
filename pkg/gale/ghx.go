@@ -26,7 +26,7 @@ func NewGhxBinary(data *data.CacheVolume) *Ghx {
 
 	tag := v.GitVersion
 
-	file := config.Client().Container().From("ghcr.io/aweris/gale/tools/ghx:" + tag).File("/ghx")
+	file := config.Client().Container().From("ghcr.io/aweris/gale:" + tag).Directory("/usr/local/bin").File("ghx")
 
 	return &Ghx{tag: tag, cli: file, data: data}
 }
