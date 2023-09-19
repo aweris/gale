@@ -162,15 +162,13 @@ func (c *Context) LoadGithubContext() error {
 }
 
 // SetRepo sets the repository information in the context.
-func (c *GithubContext) setRepo(repo *core.Repository) *GithubContext {
+func (c *GithubContext) setRepo(repo core.Repository, ref core.RepositoryGitRef) *GithubContext {
 	c.Repository = repo.NameWithOwner
 	c.RepositoryID = repo.ID
 	c.RepositoryOwner = repo.Owner.Login
 	c.RepositoryOwnerID = repo.Owner.ID
 	c.RepositoryURL = repo.URL
 	c.Workspace = fmt.Sprintf("/home/runner/work/%s/%s", repo.Name, repo.Name)
-
-	ref := repo.GitRef
 
 	c.Ref = ref.Ref
 	c.RefName = ref.RefName

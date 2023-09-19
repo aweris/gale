@@ -32,7 +32,7 @@ type CacheVolume struct {
 }
 
 // NewCacheVolume creates a new cache volume.
-func NewCacheVolume(repo *core.Repository) *CacheVolume {
+func NewCacheVolume(repo core.Repository) *CacheVolume {
 	return &CacheVolume{
 		source: source(),
 		volume: config.Client().CacheVolume(fmt.Sprintf("gale-data-%s-%s", repo.Owner.Login, repo.Name)),

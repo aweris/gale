@@ -30,41 +30,51 @@ const trueStr = "true"
 // using the `env` tag value as their name.
 func WithContainerEnv[T any](client *dagger.Client, t *T) dagger.WithContainerFunc {
 	return func(container *dagger.Container) *dagger.Container {
-		val := reflect.ValueOf(t).Elem()
-		typ := val.Type()
+		return loadFieldsIntoContainer(client, container, t)
+	}
+}
 
-		for i := 0; i < typ.NumField(); i++ {
-			field := typ.Field(i)
+func loadFieldsIntoContainer(client *dagger.Client, container *dagger.Container, t interface{}) *dagger.Container {
+	val := reflect.ValueOf(t).Elem()
+	typ := val.Type()
 
-			containerEnvTag := typ.Field(i).Tag.Get("container_env")
-			containerSecretTag := typ.Field(i).Tag.Get("container_secret")
+	for i := 0; i < typ.NumField(); i++ {
+		field := typ.Field(i)
 
-			// skip if the field is not tagged with container_env or container_secret
-			if containerEnvTag == "" && containerSecretTag == "" {
-				continue
-			}
+		containerEnvTag := typ.Field(i).Tag.Get("container_env")
+		containerSecretTag := typ.Field(i).Tag.Get("container_secret")
 
-			if containerEnvTag == trueStr && containerSecretTag == trueStr {
-				return helpers.FailPipeline(container, fmt.Errorf("field %s is tagged with both container_env and container_secret", field.Name))
-			}
-
-			envTag := field.Tag.Get("env")
-			if envTag == "" {
-				return helpers.FailPipeline(container, fmt.Errorf("field %s is tagged with container_env or container_secret but not tagged with env", field.Name))
-			}
-
-			// TODO: handle other types properly
-			envVal := val.Field(i).Interface()
-
-			if containerEnvTag == trueStr {
-				container = container.WithEnvVariable(envTag, fmt.Sprintf("%v", envVal))
-			}
-
-			if containerSecretTag == trueStr {
-				container = container.WithSecretVariable(envTag, client.SetSecret(envTag, fmt.Sprintf("%v", envVal)))
-			}
+		// skip if the field is not tagged with container_env or container_secret
+		if containerEnvTag == "" && containerSecretTag == "" {
+			continue
 		}
 
-		return container
+		if containerEnvTag == trueStr && containerSecretTag == trueStr {
+			return helpers.FailPipeline(container, fmt.Errorf("field %s is tagged with both container_env and container_secret", field.Name))
+		}
+
+		var (
+			fieldVal = val.Field(i)
+			envTag   = field.Tag.Get("env")
+		)
+
+		// if env tag is empty and the field is not a struct, fail the pipeline. We're using env tag as the name of the
+		// environment variable or secret. If it's empty, we can't load the field.
+		if envTag == "" && val.Field(i).Kind() != reflect.Struct {
+			return helpers.FailPipeline(container, fmt.Errorf("field %s is tagged with container_env or container_secret but not tagged with env", field.Name))
+		}
+
+		switch {
+		case fieldVal.Kind() == reflect.Struct:
+			container = loadFieldsIntoContainer(client, container, fieldVal.Addr().Interface())
+		case containerEnvTag == trueStr:
+			container = container.WithEnvVariable(envTag, fmt.Sprintf("%v", fieldVal.Interface()))
+		case containerSecretTag == trueStr:
+			container = container.WithSecretVariable(envTag, client.SetSecret(envTag, fmt.Sprintf("%v", fieldVal.Interface())))
+		default:
+			return helpers.FailPipeline(container, fmt.Errorf("unsupported field type: %s", fieldVal.Kind()))
+		}
 	}
+
+	return container
 }

@@ -3,9 +3,9 @@ module github.com/aweris/gale/internal/mage
 go 1.20
 
 require (
-	dagger.io/dagger v0.8.5
+	dagger.io/dagger v0.8.6
+	github.com/google/uuid v1.3.1
 	github.com/magefile/mage v1.15.0
-	golang.org/x/mod v0.12.0
 )
 
 require (
