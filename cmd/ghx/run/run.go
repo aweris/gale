@@ -29,7 +29,12 @@ func NewCommand() *cobra.Command {
 			}
 
 			// Load workflow
-			wf, ok := ctx.Repo.Workflows[args[0]]
+			workflows, err := ctx.LoadWorkflows()
+			if err != nil {
+				return err
+			}
+
+			wf, ok := workflows[args[0]]
 			if !ok {
 				return ghx.ErrWorkflowNotFound
 			}

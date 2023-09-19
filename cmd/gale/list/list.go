@@ -54,7 +54,12 @@ func NewCommand() *cobra.Command {
 			// TODO: add more information about the workflow like the trigger, etc.
 			// TODO: maybe we could add better formatting for the output
 
-			for _, workflow := range rc.Repo.Workflows {
+			workflows, err := rc.LoadWorkflows()
+			if err != nil {
+				return err
+			}
+
+			for _, workflow := range workflows {
 				fmt.Printf("Workflow: ")
 				if workflow.Name != workflow.Path {
 					fmt.Printf("%s (path: %s)\n", workflow.Name, workflow.Path)

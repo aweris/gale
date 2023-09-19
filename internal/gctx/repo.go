@@ -21,10 +21,10 @@ type LoadRepoOpts struct {
 }
 
 type RepoContext struct {
-	Repository   *core.Repository         `json:"-"`
-	CacheVol     *data.CacheVolume        `json:"-"`
-	WorkflowsDir string                   `json:"workflows_dir" env:"GALE_WORKFLOWS_DIR" envDefault:".github/workflows" container_env:"true"`
-	Workflows    map[string]core.Workflow `json:"-"`
+	Repository *core.Repository  `json:"-"`
+	CacheVol   *data.CacheVolume `json:"-"`
+
+	WorkflowsDir string `json:"workflows_dir" env:"GALE_WORKFLOWS_DIR" envDefault:".github/workflows" container_env:"true"`
 }
 
 // LoadRepo initializes the context with the specified or current repository's default branch if no options are provided.
@@ -55,14 +55,6 @@ func (c *Context) LoadRepo(repo string, opts ...LoadRepoOpts) error {
 		rc.WorkflowsDir = opt.WorkflowsDir
 	}
 
-	// load workflows
-	workflows, err := loadWorkflows(c.Context, r, rc.WorkflowsDir)
-	if err != nil {
-		return err
-	}
-
-	rc.Workflows = workflows
-
 	c.Repo = rc
 
 	// set repo to github context
@@ -85,10 +77,10 @@ func (c *RepoContext) WithContainerFunc() dagger.WithContainerFunc {
 	}
 }
 
-func loadWorkflows(ctx context.Context, repo *core.Repository, path string) (map[string]core.Workflow, error) {
-	dir := repo.GitRef.Dir.Directory(path)
+func (c *Context) LoadWorkflows() (map[string]core.Workflow, error) {
+	dir := c.Repo.Repository.GitRef.Dir.Directory(c.Repo.WorkflowsDir)
 
-	entries, err := dir.Entries(ctx)
+	entries, err := dir.Entries(c.Context)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +92,7 @@ func loadWorkflows(ctx context.Context, repo *core.Repository, path string) (map
 		if strings.HasSuffix(entry, ".yaml") || strings.HasSuffix(entry, ".yml") {
 			file := dir.File(entry)
 
-			workflow, err := loadWorkflow(ctx, filepath.Join(path, entry), file)
+			workflow, err := loadWorkflow(c.Context, filepath.Join(c.Repo.WorkflowsDir, entry), file)
 			if err != nil {
 				return nil, err
 			}
