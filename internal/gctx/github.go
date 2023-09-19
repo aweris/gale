@@ -162,7 +162,7 @@ func (c *Context) LoadGithubContext() error {
 }
 
 // SetRepo sets the repository information in the context.
-func (c *GithubContext) setRepo(repo *core.Repository, ref *core.RepositoryGitRef) *GithubContext {
+func (c *GithubContext) setRepo(repo core.Repository, ref core.RepositoryGitRef) *GithubContext {
 	c.Repository = repo.NameWithOwner
 	c.RepositoryID = repo.ID
 	c.RepositoryOwner = repo.Owner.Login
