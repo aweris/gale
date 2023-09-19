@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	"dagger.io/dagger"
+
+	"github.com/google/uuid"
 )
 
 // Publish publishes the docker image for the given version.
@@ -29,19 +31,20 @@ func Publish(ctx context.Context, version string) error {
 		image = fmt.Sprintf("%s/aweris/gale:%s", registry, version)
 	}
 
+	// build ldflags for commands
 	var ldflags []string
 
 	ldflags = append(ldflags, "-s", "-w")
 	ldflags = append(ldflags, "-X github.com/aweris/gale/internal/version.gitVersion="+version)
 
-	// builds
+	// builds all components of the gale
 
-	gale := build(client, "./cmd/gale", "/src/out/gale")
-	ghx := build(client, "./cmd/ghx", "/src/out/ghx")
-	artifact := build(client, "./services/artifact", "/src/out/artifact-service")
-	artifactCache := build(client, "./services/artifactcache", "/src/out/artifactcache-service")
+	gale := build(client, "./cmd/gale", ldflags...)
+	ghx := build(client, "./cmd/ghx", ldflags...)
+	artifact := build(client, "./services/artifact")
+	artifactCache := build(client, "./services/artifactcache")
 
-	// container
+	// create a container that will be used to publish the image
 	_, err = client.Container().
 		From("alpine:latest").
 		WithExec([]string{"apk", "add", "--no-cache", "git", "docker", "github-cli"}).
@@ -55,8 +58,18 @@ func Publish(ctx context.Context, version string) error {
 	return err
 }
 
-func build(client *dagger.Client, path, out string) *dagger.File {
-	exec := []string{"go", "build", "-o", out, path}
+// build builds the code for the given path and returns the output file.
+func build(client *dagger.Client, path string, ldflags ...string) *dagger.File {
+	out := uuid.New().String()
+
+	exec := []string{"go", "build", "-o", out}
+
+	if len(ldflags) > 0 {
+		exec = append(exec, "-ldflags")
+		exec = append(exec, strings.Join(ldflags, " "))
+	}
+
+	exec = append(exec, path)
 
 	return client.Container().
 		From("golang:"+strings.TrimPrefix(runtime.Version(), "go")).
