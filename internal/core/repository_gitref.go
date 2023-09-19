@@ -1,101 +1,82 @@
 package core
 
 import (
-	"context"
+	"errors"
 	"fmt"
-	"strings"
 
-	"dagger.io/dagger"
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 )
+
+// errRefFound is a sentinel error used to stop iteration early.
+var errRefFound = errors.New("stop")
 
 // RepositoryGitRef represents a Git ref (branch or tag) in a repository
 type RepositoryGitRef struct {
-	Ref     string
-	RefName string
-	RefType RefType
-	SHA     string
-	Dir     *dagger.Directory
-}
-
-// GetRepositoryGitRef returns a Git ref (branch or tag) in a repository. If name is empty, the current repository will be used.
-func GetRepositoryGitRef(ctx context.Context, client *dagger.Client, url string, refType RefType, refName string) (*RepositoryGitRef, error) {
-	var (
-		ref string
-		dir *dagger.Directory
-	)
-
-	git := client.Git(url, dagger.GitOpts{KeepGitDir: true})
-
-	switch refType {
-	case RefTypeBranch:
-		dir = git.Branch(refName).Tree()
-		ref = fmt.Sprintf("refs/heads/%s", refName)
-	case RefTypeTag:
-		dir = git.Tag(refName).Tree()
-		ref = fmt.Sprintf("refs/tags/%s", refName)
-	default:
-		return nil, fmt.Errorf("invalid ref type: %s", refType)
-	}
-
-	sha, err := getRepoSHA(ctx, client, dir)
-	if err != nil {
-		return nil, err
-	}
-
-	return &RepositoryGitRef{Ref: ref, RefName: refName, RefType: refType, SHA: sha, Dir: dir}, nil
+	Ref      string
+	RefName  string
+	RefType  RefType
+	SHA      string
+	ShortSHA string
+	IsRemote bool
 }
 
 // GetRepositoryRefFromDir returns a Git ref (branch or tag) from given directory. If dir is empty or not git repository, it will return an error.
-func GetRepositoryRefFromDir(ctx context.Context, client *dagger.Client, dir *dagger.Directory) (*RepositoryGitRef, error) {
-	var (
-		ref     string
-		refType RefType
-		refName string
-		sha     string
-	)
-
-	out, err := client.
-		Container().
-		From("alpine/git").
-		WithMountedDirectory("/src", dir).WithWorkdir("/src").
-		WithExec([]string{"rev-parse", "--symbolic-full-name", "HEAD"}).
-		Stdout(ctx)
+func GetRepositoryRefFromDir(path string) (*RepositoryGitRef, error) {
+	repo, err := git.PlainOpenWithOptions(path, &git.PlainOpenOptions{DetectDotGit: true, EnableDotGitCommonDir: true})
 	if err != nil {
+		return nil, fmt.Errorf("failed to open repository: %w", err)
+	}
+
+	// Get current reference (branch, tag, or commit)
+	head, err := repo.Head()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get head reference: %w", err)
+	}
+
+	if head.Hash().IsZero() {
+		return nil, fmt.Errorf("failed to get head reference: %w", plumbing.ErrReferenceNotFound)
+	}
+
+	iter, err := repo.References()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get references: %w", err)
+	}
+
+	var found *plumbing.Reference
+
+	// Iterate through all references to find the matching one
+	err = iter.ForEach(func(ref *plumbing.Reference) error {
+		if ref.Hash() == head.Hash() {
+			found = ref
+
+			return errRefFound
+		}
+
+		return nil
+	})
+
+	if err != nil && !errors.Is(err, errRefFound) {
 		return nil, err
 	}
 
-	ref = strings.TrimSpace(out)
+	var refType RefType
 
 	switch {
-	case strings.HasPrefix(ref, "refs/heads/"):
+	case found.Name().IsBranch():
 		refType = RefTypeBranch
-		refName = strings.TrimPrefix(ref, "refs/heads/")
-	case strings.HasPrefix(ref, "refs/tags/"):
+	case found.Name().IsTag():
 		refType = RefTypeTag
-		refName = strings.TrimPrefix(ref, "refs/tags/")
 	default:
-		return nil, fmt.Errorf("invalid ref type: %s", refType)
+		return nil, fmt.Errorf("unsupported ref type: %s", found.Name().String())
 	}
 
-	sha, err = getRepoSHA(ctx, client, dir)
-	if err != nil {
-		return nil, err
-	}
-
-	return &RepositoryGitRef{Ref: ref, RefName: refName, RefType: refType, SHA: sha, Dir: dir}, nil
-}
-
-func getRepoSHA(ctx context.Context, client *dagger.Client, dir *dagger.Directory) (string, error) {
-	out, err := client.
-		Container().
-		From("alpine/git").
-		WithMountedDirectory("/src", dir).WithWorkdir("/src").
-		WithExec([]string{"rev-parse", "HEAD"}).
-		Stdout(ctx)
-
-	if err != nil {
-		return "", err
-	}
-
-	return strings.TrimSpace(out), nil
+	return &RepositoryGitRef{
+		Ref:      found.Name().String(),
+		RefName:  found.Name().Short(),
+		RefType:  refType,
+		SHA:      found.Hash().String(),
+		ShortSHA: found.Hash().String()[:7],
+		IsRemote: found.Name().IsRemote(),
+	}, nil
 }

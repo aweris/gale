@@ -21,7 +21,7 @@ func TestGetCurrentRepository(t *testing.T) {
 	defer client.Close()
 
 	// get current repository with current directory. This will load tests directory as repository. It's ok for testing.
-	repo, err := core.GetCurrentRepository(ctx, client)
+	repo, err := core.GetRepository("")
 	if err != nil {
 		t.Fatalf("Failed to get current repository: %s", err)
 	}
@@ -32,24 +32,6 @@ func TestGetCurrentRepository(t *testing.T) {
 
 	if repo.NameWithOwner != "aweris/gale" {
 		t.Fatalf("Expected repository name with owner to be aweris/gale but got %s", repo.NameWithOwner)
-	}
-
-	entries, err := repo.GitRef.Dir.Entries(ctx)
-	if err != nil {
-		t.Fatalf("Failed to get directory entries: %s", err)
-	}
-
-	if len(entries) == 0 {
-		t.Fatalf("Expected directory entries to be more than 0 but got %d", len(entries))
-	}
-
-	data, err := repo.GitRef.Dir.File("testdata/content.txt").Contents(ctx)
-	if err != nil {
-		t.Fatalf("Failed to get file contents: %s", err)
-	}
-
-	if data != "Hello World" {
-		t.Fatalf("Expected file contents to be Hello World but got %s", data)
 	}
 }
 
@@ -64,7 +46,7 @@ func TestGetRepository(t *testing.T) {
 	defer client.Close()
 
 	// get repository with default branch
-	repo, err := core.GetRepository(ctx, client, "aweris/gale")
+	repo, err := core.GetRepository("aweris/gale")
 	if err != nil {
 		t.Fatalf("Failed to get current repository: %s", err)
 	}
@@ -75,15 +57,6 @@ func TestGetRepository(t *testing.T) {
 
 	if repo.NameWithOwner != "aweris/gale" {
 		t.Fatalf("Expected repository name with owner to be aweris/gale but got %s", repo.NameWithOwner)
-	}
-
-	entries, err := repo.GitRef.Dir.Entries(ctx)
-	if err != nil {
-		t.Fatalf("Failed to get directory entries: %s", err)
-	}
-
-	if len(entries) == 0 {
-		t.Fatalf("Expected directory entries to be more than 0 but got %d", len(entries))
 	}
 }
 

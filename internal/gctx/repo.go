@@ -2,6 +2,8 @@ package gctx
 
 import (
 	"context"
+	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -21,8 +23,10 @@ type LoadRepoOpts struct {
 }
 
 type RepoContext struct {
-	Repository *core.Repository  `json:"-"`
-	CacheVol   *data.CacheVolume `json:"-"`
+	Info     *core.Repository       `json:"-"`
+	Ref      *core.RepositoryGitRef `json:"-"`
+	CacheVol *data.CacheVolume      `json:"-"`
+	Source   *dagger.Directory      `json:"-"`
 
 	WorkflowsDir string `json:"workflows_dir" env:"GALE_WORKFLOWS_DIR" envDefault:".github/workflows" container_env:"true"`
 }
@@ -34,21 +38,29 @@ func (c *Context) LoadRepo(repo string, opts ...LoadRepoOpts) error {
 		return err
 	}
 
+	rc.Info, err = core.GetRepository(repo)
+	if err != nil {
+		return err
+	}
+
 	opt := LoadRepoOpts{}
 	if len(opts) > 0 {
 		opt = opts[0]
 	}
 
-	r, err := core.GetRepository(c.Context, config.ClientNoLog(), repo, core.GetRepositoryOpts{Branch: opt.Branch, Tag: opt.Tag})
+	rc.Source, err = getRepository(repo, rc.Info.URL, opt)
 	if err != nil {
 		return err
 	}
 
-	rc.Repository = r
+	rc.Ref, err = getRepositoryRef(c.Context, repo, opt, rc.Source)
+	if err != nil {
+		return err
+	}
 
 	// cache volume only used non container mode. Instead of leaving it nil, we create a new one in container mode kas
 	// well to avoid nil pointer errors. There is no harm in doing so since we're supporting Dagger in Dagger mode.
-	rc.CacheVol = data.NewCacheVolume(r)
+	rc.CacheVol = data.NewCacheVolume(rc.Info)
 
 	// if it's not in container mode, workflows dir should be set from the options
 	if !c.isContainer {
@@ -58,9 +70,66 @@ func (c *Context) LoadRepo(repo string, opts ...LoadRepoOpts) error {
 	c.Repo = rc
 
 	// set repo to github context
-	c.Github.setRepo(r)
+	c.Github.setRepo(rc.Info, rc.Ref)
 
 	return nil
+}
+
+// getRepository returns a dagger directory for the specified repository and options. If repo and options are empty,
+// the current git repository will be used as it is. If repo or any of the options are provided, the repository will
+// be cloned from the specified url and the specified tag or branch will be checked out.
+func getRepository(repo, url string, opt LoadRepoOpts) (source *dagger.Directory, err error) {
+	if repo == "" && opt.Tag == "" && opt.Branch == "" {
+		return config.Client().Host().Directory("."), nil
+	}
+
+	switch {
+	case opt.Tag != "":
+		source = config.Client().Git(url, dagger.GitOpts{KeepGitDir: true}).Tag(opt.Tag).Tree()
+	case opt.Branch != "":
+		source = config.Client().Git(url, dagger.GitOpts{KeepGitDir: true}).Branch(opt.Branch).Tree()
+	default:
+		err = fmt.Errorf("failed to load source: repo: %s, tag: %s, branch: %s", repo, opt.Tag, opt.Branch)
+	}
+
+	return source, err
+}
+
+// getRepositoryRef gets the repository ref from the specified repository and options.
+func getRepositoryRef(ctx context.Context, repo string, opt LoadRepoOpts, source *dagger.Directory) (ref *core.RepositoryGitRef, err error) {
+	path := "."
+
+	// if repo is not a local directory, we need to export it to a temp directory and use that as the path for the
+	// getting the ref from the git repository directly.
+	//
+	// for this conditional:
+	//  - if repo is not empty, it means that the user has provided a remote repo
+	//  - if repo is empty, but tag or branch is provided, it means that the user wants to use the current repository
+	//  with the specified tag or branch
+	//
+	// So for both cases, we're using dagger git to clone the repository to a directory, no local directory is
+	// provided.
+	if repo != "" || opt.Tag != "" && opt.Branch != "" {
+		dir, err := os.MkdirTemp("/tmp", strings.ReplaceAll(repo, "/", "-"))
+		if err != nil {
+			return nil, err
+		}
+		defer os.RemoveAll(dir)
+
+		_, err = source.Export(ctx, dir)
+		if err != nil {
+			return nil, err
+		}
+
+		path = dir
+	}
+
+	ref, err = core.GetRepositoryRefFromDir(path)
+	if err != nil {
+		return nil, err
+	}
+
+	return ref, nil
 }
 
 // LoadCurrentRepo initializes the context with the repository information from the current working directory,
@@ -78,7 +147,7 @@ func (c *RepoContext) WithContainerFunc() dagger.WithContainerFunc {
 }
 
 func (c *Context) LoadWorkflows() (map[string]core.Workflow, error) {
-	dir := c.Repo.Repository.GitRef.Dir.Directory(c.Repo.WorkflowsDir)
+	dir := c.Repo.Source.Directory(c.Repo.WorkflowsDir)
 
 	entries, err := dir.Entries(c.Context)
 	if err != nil {

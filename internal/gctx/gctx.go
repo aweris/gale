@@ -99,7 +99,7 @@ func (c *Context) WithContainerFunc() dagger.WithContainerFunc {
 		container = container.With(c.Runner.WithContainerFunc())
 
 		// load repository to container
-		container = container.WithMountedDirectory(c.Github.Workspace, c.Repo.Repository.GitRef.Dir)
+		container = container.WithMountedDirectory(c.Github.Workspace, c.Repo.Source)
 		container = container.WithWorkdir(c.Github.Workspace)
 
 		return container
