@@ -13,12 +13,12 @@ var errRefFound = errors.New("stop")
 
 // RepositoryGitRef represents a Git ref (branch or tag) in a repository
 type RepositoryGitRef struct {
-	Ref      string  `json:"ref" env:"GALE_REPO_REF" container_env:"true"`
-	RefName  string  `json:"ref_name" env:"GALE_REPO_REF_NAME" container_env:"true"`
-	RefType  RefType `json:"ref_type" env:"GALE_REPO_REF_TYPE" container_env:"true"`
-	SHA      string  `json:"sha" env:"GALE_REPO_SHA" container_env:"true"`
-	ShortSHA string  `json:"short_sha" env:"GALE_REPO_SHORT_SHA" container_env:"true"`
-	IsRemote bool    `json:"is_remote" env:"GALE_REPO_IS_REMOTE" container_env:"true"`
+	Ref      string  `env:"GALE_REPO_REF" container_env:"true"`
+	RefName  string  `env:"GALE_REPO_REF_NAME" container_env:"true"`
+	RefType  RefType `env:"GALE_REPO_REF_TYPE" container_env:"true"`
+	SHA      string  `env:"GALE_REPO_SHA" container_env:"true"`
+	ShortSHA string  `env:"GALE_REPO_SHORT_SHA" container_env:"true"`
+	IsRemote bool    `env:"GALE_REPO_IS_REMOTE" container_env:"true"`
 }
 
 // GetRepositoryRefFromDir returns a Git ref (branch or tag) from given directory. If dir is empty or not git repository, it will return an error.
