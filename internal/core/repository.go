@@ -9,23 +9,23 @@ import (
 
 // Repository represents a GitHub repository
 type Repository struct {
-	ID               string              `json:"id" env:"GALE_REPO_ID" container_env:"true"`
-	Name             string              `json:"name" env:"GALE_REPO_NAME" container_env:"true"`
-	NameWithOwner    string              `json:"name_with_owner" env:"GALE_REPO_NAME_WITH_OWNER" container_env:"true"`
-	URL              string              `json:"url" env:"GALE_REPO_URL" container_env:"true"`
-	Owner            RepositoryOwner     `json:"owner"`
-	DefaultBranchRef RepositoryBranchRef `json:"default_branch_ref"`
+	ID               string              `env:"GALE_REPO_ID" container_env:"true"`
+	Name             string              `env:"GALE_REPO_NAME" container_env:"true"`
+	NameWithOwner    string              `env:"GALE_REPO_NAME_WITH_OWNER" container_env:"true"`
+	URL              string              `env:"GALE_REPO_URL" container_env:"true"`
+	Owner            RepositoryOwner     `container_env:"true"`
+	DefaultBranchRef RepositoryBranchRef `container_env:"true"`
 }
 
 // RepositoryOwner represents a GitHub repository owner
 type RepositoryOwner struct {
-	ID    string `json:"id" env:"GALE_REPO_OWNER_ID" container_env:"true"`
-	Login string `json:"login" env:"GALE_REPO_OWNER_LOGIN" container_env:"true"`
+	ID    string `env:"GALE_REPO_OWNER_ID" container_env:"true"`
+	Login string `env:"GALE_REPO_OWNER_LOGIN" container_env:"true"`
 }
 
 // RepositoryBranchRef represents a GitHub repository branch ref
 type RepositoryBranchRef struct {
-	Name string `json:"name" env:"GALE_REPO_BRANCH_NAME" container_env:"true"`
+	Name string `env:"GALE_REPO_BRANCH_NAME" container_env:"true"`
 }
 
 // GetRepository returns repository information. If name is empty, the current repository will be used.
