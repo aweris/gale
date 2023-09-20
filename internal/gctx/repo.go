@@ -53,6 +53,11 @@ func (c *Context) LoadRepo(repo string, opts ...LoadRepoOpts) error {
 		opt = opts[0]
 	}
 
+	// set default workflows dir if not provided
+	if opt.WorkflowsDir == "" {
+		opt.WorkflowsDir = ".github/workflows"
+	}
+
 	// load repository source
 	rc.Source = getRepository(repo, rc.Info, opt)
 
