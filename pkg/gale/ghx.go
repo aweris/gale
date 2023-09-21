@@ -50,10 +50,12 @@ func (g *Ghx) WithContainerFunc() dagger.WithContainerFunc {
 
 func (g *Ghx) Run(workflow, job string) dagger.WithContainerFunc {
 	return func(container *dagger.Container) *dagger.Container {
+		exec := []string{"/usr/local/bin/ghx", "run", workflow}
+
 		if job != "" {
-			return container.WithExec([]string{"/usr/local/bin/ghx", "run", workflow, "--job", job})
+			exec = append(exec, "--job", job)
 		}
 
-		return container.WithExec([]string{"/usr/local/bin/ghx", "run", workflow})
+		return container.WithExec(exec, dagger.ContainerWithExecOpts{ExperimentalPrivilegedNesting: true})
 	}
 }
