@@ -19,7 +19,7 @@ type Context struct {
 	debug       bool             // debug indicates whether the workflow is running in debug mode.
 	path        string           // path is the data path for the context to be mounted from the host or to be used in the container.
 	Context     context.Context  // Context is the current context of the workflow.
-	Dagger      DaggerContext    // Dagger is the context for the dagger engine.
+	Docker      DockerContext    // Docker is the context for the docker.
 	Repo        RepoContext      // Repo is the context for the repository.
 	Execution   ExecutionContext // Execution is the context for the execution.
 
@@ -92,7 +92,7 @@ func (c *Context) WithContainerFunc() dagger.WithContainerFunc {
 		container = container.WithEnvVariable(EnvVariableGaleRunner, "true")
 
 		// apply sub-contexts
-		container = container.With(c.Dagger.WithContainerFunc())
+		container = container.With(c.Docker.WithContainerFunc())
 		container = container.With(c.Repo.WithContainerFunc())
 		container = container.With(c.Github.WithContainerFunc())
 		container = container.With(c.Secrets.WithContainerFunc())
