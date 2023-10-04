@@ -79,6 +79,7 @@ func Plan(workflow core.Workflow, job string) (*TaskRunner, error) {
 				return core.ConclusionFailure, err
 			}
 
+			// FIXME: ignoring fail-fast for now. it is always true for now. Fix this later.
 			// FIXME: run all runners sequentially for now. Ignoring parallelism. Fix this later.
 
 			for _, runner := range runners {
