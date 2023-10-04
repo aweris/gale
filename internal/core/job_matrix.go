@@ -52,7 +52,7 @@ func (m *Matrix) GenerateCombinations() []MatrixCombination {
 		return []MatrixCombination{}
 	}
 
-	var keys []string
+	keys := make([]string, 0, len(m.Dimensions))
 
 	for k := range m.Dimensions {
 		keys = append(keys, k)

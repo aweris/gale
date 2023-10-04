@@ -139,7 +139,6 @@ func planJob(job core.Job) ([]*TaskRunner, error) {
 
 	if len(matrices) > 0 {
 		for _, matrix := range matrices {
-
 			var values []string
 
 			for k, v := range matrix {
