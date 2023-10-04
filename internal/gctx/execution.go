@@ -47,6 +47,11 @@ func (c *Context) SetJob(jr *core.JobRun) error {
 	// set the job run to the github context
 	c.Github.Job = jr.Job.ID
 
+	// set matrix context if matrix has any values
+	if len(jr.Matrix) > 0 {
+		c.Matrix = jr.Matrix
+	}
+
 	// load the job context
 	if err := c.LoadJob(c.Execution.WorkflowRun.Conclusion); err != nil {
 		return err
@@ -85,6 +90,9 @@ func (c *Context) UnsetJob() {
 
 	// unset the job run from the github context
 	c.Github.Job = ""
+
+	// reset matrix context
+	c.Matrix = make(core.MatrixCombination)
 }
 
 // GetJobRunPath returns the path of the current job run path. If the path does not exist, it creates it.
