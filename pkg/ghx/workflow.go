@@ -74,14 +74,19 @@ func Plan(workflow core.Workflow, job string) (*TaskRunner, error) {
 				return core.ConclusionFailure, ErrWorkflowNotFound
 			}
 
-			jr, err := planJob(jm)
+			runners, err := planJob(jm)
 			if err != nil {
 				return core.ConclusionFailure, err
 			}
 
-			_, _, err = jr.Run(ctx)
-			if err != nil {
-				return core.ConclusionFailure, err
+			// FIXME: ignoring fail-fast for now. it is always true for now. Fix this later.
+			// FIXME: run all runners sequentially for now. Ignoring parallelism. Fix this later.
+
+			for _, runner := range runners {
+				_, _, err = runner.Run(ctx)
+				if err != nil {
+					return core.ConclusionFailure, err
+				}
 			}
 		}
 

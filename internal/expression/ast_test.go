@@ -15,12 +15,15 @@ var _ expression.VariableProvider = new(TestContext)
 
 type TestContext struct {
 	Github gctx.GithubContext
+	Matrix map[string]string
 }
 
 func (c *TestContext) GetVariable(name string) (interface{}, error) {
 	switch name {
 	case "github":
 		return c.Github, nil
+	case "matrix":
+		return c.Matrix, nil
 	case "infinity":
 		return math.Inf(1), nil
 	case "nan":
@@ -47,6 +50,7 @@ func TestString_Eval(t *testing.T) {
 		{"single expression", "${{ github.token }}", "1234567890"},
 		{"inline expression", "foobar-${{ github.token }}-baz", "foobar-1234567890-baz"},
 		{"multiple expressions", "foobar-${{ github.token }}-${{ github.token }}-baz", "foobar-1234567890-1234567890-baz"},
+		{"expression with missing variable", "foobar-${{ matrix.foo }}-baz", "foobar--baz"},
 	}
 
 	for _, tt := range tests {
@@ -58,10 +62,7 @@ func TestString_Eval(t *testing.T) {
 				t.Errorf("Expected no error, but got %s", err.Error())
 			}
 
-			result, err := str.Eval(&ctx)
-			if err != nil {
-				t.Errorf("Expected no error, but got %s", err.Error())
-			}
+			result := str.Eval(&ctx)
 
 			if result != tt.expected {
 				t.Errorf("Expected %s, but got %s", tt.expected, result)

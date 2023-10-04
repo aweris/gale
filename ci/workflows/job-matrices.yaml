@@ -1,0 +1,30 @@
+name: matrices
+
+on: push
+
+jobs:
+  matrix:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        fruit: [apple, pear]
+        animal: [cat, dog]
+        include:
+          - color: green
+          - color: pink
+            animal: cat
+          - fruit: apple
+            shape: circle
+          - fruit: banana
+          - fruit: banana
+            animal: cat
+        exclude:
+          - fruit: pear
+            animal: cat
+          - fruit: apple
+            animal: dog
+    steps:
+      - run: echo "${{ matrix.fruit }} ${{ matrix.animal }} ${{ matrix.color }} ${{ matrix.shape }}"
