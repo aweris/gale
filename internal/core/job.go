@@ -6,13 +6,14 @@ import "gopkg.in/yaml.v3"
 //
 // See: https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_id
 type Job struct {
-	ID      string            `yaml:"id"`      // ID is the ID of the job
-	If      string            `yaml:"if"`      // If is the conditional expression to run the job.
-	Name    string            `yaml:"name"`    // Name is the name of the job
-	Needs   Needs             `yaml:"needs"`   // Needs is the list of jobs that must be completed before this job will run
-	Env     map[string]string `yaml:"env"`     // Env is the environment variables used in the workflow
-	Outputs map[string]string `yaml:"outputs"` // Outputs is the list of outputs of the job
-	Steps   []Step            `yaml:"steps"`   // Steps is the list of steps in the job
+	ID       string            `yaml:"id"`       // ID is the ID of the job
+	If       string            `yaml:"if"`       // If is the conditional expression to run the job.
+	Name     string            `yaml:"name"`     // Name is the name of the job
+	Needs    Needs             `yaml:"needs"`    // Needs is the list of jobs that must be completed before this job will run
+	Strategy Strategy          `yaml:"strategy"` // Strategy is the matrix strategy lets you use variables in a single job definition to automatically create multiple job runs that are based on the combinations of the variables.
+	Env      map[string]string `yaml:"env"`      // Env is the environment variables used in the workflow
+	Outputs  map[string]string `yaml:"outputs"`  // Outputs is the list of outputs of the job
+	Steps    []Step            `yaml:"steps"`    // Steps is the list of steps in the job
 
 	// TBD: add more fields when needed
 }
@@ -43,6 +44,14 @@ func (n *Needs) UnmarshalYAML(value *yaml.Node) error {
 	*n = needs
 
 	return nil
+}
+
+// Strategy represents a matrix strategy lets you use variables in a single job definition to automatically create
+// multiple job runs that are based on the combinations of the variables.
+type Strategy struct {
+	Matrix      Matrix `yaml:"matrix"`       // Matrix is the matrix of different OS versions and other parameters
+	FailFast    bool   `yaml:"fail-fast"`    // FailFast is a boolean to indicate if the job should fail immediately when a job fails.
+	MaxParallel int    `yaml:"max-parallel"` // MaxParallel is the maximum number of jobs to run at a time.
 }
 
 // JobRun represents a single job run in a GitHub Actions workflow run
