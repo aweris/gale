@@ -3,6 +3,8 @@ package expression
 import (
 	"fmt"
 	"strings"
+
+	"github.com/aweris/gale/internal/log"
 )
 
 // The original source code is from https://github.com/rhysd/actionlint/blob/5656337c1ab1c7022a74181428f6ebb4504d2d25/ast.go
@@ -23,18 +25,19 @@ func NewString(value string) *String {
 }
 
 // Eval evaluates the expression and returns the string value.
-func (s *String) Eval(provider VariableProvider) (string, error) {
+func (s *String) Eval(provider VariableProvider) string {
 	if s.Quoted {
-		return s.Value, nil
+		return s.Value
 	}
 
 	exprs, err := ParseExpressions(s.Value)
 	if err != nil {
-		return "", err
+		log.Errorf("failed to parse expressions", "expression", s.Value, "error", err)
+		return ""
 	}
 
 	if len(exprs) == 0 {
-		return s.Value, nil
+		return s.Value
 	}
 
 	str := s.Value
@@ -42,7 +45,14 @@ func (s *String) Eval(provider VariableProvider) (string, error) {
 	for _, expr := range exprs {
 		val, err := expr.Evaluate(provider)
 		if err != nil {
-			return "", err
+			log.Errorf("failed to evaluate expression", "expression", expr, "error", err)
+			return ""
+		}
+
+		if val == nil {
+			str = strings.Replace(str, expr.Value, "", 1)
+
+			continue
 		}
 
 		if v, ok := val.(string); ok {
@@ -50,7 +60,7 @@ func (s *String) Eval(provider VariableProvider) (string, error) {
 		}
 	}
 
-	return str, nil
+	return str
 }
 
 // value represents generic value with Github Actions expression support.

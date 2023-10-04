@@ -104,12 +104,7 @@ func (c *CmdExecutor) Execute(ctx *gctx.Context) error {
 		str := expression.NewString(v)
 
 		// evaluate the expression
-		res, err := str.Eval(ctx)
-		if err != nil {
-			log.Errorf("failed to evaluate value", "error", err.Error(), "key", k, "value", v)
-
-			return fmt.Errorf("failed to evaluate default value for input %s: %v", k, err)
-		}
+		res := str.Eval(ctx)
 
 		log.Debugf("Environment variable evaluated", "key", k, "value", v, "evaluated", res)
 

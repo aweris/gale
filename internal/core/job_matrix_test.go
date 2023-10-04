@@ -1,9 +1,11 @@
 package core
 
 import (
-	"github.com/stretchr/testify/assert"
-	"gopkg.in/yaml.v3"
 	"testing"
+
+	"gopkg.in/yaml.v3"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMatrixCombination_IsSubsetOf(t *testing.T) {

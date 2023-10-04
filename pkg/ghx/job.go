@@ -102,10 +102,7 @@ func planJob(job core.Job) ([]*TaskRunner, error) {
 		outputs := make(map[string]string, len(ctx.Execution.JobRun.Job.Outputs))
 
 		for k, v := range ctx.Execution.JobRun.Job.Outputs {
-			val, err := expression.NewString(v).Eval(ctx)
-			if err != nil {
-				return core.ConclusionFailure, err
-			}
+			val := expression.NewString(v).Eval(ctx)
 
 			log.Debugf("Evaluated output", "key", k, "value", val)
 

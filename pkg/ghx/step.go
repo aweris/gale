@@ -274,10 +274,7 @@ func (s *StepRun) main() TaskRunFn {
 		}
 
 		// evaluate run script against the expressions
-		run, err := expression.NewString(s.Step.Run).Eval(ctx)
-		if err != nil {
-			return core.ConclusionFailure, err
-		}
+		run := expression.NewString(s.Step.Run).Eval(ctx)
 
 		content := []byte(fmt.Sprintf("%s\n%s\n%s", pre, run, pos))
 

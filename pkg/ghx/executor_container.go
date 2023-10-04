@@ -106,12 +106,7 @@ func (c *ContainerExecutor) Execute(ctx *gctx.Context) error {
 		res := expression.NewString(entrypoint)
 
 		// evaluate the expression
-		entrypoint, err := res.Eval(ctx)
-		if err != nil {
-			log.Errorf("failed to evaluate value", "error", err.Error(), "entrypoint", entrypoint)
-
-			return err
-		}
+		entrypoint := res.Eval(ctx)
 
 		log.Debugf("entrypoint evaluated", "original", c.entrypoint, "evaluated", entrypoint)
 
@@ -124,12 +119,7 @@ func (c *ContainerExecutor) Execute(ctx *gctx.Context) error {
 		str := expression.NewString(arg)
 
 		// evaluate the expression
-		res, err := str.Eval(c.dec)
-		if err != nil {
-			log.Errorf("failed to evaluate value", "error", err.Error(), "arg", arg)
-
-			return err
-		}
+		res := str.Eval(c.dec)
 
 		log.Debugf("arg evaluated", "original", arg, "evaluated", res)
 
