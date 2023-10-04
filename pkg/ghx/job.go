@@ -2,6 +2,7 @@ package ghx
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/aweris/gale/internal/core"
 	"github.com/aweris/gale/internal/expression"
@@ -11,7 +12,7 @@ import (
 )
 
 // planJob plans the job and returns the job runner.
-func planJob(job core.Job) (*TaskRunner, error) {
+func planJob(job core.Job) ([]*TaskRunner, error) {
 	// step task executors that execute the steps
 	var (
 		setupFns = make([]TaskRunFn, 0)
@@ -136,16 +137,48 @@ func planJob(job core.Job) (*TaskRunner, error) {
 		return ctx.Job.Status, nil
 	}
 
-	// task runner options for the job
-	opt := TaskOpts{
-		ConditionalFn: newTaskConditionalFnForJob(job),
-		PreRunFn:      newTaskPreRunFnForJob(job),
-		PostRunFn:     newTaskPostRunFnForJob(),
+	runners := make([]*TaskRunner, 0)
+	matrices := job.Strategy.Matrix.GenerateCombinations()
+
+	if len(matrices) > 0 {
+		for _, matrix := range matrices {
+
+			var values []string
+
+			for k, v := range matrix {
+				values = append(values, fmt.Sprintf("%s:%s", k, v))
+			}
+
+			sb := strings.Builder{}
+
+			sb.WriteString("Job: ")
+			sb.WriteString(job.Name)
+			sb.WriteRune('(')
+			sb.WriteString(strings.Join(values, ","))
+			sb.WriteRune(')')
+
+			runner := NewTaskRunner(sb.String(), runFn, TaskOpts{
+				ConditionalFn: newTaskConditionalFnForJob(job),
+				PreRunFn:      newTaskPreRunFnForJob(job, matrix),
+				PostRunFn:     newTaskPostRunFnForJob(),
+			})
+
+			runners = append(runners, &runner)
+		}
+	} else {
+		// task runner options for the job
+		opt := TaskOpts{
+			ConditionalFn: newTaskConditionalFnForJob(job),
+			PreRunFn:      newTaskPreRunFnForJob(job),
+			PostRunFn:     newTaskPostRunFnForJob(),
+		}
+
+		runner := NewTaskRunner(fmt.Sprintf("Job: %s", job.Name), runFn, opt)
+
+		runners = append(runners, &runner)
 	}
 
-	runner := NewTaskRunner(fmt.Sprintf("Job: %s", job.Name), runFn, opt)
-
-	return &runner, nil
+	return runners, nil
 }
 
 // setup returns a task taskRunner function that will be executed by the task taskRunner for the setup step.
@@ -191,14 +224,22 @@ func newTaskConditionalFnForJob(job core.Job) TaskConditionalFn {
 	}
 }
 
-func newTaskPreRunFnForJob(job core.Job) TaskPreRunFn {
+// newTaskPreRunFnForJob returns a task pre run function that will be executed by the task taskRunner for the job. The
+// matrix parameter is optional. If it's provided, first matrix combination will be set to the job run.
+func newTaskPreRunFnForJob(job core.Job, matrix ...core.MatrixCombination) TaskPreRunFn {
 	return func(ctx *gctx.Context) error {
 		runID, err := idgen.GenerateJobRunID()
 		if err != nil {
 			return fmt.Errorf("failed to generate job run id: %w", err)
 		}
 
-		return ctx.SetJob(&core.JobRun{RunID: runID, Job: job, Outputs: make(map[string]string)})
+		jr := &core.JobRun{RunID: runID, Job: job, Outputs: make(map[string]string)}
+
+		if len(matrix) > 0 {
+			jr.Matrix = matrix[0]
+		}
+
+		return ctx.SetJob(jr)
 	}
 }
 
