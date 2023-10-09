@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - aweris/zenith
+      - aweris/zenith-*
 
 permissions:
   contents: read
