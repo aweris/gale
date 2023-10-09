@@ -138,7 +138,7 @@ func (s *StepAction) pre() TaskRunFn {
 		switch s.Action.Meta.Runs.Using {
 		case core.ActionRunsUsingDocker:
 			executor = NewContainerExecutorFromStepAction(ctx, s, s.Action.Meta.Runs.PreEntrypoint)
-		case core.ActionRunsUsingNode12, core.ActionRunsUsingNode16:
+		case core.ActionRunsUsingNode12, core.ActionRunsUsingNode16, core.ActionRunsUsingNode20:
 			executor = NewCmdExecutorFromStepAction(ctx, s, s.Action.Meta.Runs.Pre)
 		default:
 			return core.ConclusionFailure, fmt.Errorf("invalid action runs using: %s", s.Action.Meta.Runs.Using)
@@ -162,7 +162,7 @@ func (s *StepAction) main() TaskRunFn {
 		switch s.Action.Meta.Runs.Using {
 		case core.ActionRunsUsingDocker:
 			executor = NewContainerExecutorFromStepAction(ctx, s, s.Action.Meta.Runs.Entrypoint)
-		case core.ActionRunsUsingNode12, core.ActionRunsUsingNode16:
+		case core.ActionRunsUsingNode12, core.ActionRunsUsingNode16, core.ActionRunsUsingNode20:
 			executor = NewCmdExecutorFromStepAction(ctx, s, s.Action.Meta.Runs.Main)
 		default:
 			return core.ConclusionFailure, fmt.Errorf("invalid action runs using: %s", s.Action.Meta.Runs.Using)
@@ -191,7 +191,7 @@ func (s *StepAction) post() TaskRunFn {
 		switch s.Action.Meta.Runs.Using {
 		case core.ActionRunsUsingDocker:
 			executor = NewContainerExecutorFromStepAction(ctx, s, s.Action.Meta.Runs.PostEntrypoint)
-		case core.ActionRunsUsingNode12, core.ActionRunsUsingNode16:
+		case core.ActionRunsUsingNode12, core.ActionRunsUsingNode16, core.ActionRunsUsingNode20:
 			executor = NewCmdExecutorFromStepAction(ctx, s, s.Action.Meta.Runs.Post)
 		default:
 			return core.ConclusionFailure, fmt.Errorf("invalid action runs using: %s", s.Action.Meta.Runs.Using)
