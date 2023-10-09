@@ -30,8 +30,8 @@ func TestGetCurrentRepository(t *testing.T) {
 		t.Fatalf("Expected repository name to be gale but got %s", repo.Name)
 	}
 
-	if repo.NameWithOwner != "aweris/gale" {
-		t.Fatalf("Expected repository name with owner to be aweris/gale but got %s", repo.NameWithOwner)
+	if repo.FullName != "aweris/gale" {
+		t.Fatalf("Expected repository name with owner to be aweris/gale but got %s", repo.FullName)
 	}
 }
 
@@ -55,8 +55,8 @@ func TestGetRepository(t *testing.T) {
 		t.Fatalf("Expected repository name to be gale but got %s", repo.Name)
 	}
 
-	if repo.NameWithOwner != "aweris/gale" {
-		t.Fatalf("Expected repository name with owner to be aweris/gale but got %s", repo.NameWithOwner)
+	if repo.FullName != "aweris/gale" {
+		t.Fatalf("Expected repository name with owner to be aweris/gale but got %s", repo.FullName)
 	}
 }
 

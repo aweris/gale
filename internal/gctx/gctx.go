@@ -66,14 +66,9 @@ func Load(ctx context.Context, debug bool) (*Context, error) {
 		return nil, err
 	}
 
-	// If we can get the token from the environment, we'll use it. Otherwise, we'll try to get it github cli
+	// If we can get the token from the environment, we'll use it. Otherwise, we'll use a mock token.
 	if gctx.Github.Token == "" {
-		token, err := core.GetToken()
-		if err != nil {
-			return nil, err
-		}
-
-		gctx.SetToken(token)
+		gctx.SetToken("mock-token")
 	} else {
 		gctx.Secrets.setToken(gctx.Github.Token)
 	}

@@ -19,7 +19,7 @@ func TestGenerateWorkflowRunID(t *testing.T) {
 	defer os.RemoveAll(filepath.Join(config.GaleDataHome(), "testorg"))
 
 	repo := &core.Repository{
-		NameWithOwner: "testorg/testrepo",
+		FullName: "testorg/testrepo",
 	}
 
 	// Test first workflow run ID generation
@@ -43,7 +43,7 @@ func TestGenerateWorkflowRunID(t *testing.T) {
 	}
 
 	repo2 := &core.Repository{
-		NameWithOwner: "testorg/testrepo2",
+		FullName: "testorg/testrepo2",
 	}
 
 	// Test first workflow run ID generation
@@ -62,7 +62,7 @@ func TestGenerateJobRunID(t *testing.T) {
 	defer os.RemoveAll(filepath.Join(config.GaleDataHome(), "testorg"))
 
 	repo := &core.Repository{
-		NameWithOwner: "testorg/testrepo",
+		FullName: "testorg/testrepo",
 	}
 
 	// Test first job run ID generation
@@ -86,7 +86,7 @@ func TestGenerateJobRunID(t *testing.T) {
 	}
 
 	repo2 := &core.Repository{
-		NameWithOwner: "testorg/testrepo2",
+		FullName: "testorg/testrepo2",
 	}
 
 	// Test first workflow run ID generation

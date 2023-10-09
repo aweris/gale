@@ -1,7 +1,9 @@
 package core
 
 import (
-	"github.com/cli/go-gh/v2"
+	"fmt"
+
+	"github.com/cli/go-gh/v2/pkg/api"
 )
 
 // RefType represents the type of a ref. It can be either a branch or a tag.
@@ -20,19 +22,24 @@ const (
 // The method will use GitHub API to determine the type of ref. If the ref does not exist on remote, it will
 // return RefTypeUnknown.
 func DetermineRefTypeFromRepo(repo, ref string) RefType {
-	// make api call to github to determine the type of ref. we don't interest in the response, we just want to know
-	// if the ref exists or not. If the ref does not exist, the api call will return an error.
-	_, _, err := gh.Exec("api", "repos/"+repo+"/git/ref/heads/"+ref)
+	client, err := api.DefaultRESTClient()
+	if err != nil {
+		return RefTypeUnknown
+	}
+
+	var dummy interface{}
+
+	err = client.Get(fmt.Sprintf("repos/%s/git/ref/heads/%s", repo, ref), &dummy)
 	if err == nil {
 		return RefTypeBranch
 	}
 
-	_, _, err = gh.Exec("api", "repos/"+repo+"/git/ref/tags/"+ref)
+	err = client.Get(fmt.Sprintf("repos/%s/git/ref/tags/%s", repo, ref), &dummy)
 	if err == nil {
 		return RefTypeTag
 	}
 
-	_, _, err = gh.Exec("api", "repos/"+repo+"/git/commits/"+ref)
+	err = client.Get(fmt.Sprintf("repos/%s/git/commits/%s", repo, ref), &dummy)
 	if err == nil {
 		return RefTypeCommit
 	}

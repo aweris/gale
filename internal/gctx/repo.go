@@ -94,11 +94,11 @@ func getRepository(repo string, info core.Repository, opt LoadRepoOpts) (source 
 
 	switch {
 	case opt.Tag != "":
-		source = config.Client().Git(info.URL, dagger.GitOpts{KeepGitDir: true}).Tag(opt.Tag).Tree()
+		source = config.Client().Git(info.CloneURL, dagger.GitOpts{KeepGitDir: true}).Tag(opt.Tag).Tree()
 	case opt.Branch != "":
-		source = config.Client().Git(info.URL, dagger.GitOpts{KeepGitDir: true}).Branch(opt.Branch).Tree()
+		source = config.Client().Git(info.CloneURL, dagger.GitOpts{KeepGitDir: true}).Branch(opt.Branch).Tree()
 	default:
-		source = config.Client().Git(info.URL, dagger.GitOpts{KeepGitDir: true}).Branch(info.DefaultBranchRef.Name).Tree()
+		source = config.Client().Git(info.CloneURL, dagger.GitOpts{KeepGitDir: true}).Branch(info.DefaultBranch).Tree()
 	}
 
 	return source

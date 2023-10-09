@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
+	"strconv"
 
 	"dagger.io/dagger"
 
@@ -38,13 +39,13 @@ type GithubContext struct {
 	// Workspace is the path of a directory that contains a checkout of the repository.
 	Workspace string `json:"workspace" env:"GITHUB_WORKSPACE" container_env:"true"`
 
-	// ApiURL is the URL of the Github API. e.g. https://api.github.com
+	// ApiURL is the CloneURL of the Github API. e.g. https://api.github.com
 	APIURL string `json:"api_url" env:"GITHUB_API_URL" envDefault:"https://api.github.com" container_env:"true"`
 
-	// GraphqlURL is the URL of the Github GraphQL API. e.g. https://api.github.com/graphql
+	// GraphqlURL is the CloneURL of the Github GraphQL API. e.g. https://api.github.com/graphql
 	GraphqlURL string `json:"graphql_url" env:"GITHUB_GRAPHQL_URL" envDefault:"https://api.github.com/graphql" container_env:"true"`
 
-	// ServerURL is the URL of the Github server. e.g. https://github.com
+	// ServerURL is the CloneURL of the Github server. e.g. https://github.com
 	ServerURL string `json:"server_url" env:"GITHUB_SERVER_URL" envDefault:"https://github.com" container_env:"true"`
 
 	// Env is the path to a temporary file that sets environment variables from workflow commands.
@@ -163,11 +164,11 @@ func (c *Context) LoadGithubContext() error {
 
 // SetRepo sets the repository information in the context.
 func (c *GithubContext) setRepo(repo core.Repository, ref core.RepositoryGitRef) *GithubContext {
-	c.Repository = repo.NameWithOwner
-	c.RepositoryID = repo.ID
+	c.Repository = repo.FullName
+	c.RepositoryID = strconv.FormatInt(int64(repo.ID), 10)
 	c.RepositoryOwner = repo.Owner.Login
-	c.RepositoryOwnerID = repo.Owner.ID
-	c.RepositoryURL = repo.URL
+	c.RepositoryOwnerID = strconv.FormatInt(int64(repo.Owner.ID), 10)
+	c.RepositoryURL = repo.CloneURL
 	c.Workspace = fmt.Sprintf("/home/runner/work/%s/%s", repo.Name, repo.Name)
 
 	c.Ref = ref.Ref
