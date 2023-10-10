@@ -34,10 +34,6 @@ func NewArtifactCacheService(cache *data.CacheVolume) *ArtifactCacheService {
 		From("ghcr.io/aweris/gale:" + tag).
 		WithEntrypoint([]string{"/usr/local/bin/artifactcache-service"})
 
-	// external hostname configuration
-
-	container = container.WithEnvVariable("EXTERNAL_HOSTNAME", alias)
-
 	// port configuration
 
 	container = container.WithEnvVariable("PORT", fmt.Sprintf("%d", port)).WithExposedPort(port)

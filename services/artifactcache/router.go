@@ -63,7 +63,7 @@ func (h *handler) HandleGetCacheEntry(w http.ResponseWriter, r *http.Request, _ 
 		return
 	}
 
-	h.sendJSON(w, http.StatusOK, entry)
+	h.sendJSON(w, http.StatusOK, entry.toArtifactCacheEntry(r.Host))
 }
 
 func (h *handler) HandleReserveCache(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
