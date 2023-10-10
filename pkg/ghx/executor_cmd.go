@@ -50,7 +50,7 @@ func NewCmdExecutorFromStepAction(ctx *gctx.Context, sa *StepAction, entrypoint 
 	}
 
 	// add step level environment variables
-	for k, v := range sa.Step.Environment {
+	for k, v := range ctx.Env {
 		env[k] = v
 	}
 
@@ -73,7 +73,7 @@ func NewCmdExecutorFromStepRun(ctx *gctx.Context, sr *StepRun) *CmdExecutor {
 	}
 
 	// add step level environment variables
-	for k, v := range sr.Step.Environment {
+	for k, v := range ctx.Env {
 		env[k] = v
 	}
 

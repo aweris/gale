@@ -74,7 +74,7 @@ func NewContainerExecutorFromStepAction(ctx *gctx.Context, sa *StepAction, entry
 	}
 
 	// add step level environment variables
-	for k, v := range sa.Step.Environment {
+	for k, v := range ctx.Env {
 		env[k] = v
 	}
 

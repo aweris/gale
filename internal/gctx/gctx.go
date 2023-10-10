@@ -33,6 +33,7 @@ type Context struct {
 	Steps   StepsContext
 	Needs   NeedsContext
 	Matrix  core.MatrixCombination
+	Env     map[string]string
 }
 
 func Load(ctx context.Context, debug bool) (*Context, error) {
@@ -121,7 +122,7 @@ func (c *Context) GetVariable(name string) (interface{}, error) {
 	case "runner":
 		return c.Runner, nil
 	case "env":
-		return map[string]string{}, nil
+		return c.Env, nil
 	case "vars":
 		return map[string]string{}, nil
 	case "job":

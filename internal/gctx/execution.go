@@ -31,6 +31,9 @@ func (c *Context) SetWorkflow(wr *core.WorkflowRun) error {
 	// set workflow conclusion to success explicitly
 	c.Execution.WorkflowRun.Conclusion = core.ConclusionSuccess
 
+	// set env context
+	c.Env = wr.Workflow.Env
+
 	return nil
 }
 
@@ -46,6 +49,11 @@ func (c *Context) SetJob(jr *core.JobRun) error {
 
 	// set the job run to the github context
 	c.Github.Job = jr.Job.ID
+
+	// set env context
+	for k, v := range jr.Job.Env {
+		c.Env[k] = v
+	}
 
 	// set matrix context if matrix has any values
 	if len(jr.Matrix) > 0 {
@@ -91,6 +99,9 @@ func (c *Context) UnsetJob() {
 	// unset the job run from the github context
 	c.Github.Job = ""
 
+	// unset the job from env context -- just set it to the workflow env would be enough
+	c.Env = c.Execution.WorkflowRun.Workflow.Env
+
 	// reset matrix context
 	c.Matrix = make(core.MatrixCombination)
 }
@@ -135,6 +146,11 @@ func (c *Context) SetStep(sr *core.StepRun) error {
 
 	c.Execution.StepRun = sr
 
+	// set the step env context
+	for k, v := range sr.Step.Environment {
+		c.Env[k] = v
+	}
+
 	return nil
 }
 
@@ -142,6 +158,16 @@ func (c *Context) SetStep(sr *core.StepRun) error {
 func (c *Context) UnsetStep() error {
 	if c.Execution.StepRun == nil {
 		return errors.New("no step is set")
+	}
+
+	// TODO: improve this logic
+
+	// unset the step run from the execution context
+
+	c.Env = c.Execution.WorkflowRun.Workflow.Env
+
+	for k, v := range c.Execution.JobRun.Job.Env {
+		c.Env[k] = v
 	}
 
 	sr := c.Execution.StepRun
