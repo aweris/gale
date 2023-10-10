@@ -10,19 +10,15 @@ import (
 
 // Gale is the main entrypoint for the gale library.
 type Gale struct {
-	rc               *gctx.Context
-	ghx              *Ghx
-	artifactSVC      *ArtifactService
-	artifactCacheSVC *ArtifactCacheService
+	rc  *gctx.Context
+	ghx *Ghx
 }
 
 // New creates a new gale instance.
 func New(rc *gctx.Context) *Gale {
 	return &Gale{
-		rc:               rc,
-		ghx:              NewGhxBinary(rc.Repo.CacheVol),
-		artifactSVC:      NewArtifactService(rc.Repo.CacheVol),
-		artifactCacheSVC: NewArtifactCacheService(rc.Repo.CacheVol),
+		rc:  rc,
+		ghx: NewGhxBinary(rc.Repo.CacheVol),
 	}
 }
 
@@ -34,12 +30,6 @@ func (g *Gale) ExecutionEnv(_ context.Context) dagger.WithContainerFunc {
 
 		// tools
 		container = container.With(g.ghx.WithContainerFunc())
-
-		// FIXME: test this later. I didn't able to run services with zenith at the moment.
-
-		// services
-		// container = container.With(g.artifactSVC.WithContainerFunc())
-		// container = container.With(g.artifactCacheSVC.WithContainerFunc())
 
 		return container
 	}

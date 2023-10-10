@@ -22,6 +22,7 @@ type Context struct {
 	Docker      DockerContext    // Docker is the context for the docker.
 	Repo        RepoContext      // Repo is the context for the repository.
 	Execution   ExecutionContext // Execution is the context for the execution.
+	Actions     ActionsContext   // Actions is the context for the actions.
 
 	// Github Expression Contexts
 	Runner  RunnerContext
@@ -39,8 +40,14 @@ func Load(ctx context.Context, debug bool) (*Context, error) {
 
 	gctx := &Context{isContainer: isContainer, debug: debug, Context: ctx, path: data.MountPath}
 
+	// load actions context
+	err := gctx.LoadActionsContext()
+	if err != nil {
+		return nil, err
+	}
+
 	// load dagger context
-	err := gctx.LoadDaggerContext()
+	err = gctx.LoadDaggerContext()
 	if err != nil {
 		return nil, err
 	}
@@ -88,6 +95,7 @@ func (c *Context) WithContainerFunc() dagger.WithContainerFunc {
 		container = container.WithEnvVariable(EnvVariableGaleRunner, "true")
 
 		// apply sub-contexts
+		container = container.With(c.Actions.WithContainerFunc())
 		container = container.With(c.Docker.WithContainerFunc())
 		container = container.With(c.Repo.WithContainerFunc())
 		container = container.With(c.Github.WithContainerFunc())
