@@ -3,6 +3,7 @@ package gctx
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strconv"
 
@@ -196,6 +197,14 @@ func (c *GithubContext) setWorkflow(wr *core.WorkflowRun) *GithubContext {
 	c.WorkflowRef = fmt.Sprintf("%s/%s@%s", c.Repository, wr.Workflow.Path, c.Ref)
 	// TODO: double check this. It should be ok for know since we're loading the workflow from the repository only.
 	c.WorkflowSHA = c.SHA
+
+	os.Setenv("GITHUB_RUN_ID", c.RunID)
+	os.Setenv("GITHUB_RUN_NUMBER", c.RunNumber)
+	os.Setenv("GITHUB_RUN_ATTEMPT", c.RunAttempt)
+	os.Setenv("GITHUB_RETENTION_DAYS", c.RetentionDays)
+	os.Setenv("GITHUB_WORKFLOW", c.Workflow)
+	os.Setenv("GITHUB_WORKFLOW_REF", c.WorkflowRef)
+	os.Setenv("GITHUB_WORKFLOW_SHA", c.WorkflowSHA)
 
 	return c
 }
