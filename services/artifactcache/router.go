@@ -23,7 +23,7 @@ func Serve(port string, srv Service) error {
 	router.PATCH("/_apis/artifactcache/caches/:cacheID", handler.loggingMiddleware(handler.HandleUploadCache))
 	router.POST("/_apis/artifactcache/caches/:cacheID", handler.loggingMiddleware(handler.HandleCommitCache))
 	router.GET("/_apis/artifactcache/artifacts/:artifactID", handler.loggingMiddleware(handler.HandleDownloadArtifact))
-	router.GET("/healthz", handler.HandleHealthz)
+	router.GET("/healthz", handler.loggingMiddleware(handler.HandleHealthz))
 
 	fmt.Printf("Starting server on port %s\n", port)
 
