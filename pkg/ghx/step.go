@@ -85,7 +85,7 @@ type StepAction struct {
 
 func (s *StepAction) setup() TaskRunFn {
 	return func(ctx *gctx.Context) (core.Conclusion, error) {
-		ca, err := core.LoadActionFromSource(ctx.Context, config.Client(), s.Step.Uses, config.GhxActionsDir())
+		ca, err := core.LoadActionFromSource(ctx.Context, ctx.Client, s.Step.Uses, config.GhxActionsDir())
 		if err != nil {
 			return core.ConclusionFailure, err
 		}
@@ -99,14 +99,14 @@ func (s *StepAction) setup() TaskRunFn {
 			var (
 				image        = ca.Meta.Runs.Image
 				workspace    = ctx.Github.Workspace
-				workspaceDir = config.Client().Host().Directory(workspace)
+				workspaceDir = ctx.Client.Host().Directory(workspace)
 			)
 
 			switch {
 			case image == "Dockerfile":
-				s.container = config.Client().Container().Build(ca.Dir)
+				s.container = ctx.Client.Container().Build(ca.Dir)
 			case strings.HasPrefix(image, "docker://"):
-				s.container = config.Client().Container().From(strings.TrimPrefix(image, "docker://"))
+				s.container = ctx.Client.Container().From(strings.TrimPrefix(image, "docker://"))
 			default:
 				// This should never happen. Adding it for safety.
 				return core.ConclusionFailure, fmt.Errorf("invalid docker image: %s", image)
@@ -327,11 +327,11 @@ func (s *StepDocker) setup() TaskRunFn {
 		var (
 			image        = strings.TrimPrefix(s.Step.Uses, "docker://")
 			workspace    = ctx.Github.Workspace
-			workspaceDir = config.Client().Host().Directory(workspace)
+			workspaceDir = ctx.Client.Host().Directory(workspace)
 		)
 
 		// configure the step container
-		s.container = config.Client().
+		s.container = ctx.Client.
 			Container().
 			From(image).
 			WithMountedDirectory(workspace, workspaceDir).

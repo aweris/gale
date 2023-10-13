@@ -1,19 +1,13 @@
 package gctx
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
-
-	"dagger.io/dagger"
 
 	"github.com/google/uuid"
 
-	"github.com/aweris/gale/internal/config"
 	"github.com/aweris/gale/internal/core"
-	"github.com/aweris/gale/internal/dagger/helpers"
 	"github.com/aweris/gale/internal/fs"
 )
 
@@ -22,32 +16,32 @@ import (
 // See: https://docs.github.com/en/actions/learn-github-actions/contexts#github-context
 type GithubContext struct {
 	// Repository is the combination of owner and name of the repository. e.g. octocat/hello-world
-	Repository string `json:"repository" env:"GITHUB_REPOSITORY" container_env:"true"`
+	Repository string `json:"repository" env:"GITHUB_REPOSITORY"`
 
 	// RepositoryID is the id of the repository. e.g. 1296269. Note that this is different from the repository name.
-	RepositoryID string `json:"repository_id" env:"GITHUB_REPOSITORY_ID" container_env:"true"`
+	RepositoryID string `json:"repository_id" env:"GITHUB_REPOSITORY_ID"`
 
 	// RepositoryOwner is the owner of the repository. e.g. octocat
-	RepositoryOwner string `json:"repository_owner" env:"GITHUB_REPOSITORY_OWNER" container_env:"true"`
+	RepositoryOwner string `json:"repository_owner" env:"GITHUB_REPOSITORY_OWNER"`
 
 	// RepositoryOwnerID is the id of the repository owner. e.g. 1234567. Note that this is different from
 	// the repository owner name.
-	RepositoryOwnerID string `json:"repository_owner_id" env:"GITHUB_REPOSITORY_OWNER_ID" container_env:"true"`
+	RepositoryOwnerID string `json:"repository_owner_id" env:"GITHUB_REPOSITORY_OWNER_ID"`
 
 	// RepositoryURL is the git url of the repository. e.g. git://github.com/octocat/hello-world.git.
-	RepositoryURL string `json:"repository_url" env:"GITHUB_REPOSITORY_URL" container_env:"true"`
+	RepositoryURL string `json:"repository_url" env:"GITHUB_REPOSITORY_URL"`
 
 	// Workspace is the path of a directory that contains a checkout of the repository.
-	Workspace string `json:"workspace" env:"GITHUB_WORKSPACE" container_env:"true"`
+	Workspace string `json:"workspace" env:"GITHUB_WORKSPACE"`
 
 	// ApiURL is the CloneURL of the Github API. e.g. https://api.github.com
-	APIURL string `json:"api_url" env:"GITHUB_API_URL" envDefault:"https://api.github.com" container_env:"true"`
+	APIURL string `json:"api_url" env:"GITHUB_API_URL" envDefault:"https://api.github.com"`
 
 	// GraphqlURL is the CloneURL of the Github GraphQL API. e.g. https://api.github.com/graphql
-	GraphqlURL string `json:"graphql_url" env:"GITHUB_GRAPHQL_URL" envDefault:"https://api.github.com/graphql" container_env:"true"`
+	GraphqlURL string `json:"graphql_url" env:"GITHUB_GRAPHQL_URL" envDefault:"https://api.github.com/graphql"`
 
 	// ServerURL is the CloneURL of the Github server. e.g. https://github.com
-	ServerURL string `json:"server_url" env:"GITHUB_SERVER_URL" envDefault:"https://github.com" container_env:"true"`
+	ServerURL string `json:"server_url" env:"GITHUB_SERVER_URL" envDefault:"https://github.com"`
 
 	// Env is the path to a temporary file that sets environment variables from workflow commands.
 	Env string `json:"env" env:"GITHUB_ENV"`
@@ -89,43 +83,43 @@ type GithubContext struct {
 
 	// Ref is the branch or tag ref that triggered the workflow. If neither a branch or tag is available for
 	// the event type, the variable will not exist.
-	Ref string `json:"ref" env:"GITHUB_REF"  container_env:"true"`
+	Ref string `json:"ref" env:"GITHUB_REF"  `
 
 	// RefName is the short name (without refs/heads/ prefix) of the branch or tag ref that triggered the workflow.
 	// If neither a branch or tag is available for the event type, the variable will not exist.
-	RefName string `json:"ref_name" env:"GITHUB_REF_NAME" container_env:"true"`
+	RefName string `json:"ref_name" env:"GITHUB_REF_NAME"`
 
 	// RefType is the type of ref that triggered the workflow. Possible values are branch, tag, or empty, if neither
 	// a branch nor tag is available for the event type.
-	RefType string `json:"ref_type" env:"GITHUB_REF_TYPE" container_env:"true"`
+	RefType string `json:"ref_type" env:"GITHUB_REF_TYPE"`
 
 	// RefProtected is true if branch protections are enabled and the base ref for the pull request matches the branch
 	// protection rule.
-	RefProtected bool `json:"ref_protected" env:"GITHUB_REF_PROTECTED" container_env:"true"`
+	RefProtected bool `json:"ref_protected" env:"GITHUB_REF_PROTECTED"`
 
 	// BaseRef is the branch of the base repository. This property is only available when the event that triggered
 	// the workflow is a pull request. Otherwise the property will not exist.
-	BaseRef string `json:"base_ref" env:"GITHUB_BASE_REF" container_env:"true"`
+	BaseRef string `json:"base_ref" env:"GITHUB_BASE_REF"`
 
 	// HeadRef is the branch of the head repository. This property is only available when the event that triggered
 	// the workflow is a pull request. Otherwise the property will not exist.
-	HeadRef string `json:"head_ref" env:"GITHUB_HEAD_REF" container_env:"true"`
+	HeadRef string `json:"head_ref" env:"GITHUB_HEAD_REF"`
 
 	// SHA is the commit SHA that triggered the workflow. The value of this commit SHA depends on the event that
 	// triggered the workflow.
-	SHA string `json:"sha" env:"GITHUB_SHA" container_env:"true"`
+	SHA string `json:"sha" env:"GITHUB_SHA"`
 
 	// EventName is the name of the event that triggered the workflow. e.g. push
-	EventName string `json:"event_name" env:"GITHUB_EVENT_NAME" container_env:"true"`
+	EventName string `json:"event_name" env:"GITHUB_EVENT_NAME"`
 
 	// EventPath is the path of the file with the complete webhook event payload. e.g. /github/workflow/event.json
-	EventPath string `json:"event_path" env:"GITHUB_EVENT_PATH" container_env:"true"`
+	EventPath string `json:"event_path" env:"GITHUB_EVENT_PATH"`
 
 	// Event is the full event webhook payload.
 	Event map[string]interface{} `json:"event"`
 
 	// Token is the GitHub token to use for authentication.
-	Token string `json:"token" env:"GITHUB_TOKEN" container_secret:"true"`
+	Token string `json:"token" env:"GITHUB_TOKEN"`
 }
 
 func (c *Context) LoadGithubContext() error {
@@ -164,25 +158,11 @@ func (c *Context) LoadGithubContext() error {
 }
 
 // SetRepo sets the repository information in the context.
-func (c *GithubContext) setRepo(repo core.Repository, ref core.RepositoryGitRef) *GithubContext {
-	c.Repository = repo.FullName
-	c.RepositoryID = strconv.FormatInt(int64(repo.ID), 10)
-	c.RepositoryOwner = repo.Owner.Login
-	c.RepositoryOwnerID = strconv.FormatInt(int64(repo.Owner.ID), 10)
-	c.RepositoryURL = repo.CloneURL
-	c.Workspace = fmt.Sprintf("/home/runner/work/%s/%s", repo.Name, repo.Name)
-
+func (c *GithubContext) setRepo(ref core.RepositoryGitRef) *GithubContext {
 	c.Ref = ref.Ref
 	c.RefName = ref.RefName
 	c.RefType = string(ref.RefType)
 	c.SHA = ref.SHA
-
-	return c
-}
-
-// setToken sets the token in the context.
-func (c *GithubContext) setToken(token string) *GithubContext {
-	c.Token = token
 
 	return c
 }
@@ -207,26 +187,4 @@ func (c *GithubContext) setWorkflow(wr *core.WorkflowRun) *GithubContext {
 	os.Setenv("GITHUB_WORKFLOW_SHA", c.WorkflowSHA)
 
 	return c
-}
-
-// helpers.WithContainerFuncHook interface to be loaded in the container.
-
-var _ helpers.WithContainerFuncHook = new(GithubContext)
-
-// WithContainerFunc returns a WithContainerFunc that sets the context in the container.
-func (c *GithubContext) WithContainerFunc() dagger.WithContainerFunc {
-	return func(container *dagger.Container) *dagger.Container {
-		// Load context in the container as environment variables or secrets.
-		container = container.With(WithContainerEnv(config.Client(), c))
-
-		// Apply extra container configuration
-		event, err := json.Marshal(c.Event)
-		if err != nil {
-			helpers.FailPipeline(container, err)
-		}
-
-		container = container.WithNewFile(c.EventPath, dagger.ContainerWithNewFileOpts{Contents: string(event)})
-
-		return container
-	}
 }

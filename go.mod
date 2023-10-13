@@ -6,7 +6,6 @@ toolchain go1.21.2
 
 require (
 	dagger.io/dagger v0.8.7
-	github.com/adrg/xdg v0.4.0
 	github.com/caarlos0/env/v9 v9.0.0
 	github.com/cli/go-gh/v2 v2.3.0
 	github.com/go-git/go-git/v5 v5.9.0
@@ -27,6 +26,7 @@ require (
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/ProtonMail/go-crypto v0.0.0-20230828082145-3c4c8a2d2371 // indirect
 	github.com/acomagu/bufpipe v1.0.4 // indirect
+	github.com/adrg/xdg v0.4.0 // indirect
 	github.com/aymanbagabas/go-osc52 v1.0.3 // indirect
 	github.com/cli/safeexec v1.0.1 // indirect
 	github.com/cli/shurcooL-graphql v0.0.3 // indirect

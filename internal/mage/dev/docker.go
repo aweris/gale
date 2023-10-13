@@ -8,7 +8,6 @@ import (
 	"github.com/magefile/mage/mg"
 
 	"github.com/aweris/gale/internal/mage/docker"
-	"github.com/aweris/gale/internal/version"
 )
 
 type Docker mg.Namespace
@@ -20,7 +19,5 @@ func (_ Docker) Publish(ctx context.Context) error {
 		return fmt.Errorf("no registry set, please run `mage dev:engine:start` first,than run `eval $(mage dev:engine:env)`")
 	}
 
-	v := version.GetVersion()
-
-	return docker.Publish(ctx, v.GitVersion)
+	return docker.Publish(ctx, "v0.0.0-dev")
 }

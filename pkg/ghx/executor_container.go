@@ -9,7 +9,6 @@ import (
 
 	"dagger.io/dagger"
 
-	"github.com/aweris/gale/internal/config"
 	"github.com/aweris/gale/internal/core"
 	"github.com/aweris/gale/internal/expression"
 	"github.com/aweris/gale/internal/gctx"
@@ -167,7 +166,7 @@ func (c *ContainerExecutor) Execute(ctx *gctx.Context) error {
 }
 
 func (c *ContainerExecutor) loadEnvFiles(ctx *gctx.Context) error {
-	dir := config.Client().
+	dir := ctx.Client.
 		Directory().
 		WithNewFile("env", "").
 		WithNewFile("path", "").

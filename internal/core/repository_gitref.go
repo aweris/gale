@@ -13,16 +13,16 @@ var errRefFound = errors.New("stop")
 
 // RepositoryGitRef represents a Git ref (branch or tag) in a repository
 type RepositoryGitRef struct {
-	Ref      string  `env:"GALE_REPO_REF" container_env:"true"`
-	RefName  string  `env:"GALE_REPO_REF_NAME" container_env:"true"`
-	RefType  RefType `env:"GALE_REPO_REF_TYPE" container_env:"true"`
-	SHA      string  `env:"GALE_REPO_SHA" container_env:"true"`
-	ShortSHA string  `env:"GALE_REPO_SHORT_SHA" container_env:"true"`
-	IsRemote bool    `env:"GALE_REPO_IS_REMOTE" container_env:"true"`
+	Ref      string
+	RefName  string
+	RefType  RefType
+	SHA      string
+	ShortSHA string
+	IsRemote bool
 }
 
 // GetRepositoryRefFromDir returns a Git ref (branch or tag) from given directory. If dir is empty or not git repository, it will return an error.
-func GetRepositoryRefFromDir(path, tag, branch string) (RepositoryGitRef, error) {
+func GetRepositoryRefFromDir(path string) (RepositoryGitRef, error) {
 	var ref RepositoryGitRef
 
 	repo, err := git.PlainOpenWithOptions(path, &git.PlainOpenOptions{DetectDotGit: true, EnableDotGitCommonDir: true})
@@ -80,16 +80,6 @@ func GetRepositoryRefFromDir(path, tag, branch string) (RepositoryGitRef, error)
 		refFull = found.Name().String()
 		refName = found.Name().Short()
 		isRemote = found.Name().IsRemote()
-	case found.Name() == "HEAD" && tag != "": // we're in detached head state and tag is provided, so we're using the tag
-		refType = RefTypeTag
-		refFull = fmt.Sprintf("refs/tags/%s", tag)
-		refName = tag
-		isRemote = true
-	case found.Name() == "HEAD" && branch != "": // we're in detached head state and branch is provided, so we're using the branch
-		refType = RefTypeBranch
-		refFull = fmt.Sprintf("refs/heads/%s", branch)
-		refName = branch
-		isRemote = true
 	default:
 		return ref, fmt.Errorf("unsupported ref: %s", found.Name().String())
 	}

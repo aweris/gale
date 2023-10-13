@@ -39,7 +39,6 @@ func Publish(ctx context.Context, version string) error {
 
 	// builds all components of the gale
 
-	gale := build(client, "./cmd/gale", ldflags...)
 	ghx := build(client, "./cmd/ghx", ldflags...)
 	artifact := build(client, "./services/artifact")
 	artifactCache := build(client, "./services/artifactcache")
@@ -48,7 +47,6 @@ func Publish(ctx context.Context, version string) error {
 	_, err = client.Container().
 		From("alpine:latest").
 		WithExec([]string{"apk", "add", "--no-cache", "git", "docker", "github-cli"}).
-		WithFile("/usr/local/bin/gale", gale).
 		WithFile("/usr/local/bin/ghx", ghx).
 		WithFile("/usr/local/bin/artifact-service", artifact).
 		WithFile("/usr/local/bin/artifactcache-service", artifactCache).

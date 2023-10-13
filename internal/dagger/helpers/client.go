@@ -12,22 +12,6 @@ import (
 // LogFunc is the function that will be called when a new journal entry is received for default dagger client.
 type LogFunc func(entry *journal.Entry)
 
-// NoopLogFunc is a log function that does nothing.
-func NoopLogFunc(_ *journal.Entry) {}
-
-// DefaultClient creates a new dagger client that logs to stdout.
-func DefaultClient(ctx context.Context) (*dagger.Client, error) {
-	return NewClient(ctx, nil)
-}
-
-// TODO: no log client is ok for now but what we really need is a client that logs to a file so we can use it for
-//  debugging. However, we can add this on later iterations.
-
-// NoLogClient creates a new dagger client that does not log anything.
-func NoLogClient(ctx context.Context) (*dagger.Client, error) {
-	return NewClient(ctx, NoopLogFunc)
-}
-
 // NewClient creates a new dagger client with given log function.
 func NewClient(ctx context.Context, logFn LogFunc) (*dagger.Client, error) {
 	// initialize dagger client and set it to config

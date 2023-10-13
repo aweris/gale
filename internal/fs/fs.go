@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+
+	"gopkg.in/yaml.v3"
 )
 
 // Exists checks if the given path exists.
@@ -96,4 +98,19 @@ func WriteJSONFile(file string, val interface{}) error {
 	}
 
 	return WriteFile(file, data, 0600)
+}
+
+// ReadYAMLFile reads the given path as a YAML file.
+func ReadYAMLFile[T any](file string, val *T) error {
+	data, err := os.ReadFile(file)
+	if err != nil {
+		return err
+	}
+
+	// if the file is empty, we don't need to do anything
+	if len(data) == 0 {
+		return nil
+	}
+
+	return yaml.Unmarshal(data, val)
 }

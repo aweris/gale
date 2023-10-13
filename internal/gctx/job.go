@@ -12,12 +12,8 @@ type JobContext struct {
 }
 
 func (c *Context) LoadJob(status core.Conclusion) error {
-	c.Job = JobContext{}
-
-	// initial job status is success for workflows. Otherwise, default if condition check will skip the job.
-	// we're setting in only for container workflows because we don't need this value outside the container.
-	if c.isContainer {
-		c.Job.Status = status
+	c.Job = JobContext{
+		Status: status,
 	}
 
 	return nil

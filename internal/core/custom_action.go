@@ -279,12 +279,13 @@ func getActionDirectory(client *dagger.Client, source string) (*dagger.Directory
 		return nil, fmt.Errorf("failed to determine ref type for %s: %v", source, err)
 	}
 
-	// if path is empty, use the root of the repo as the action directory
-	if actionPath == "" {
-		actionPath = "."
+	dir := gitRef.Tree()
+
+	if actionPath != "" {
+		dir = dir.Directory(actionPath)
 	}
 
-	return gitRef.Tree().Directory(actionPath), nil
+	return dir, nil
 }
 
 // findActionMetadataFileName finds the action.yml or action.yaml file in the root of the action directory.

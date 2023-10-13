@@ -14,12 +14,6 @@ type ExecutionContext struct {
 	StepRun     *core.StepRun     // Step is the current step that is being executed.
 }
 
-// SetToken sets the Github API token in the context.
-func (c *Context) SetToken(token string) {
-	c.Secrets.setToken(token)
-	c.Github.setToken(token)
-}
-
 // SetWorkflow creates a new execution context with the given workflow and sets it to the context.
 func (c *Context) SetWorkflow(wr *core.WorkflowRun) error {
 	// set the workflow run to the execution context
