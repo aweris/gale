@@ -1,15 +1,15 @@
 package run
 
 import (
+	"github.com/aweris/gale/internal/config"
 	"github.com/aweris/gale/internal/core"
 	"github.com/aweris/gale/internal/dagger/helpers"
+	"github.com/aweris/gale/internal/fs"
+	"github.com/aweris/gale/internal/gctx"
 	"github.com/aweris/gale/internal/journal"
 	"github.com/aweris/gale/internal/log"
-	"github.com/spf13/cobra"
-
-	"github.com/aweris/gale/internal/config"
-	"github.com/aweris/gale/internal/gctx"
 	"github.com/aweris/gale/pkg/ghx"
+	"github.com/spf13/cobra"
 )
 
 // NewCommand  creates a new root command.
@@ -55,7 +55,9 @@ func NewCommand() *cobra.Command {
 			}
 
 			// Run the workflow
-			_, _, err = runner.Run(ctx)
+			result, _ := runner.Run(ctx)
+
+			err = fs.WriteJSONFile("/home/runner/_temp/ghx/result.json", &result)
 			if err != nil {
 				return err
 			}

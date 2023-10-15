@@ -4,7 +4,6 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/aweris/gale/internal/config"
 	"github.com/aweris/gale/internal/fs"
 )
 
@@ -20,14 +19,14 @@ type counter map[string]int
 
 // GenerateWorkflowRunID generates a unique workflow run id for the given repository
 func GenerateWorkflowRunID() (string, error) {
-	dataPath := filepath.Join(config.GhxHome(), metadataFile)
+	dataPath := filepath.Join("/home/runner/_temp/ghx", metadataFile)
 
 	return generateID(dataPath, keyWorkflowRunID)
 }
 
 // GenerateJobRunID generates a unique job run id for the given repository
 func GenerateJobRunID() (string, error) {
-	dataPath := filepath.Join(config.GhxHome(), metadataFile)
+	dataPath := filepath.Join("/home/runner/_temp/ghx", metadataFile)
 
 	return generateID(dataPath, keyJobRunID)
 }

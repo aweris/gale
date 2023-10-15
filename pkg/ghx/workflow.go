@@ -68,6 +68,8 @@ func Plan(workflow core.Workflow, job string) (*TaskRunner, error) {
 
 	// runFn is the function that runs the workflow
 	runFn := func(ctx *gctx.Context) (core.Conclusion, error) {
+		conclusion := core.ConclusionSuccess
+
 		for _, job := range order {
 			jm, ok := workflow.Jobs[job]
 			if !ok {
@@ -83,14 +85,18 @@ func Plan(workflow core.Workflow, job string) (*TaskRunner, error) {
 			// FIXME: run all runners sequentially for now. Ignoring parallelism. Fix this later.
 
 			for _, runner := range runners {
-				_, _, err = runner.Run(ctx)
+				result, err := runner.Run(ctx)
 				if err != nil {
 					return core.ConclusionFailure, err
+				}
+
+				if conclusion == core.ConclusionSuccess && result.Conclusion != conclusion {
+					conclusion = result.Conclusion
 				}
 			}
 		}
 
-		return core.ConclusionSuccess, nil
+		return conclusion, nil
 	}
 
 	// workflow task options

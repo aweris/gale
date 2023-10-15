@@ -39,7 +39,7 @@ func (c *Context) LoadCurrentRepo() error {
 func (c *Context) LoadWorkflows() (map[string]core.Workflow, error) {
 	workflows := make(map[string]core.Workflow)
 
-	filepath.Walk(".github/workflows", func(path string, info os.FileInfo, err error) error {
+	filepath.Walk(c.Repo.WorkflowsDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}

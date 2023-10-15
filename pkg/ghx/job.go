@@ -81,10 +81,10 @@ func planJob(job core.Job) ([]*TaskRunner, error) {
 
 	runFn := func(ctx *gctx.Context) (core.Conclusion, error) {
 		for _, te := range tasks {
-			run, conclusion, err := te.Run(ctx)
+			result, err := te.Run(ctx)
 
 			// no need to continue if the task taskRunner did not run.
-			if !run {
+			if !result.Ran {
 				continue
 			}
 
@@ -93,8 +93,8 @@ func planJob(job core.Job) ([]*TaskRunner, error) {
 			}
 
 			// set the job status to the conclusion of the job status is success and the conclusion is not success.
-			if ctx.Job.Status == core.ConclusionSuccess && conclusion != ctx.Job.Status {
-				ctx.Job.Status = conclusion
+			if ctx.Job.Status == core.ConclusionSuccess && result.Conclusion != ctx.Job.Status {
+				ctx.Job.Status = result.Conclusion
 			}
 		}
 

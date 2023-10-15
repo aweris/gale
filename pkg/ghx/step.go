@@ -7,7 +7,6 @@ import (
 
 	"dagger.io/dagger"
 
-	"github.com/aweris/gale/internal/config"
 	"github.com/aweris/gale/internal/core"
 	"github.com/aweris/gale/internal/expression"
 	"github.com/aweris/gale/internal/fs"
@@ -85,7 +84,7 @@ type StepAction struct {
 
 func (s *StepAction) setup() TaskRunFn {
 	return func(ctx *gctx.Context) (core.Conclusion, error) {
-		ca, err := core.LoadActionFromSource(ctx.Context, ctx.Client, s.Step.Uses, config.GhxActionsDir())
+		ca, err := core.LoadActionFromSource(ctx.Context, ctx.Client, s.Step.Uses, "/home/runner/_temp/ghx/actions")
 		if err != nil {
 			return core.ConclusionFailure, err
 		}

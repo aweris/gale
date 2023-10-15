@@ -13,15 +13,18 @@ import (
 // the execution.
 type TaskRunner struct {
 	Name        string            // Name of the execution
-	Ran         bool              // Ran indicates if the execution ran
 	Status      core.Status       // Status of the execution
-	Conclusion  core.Conclusion   // Conclusion of the execution
-	StartedAt   time.Time         // StartedAt time of the execution
-	CompletedAt time.Time         // CompletedAt time of the execution
 	runFn       TaskRunFn         // runFn is the function to be executed
 	conditionFn TaskConditionalFn // conditionFn is the function that determines if the task should be executed
 	preFn       TaskPreRunFn      // preFn is the function that will be executed before the task is executed
 	postFn      TaskPostRunFn     // postFn is the function that will be executed after the task is executed
+}
+
+type TaskRunResult struct {
+	Ran         bool            `json:"ran"`         // Ran indicates if the execution ran
+	Conclusion  core.Conclusion `json:"conclusion"`  // Conclusion of the execution
+	StartedAt   time.Time       `json:"startedAt"`   // StartedAt time of the execution
+	CompletedAt time.Time       `json:"completedAt"` // CompletedAt time of the execution
 }
 
 // TaskRunFn is the function that will be executed by the task taskRunner.
@@ -84,53 +87,66 @@ func NewTaskRunner(name string, fn TaskRunFn, opts ...TaskOpts) TaskRunner {
 }
 
 // Run runs the task and updates the status, conclusion and timing information.
-func (t *TaskRunner) Run(ctx *gctx.Context) (run bool, conclusion core.Conclusion, err error) {
-	run = true
-	t.StartedAt = time.Now()
+func (t *TaskRunner) Run(ctx *gctx.Context) (result TaskRunResult, err error) {
+	result = TaskRunResult{Ran: true, StartedAt: time.Now()}
+
 	t.Status = core.StatusInProgress
 
 	// run preFn if any
-	if t.preFn != nil && t.preFn(ctx) != nil {
-		return t.failFast(core.ConclusionFailure, err)
+	if t.preFn != nil {
+		if err := t.preFn(ctx); err != nil {
+			result.Conclusion = core.ConclusionFailure
+			result.CompletedAt = time.Now()
+
+			return result, err
+		}
 	}
 
 	if t.conditionFn != nil {
-		run, conclusion, err = t.conditionFn(ctx)
+		run, conclusion, err := t.conditionFn(ctx)
+		if err != nil {
+			result.Conclusion = core.ConclusionFailure
+			result.CompletedAt = time.Now()
+
+			return result, err
+		}
+
+		result.Ran = run
+		result.Conclusion = conclusion
 	}
 
-	if run {
+	if result.Ran {
 		// create ger group for step
 		log.Info(t.Name)
 		log.StartGroup()
 		defer log.EndGroup()
 
 		// run the task update named return values
-		conclusion, err = t.runFn(ctx)
-	} else if conclusion != "" && conclusion != core.ConclusionSuccess {
-		// if the task should not be executed, log the conclusion
-		log.Info(fmt.Sprintf("%s (%s)", t.Name, conclusion))
-	}
+		result.Conclusion, err = t.runFn(ctx)
+		if err != nil {
+			result.Conclusion = core.ConclusionFailure
+			result.CompletedAt = time.Now()
 
-	// task is completed, set the status, conclusion and timing information
-	t.setTaskCompletion(run, conclusion)
+			return result, err
+		}
+	} else if result.Conclusion != "" && result.Conclusion != core.ConclusionSuccess {
+		// if the task should not be executed, log the conclusion
+		log.Info(fmt.Sprintf("%s (%s)", t.Name, result.Conclusion))
+	}
 
 	// run postFn if any
-	if t.postFn != nil && t.postFn(ctx) != nil {
-		return t.failFast(core.ConclusionFailure, t.postFn(ctx))
+	if t.postFn != nil {
+		if err := t.postFn(ctx); err != nil {
+			result.Conclusion = core.ConclusionFailure
+			result.CompletedAt = time.Now()
+
+			return result, err
+		}
 	}
 
+	// set the task completion
+	result.CompletedAt = time.Now()
+
 	// return the named return values from the task
-	return run, conclusion, err
-}
-
-func (t *TaskRunner) failFast(conclusion core.Conclusion, err error) (bool, core.Conclusion, error) {
-	t.setTaskCompletion(true, conclusion)
-	return false, conclusion, err
-}
-
-func (t *TaskRunner) setTaskCompletion(run bool, conclusion core.Conclusion) {
-	t.Ran = run
-	t.Conclusion = conclusion
-	t.CompletedAt = time.Now()
-	t.Status = core.StatusCompleted
+	return result, err
 }

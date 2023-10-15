@@ -8,7 +8,6 @@ import (
 
 	"github.com/aweris/gale/cmd/ghx/run"
 	"github.com/aweris/gale/internal/cmd"
-	"github.com/aweris/gale/internal/config"
 	"github.com/aweris/gale/internal/fs"
 )
 
@@ -25,8 +24,6 @@ func NewCommand() *cobra.Command {
 			if err := fs.EnsureDir(homeDir); err != nil {
 				return err
 			}
-
-			config.SetGhxHome(homeDir)
 
 			return nil
 		},
