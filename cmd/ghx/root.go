@@ -20,12 +20,7 @@ func NewCommand() *cobra.Command {
 		Short: "Github Actions Executor",
 		Long:  "Github Actions Executor is a helper tool for gale to run workflows locally",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			// set home directory
-			if err := fs.EnsureDir(homeDir); err != nil {
-				return err
-			}
-
-			return nil
+			return fs.EnsureDir(homeDir)
 		},
 	}
 

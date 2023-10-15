@@ -166,7 +166,7 @@ func (c *ContainerExecutor) Execute(ctx *gctx.Context) error {
 }
 
 func (c *ContainerExecutor) loadEnvFiles(ctx *gctx.Context) error {
-	dir := ctx.Client.
+	dir := ctx.Dagger.Client.
 		Directory().
 		WithNewFile("env", "").
 		WithNewFile("path", "").

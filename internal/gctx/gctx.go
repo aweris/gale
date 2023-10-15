@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"math"
 
-	"dagger.io/dagger"
-
 	"github.com/aweris/gale/internal/core"
 	"github.com/aweris/gale/internal/expression"
 )
@@ -15,10 +13,10 @@ type Context struct {
 	debug     bool             // debug indicates whether the workflow is running in debug mode.
 	path      string           // path is the data path for the context to be mounted from the host or to be used in the container.
 	Context   context.Context  // Context is the current context of the workflow.
-	Client    *dagger.Client   // Client is the dagger client to be used in the workflow.
 	Repo      RepoContext      // Repo is the context for the repository.
 	Execution ExecutionContext // Execution is the context for the execution.
 	Actions   ActionsContext   // Actions is the context for the actions.
+	Dagger    DaggerContext    // Dagger is the context for the dagger client.
 
 	// Github Expression Contexts
 	Runner  RunnerContext
@@ -32,11 +30,17 @@ type Context struct {
 	Env     map[string]string
 }
 
-func Load(ctx context.Context, debug bool, client *dagger.Client) (*Context, error) {
-	gctx := &Context{debug: debug, Context: ctx, Client: client, path: "/home/runner/work/_temp/gale"}
+func Load(ctx context.Context, debug bool) (*Context, error) {
+	gctx := &Context{debug: debug, Context: ctx, path: "/home/runner/work/_temp/gale"}
+
+	// load dagger context
+	err := gctx.LoadDaggerContext()
+	if err != nil {
+		return nil, err
+	}
 
 	// load actions context
-	err := gctx.LoadActionsContext()
+	err = gctx.LoadActionsContext()
 	if err != nil {
 		return nil, err
 	}
