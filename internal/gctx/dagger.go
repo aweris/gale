@@ -2,9 +2,9 @@ package gctx
 
 import (
 	"dagger.io/dagger"
-	"github.com/aweris/gale/internal/config"
 	"github.com/aweris/gale/internal/core"
 	"github.com/aweris/gale/internal/log"
+	"os"
 
 	"github.com/aweris/gale/internal/journal"
 )
@@ -50,7 +50,7 @@ func logJournal(reader journal.Reader, logFn LogFunc) {
 
 func logJournalEntries(entry *journal.Entry) {
 	// Skip internal entries if we're not in debug mode
-	if entry.Type == journal.EntryTypeInternal && !config.Debug() {
+	if entry.Type == journal.EntryTypeInternal && os.Getenv("RUNNER_DEBUG") != "1" {
 		return
 	}
 

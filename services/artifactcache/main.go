@@ -4,32 +4,30 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/spf13/pflag"
-
-	"github.com/aweris/gale/internal/cmd"
+	"github.com/caarlos0/env/v9"
 )
 
+// ServiceConfig is the configuration for the artifactcache service.
+type ServiceConfig struct {
+	CacheDir string `env:"CACHE_DIR" envDefault:"/cache"`
+	Port     string `env:"PORT" envDefault:"8080"`
+}
+
 func main() {
-	var (
-		cacheDir string
-		port     string
-	)
+	var config ServiceConfig
 
-	pflag.StringVar(&cacheDir, "cache-dir", "/cache", "Directory to store cache")
-	pflag.StringVar(&port, "port", "8080", "Port to artifact service will listen on")
+	if err := env.Parse(&config); err != nil {
+		fmt.Printf("Error parsing environment variables: %s\n", err.Error())
+		os.Exit(1)
+	}
 
-	cmd.BindEnv(pflag.Lookup("cache-dir"), "CACHE_DIR")
-	cmd.BindEnv(pflag.Lookup("port"), "PORT")
-
-	pflag.Parse()
-
-	srv, err := NewLocalService(cacheDir)
+	srv, err := NewLocalService(config.CacheDir)
 	if err != nil {
 		fmt.Printf("Error starting artifact service: %s\n", err.Error())
 		os.Exit(1)
 	}
 
-	if err := Serve(port, srv); err != nil {
+	if err := Serve(config.Port, srv); err != nil {
 		fmt.Printf("Error starting artifact service: %s\n", err.Error())
 		os.Exit(1)
 	}

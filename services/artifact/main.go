@@ -4,26 +4,23 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/spf13/pflag"
-
-	"github.com/aweris/gale/internal/cmd"
+	"github.com/caarlos0/env/v9"
 )
 
+type ServiceConfig struct {
+	ArtifactDir string `env:"ARTIFACT_DIR" envDefault:"/artifacts"`
+	Port        string `env:"PORT" envDefault:"8080"`
+}
+
 func main() {
-	var (
-		artifactDir string
-		port        string
-	)
+	var config ServiceConfig
 
-	pflag.StringVar(&artifactDir, "artifact-dir", "/artifacts", "Directory to store artifacts")
-	pflag.StringVar(&port, "port", "8080", "Port to artifact service will listen on")
+	if err := env.Parse(&config); err != nil {
+		fmt.Printf("Error parsing environment variables: %s\n", err.Error())
+		os.Exit(1)
+	}
 
-	cmd.BindEnv(pflag.Lookup("artifact-dir"), "ARTIFACT_DIR")
-	cmd.BindEnv(pflag.Lookup("port"), "PORT")
-
-	pflag.Parse()
-
-	if err := Serve(port, NewLocalService(artifactDir)); err != nil {
+	if err := Serve(config.Port, NewLocalService(config.ArtifactDir)); err != nil {
 		fmt.Printf("Error starting artifact service: %s\n", err.Error())
 		os.Exit(1)
 	}

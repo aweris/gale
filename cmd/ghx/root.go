@@ -7,26 +7,15 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/aweris/gale/cmd/ghx/run"
-	"github.com/aweris/gale/internal/cmd"
-	"github.com/aweris/gale/internal/fs"
 )
 
 // NewCommand  creates a new root command.
 func NewCommand() *cobra.Command {
-	var homeDir string
-
 	command := &cobra.Command{
 		Use:   "ghx",
 		Short: "Github Actions Executor",
 		Long:  "Github Actions Executor is a helper tool for gale to run workflows locally",
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			return fs.EnsureDir(homeDir)
-		},
 	}
-
-	command.PersistentFlags().StringVar(&homeDir, "home", "/home/runner/_temp/ghx", "home directory for ghx")
-
-	cmd.BindEnv(command.Flags().Lookup("home"), "GHX_HOME")
 
 	return command
 }
