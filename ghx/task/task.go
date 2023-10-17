@@ -47,10 +47,9 @@ type ConditionalFn func(ctx *context.Context) (run bool, conclusion core.Conclus
 // starts.
 type PreRunFn func(ctx *context.Context) (err error)
 
-// PostRunFn is the function that will be executed after the task is executed. If the function returns an error,
-// the task will be marked as failed. PostRunFn is useful for tasks that need to perform some actions after the
-// execution ends.
-type PostRunFn func(ctx *context.Context) (err error)
+// PostRunFn is the function that will be executed after the task is executed  PostRunFn is useful for tasks that
+// need to perform some actions after the execution ends.
+type PostRunFn func(ctx *context.Context, result Result)
 
 // Runner is a task runner that runs a task and keeps status, conclusion and timing information about
 // the execution.
@@ -63,13 +62,9 @@ type Runner struct {
 	postFn      PostRunFn     // postFn is the function that will be executed after the task is executed
 }
 
-// Result is the result of the task execution
-type Result struct {
-	Ran         bool            `json:"ran"`         // Ran indicates if the execution ran
-	Conclusion  core.Conclusion `json:"conclusion"`  // Conclusion of the execution
-	StartedAt   time.Time       `json:"startedAt"`   // StartedAt time of the execution
-	CompletedAt time.Time       `json:"completedAt"` // CompletedAt time of the execution
-}
+// Result is the result of the task execution. It is using context.RunResult to avoid circular dependency while keeping
+// a result type in the task package as well.
+type Result context.RunResult
 
 // Opts is the options that can be used to configure a task.
 type Opts struct {
@@ -97,8 +92,11 @@ func New(name string, fn RunFn, opts ...Opts) Runner {
 }
 
 // Run runs the task and updates the status, conclusion and timing information.
-func (t *Runner) Run(ctx *context.Context) (result Result, err error) {
-	result = Result{Ran: true, StartedAt: time.Now()}
+func (t *Runner) Run(ctx *context.Context) (Result, error) {
+	var (
+		result    = Result{Ran: true}
+		startedAt = time.Now()
+	)
 
 	t.Status = StatusInProgress
 
@@ -106,17 +104,25 @@ func (t *Runner) Run(ctx *context.Context) (result Result, err error) {
 	if t.preFn != nil {
 		if err := t.preFn(ctx); err != nil {
 			result.Conclusion = core.ConclusionFailure
-			result.CompletedAt = time.Now()
+			result.Duration = time.Since(startedAt)
 
 			return result, err
 		}
+	}
+
+	// add postFn if any
+	if t.postFn != nil {
+		// ensure postFn is executed even if there is an error
+		defer func() {
+			t.postFn(ctx, result)
+		}()
 	}
 
 	if t.conditionFn != nil {
 		run, conclusion, err := t.conditionFn(ctx)
 		if err != nil {
 			result.Conclusion = core.ConclusionFailure
-			result.CompletedAt = time.Now()
+			result.Duration = time.Since(startedAt)
 
 			return result, err
 		}
@@ -131,11 +137,13 @@ func (t *Runner) Run(ctx *context.Context) (result Result, err error) {
 		log.StartGroup()
 		defer log.EndGroup()
 
+		var err error
+
 		// run the task update named return values
 		result.Conclusion, err = t.runFn(ctx)
 		if err != nil {
 			result.Conclusion = core.ConclusionFailure
-			result.CompletedAt = time.Now()
+			result.Duration = time.Since(startedAt)
 
 			return result, err
 		}
@@ -144,20 +152,12 @@ func (t *Runner) Run(ctx *context.Context) (result Result, err error) {
 		log.Info(fmt.Sprintf("%s (%s)", t.Name, result.Conclusion))
 	}
 
-	// run postFn if any
-	if t.postFn != nil {
-		if err := t.postFn(ctx); err != nil {
-			result.Conclusion = core.ConclusionFailure
-			result.CompletedAt = time.Now()
-
-			return result, err
-		}
-	}
+	// update the duration
+	result.Duration = time.Since(startedAt)
 
 	// set the task completion
-	result.CompletedAt = time.Now()
 	t.Status = StatusCompleted
 
 	// return the named return values from the task
-	return result, err
+	return result, nil
 }

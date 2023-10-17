@@ -30,7 +30,12 @@ type StepAction struct {
 
 func (s *StepAction) setup() task.RunFn {
 	return func(ctx *context.Context) (core.Conclusion, error) {
-		ca, err := LoadActionFromSource(ctx.Context, ctx.Dagger.Client, s.Step.Uses, "/home/runner/_temp/ghx/actions")
+		path, err := ctx.GetActionsPath()
+		if err != nil {
+			return core.ConclusionFailure, err
+		}
+
+		ca, err := LoadActionFromSource(ctx.Context, ctx.Dagger.Client, s.Step.Uses, path)
 		if err != nil {
 			return core.ConclusionFailure, err
 		}
@@ -81,10 +86,9 @@ func (s *StepAction) preRun(stage core.StepStage) task.PreRunFn {
 }
 
 func (s *StepAction) postRun() task.PostRunFn {
-	return func(ctx *context.Context) (err error) {
+	return func(ctx *context.Context, result task.Result) {
+		ctx.UnsetStep(context.RunResult(result))
 		ctx.UnsetAction()
-
-		return ctx.UnsetStep()
 	}
 }
 

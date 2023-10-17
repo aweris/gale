@@ -55,6 +55,10 @@ func (ef *EnvironmentFiles) Process(ctx *context.Context) error {
 		if err := os.Setenv(k, v); err != nil {
 			return err
 		}
+		// FIXME: for now it's just reporting but we should use this as source of truth for step extra env
+		if err := ctx.SetStepEnv(k, v); err != nil {
+			return err
+		}
 	}
 
 	paths, err := ef.Path.ReadData(ctx.Context)
@@ -66,6 +70,11 @@ func (ef *EnvironmentFiles) Process(ctx *context.Context) error {
 
 	for p := range paths {
 		path = fmt.Sprintf("%s:%s", path, p)
+
+		// FIXME: for now it's just reporting but we should use this as source of truth for step path
+		if err := ctx.AddStepPath(p); err != nil {
+			return err
+		}
 	}
 
 	if err := os.Setenv("PATH", path); err != nil {

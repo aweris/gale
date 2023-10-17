@@ -7,6 +7,7 @@ import (
 
 	"github.com/aweris/gale/ghx/core"
 	"github.com/aweris/gale/internal/fs"
+	"github.com/aweris/gale/internal/log"
 )
 
 // SetWorkflow creates a new execution context with the given workflow and sets it to the context.
@@ -33,6 +34,17 @@ func (c *Context) SetWorkflow(wr *core.WorkflowRun) error {
 	c.Env = wr.Workflow.Env
 
 	return nil
+}
+
+func (c *Context) UnsetWorkflow(result RunResult) {
+	// ignoring error since directory must exist at this point of execution
+	dir, _ := c.GetWorkflowRunPath()
+
+	report := NewWorkflowRunReport(&result, c.Execution.WorkflowRun)
+
+	if err := fs.WriteJSONFile(filepath.Join(dir, "workflow_run.json"), report); err != nil {
+		log.Errorf("failed to write workflow run", "error", err, "workflow", c.Execution.WorkflowRun.Workflow.Name)
+	}
 }
 
 // SetJob sets the given job to the execution context.
@@ -78,7 +90,7 @@ func (c *Context) SetJob(jr *core.JobRun) error {
 }
 
 // UnsetJob unsets the job from the execution context.
-func (c *Context) UnsetJob() {
+func (c *Context) UnsetJob(result RunResult) {
 	jr := c.Execution.JobRun
 
 	// update the job run in the workflow run
@@ -88,10 +100,6 @@ func (c *Context) UnsetJob() {
 	if c.Execution.WorkflowRun.Conclusion == core.ConclusionSuccess && jr.Conclusion != core.ConclusionSuccess {
 		c.Execution.WorkflowRun.Conclusion = jr.Conclusion
 	}
-
-	// unset the job run from the execution context
-	c.Execution.JobRun = nil
-
 	// unset the job run from the github context
 	c.Github.Job = ""
 
@@ -100,21 +108,19 @@ func (c *Context) UnsetJob() {
 
 	// reset matrix context
 	c.Matrix = make(MatrixContext)
-}
 
-// GetJobRunPath returns the path of the current job run path. If the path does not exist, it creates it.
-func (c *Context) GetJobRunPath() (string, error) {
-	if c.Execution.JobRun == nil {
-		return "", errors.New("no job is set")
+	// write the job run result to the file system
+	// ignoring error since directory must be exist at this point of execution
+	dir, _ := c.GetJobRunPath()
+
+	report := NewJobRunReport(&result, c.Execution.JobRun)
+
+	if err := fs.WriteJSONFile(filepath.Join(dir, "job_run.json"), report); err != nil {
+		log.Errorf("failed to write job run", "error", err, "workflow", c.Execution.WorkflowRun.Workflow.Name)
 	}
 
-	path := filepath.Join(c.GhxConfig.HomeDir, "runs", c.Execution.WorkflowRun.RunID, "jobs", c.Execution.JobRun.RunID)
-
-	if err := fs.EnsureDir(path); err != nil {
-		return "", err
-	}
-
-	return path, nil
+	// unset the job run from the execution context
+	c.Execution.JobRun = nil
 }
 
 // SetJobResults sets the status of the job.
@@ -151,9 +157,9 @@ func (c *Context) SetStep(sr *core.StepRun) error {
 }
 
 // UnsetStep unsets the step from the execution context.
-func (c *Context) UnsetStep() error {
+func (c *Context) UnsetStep(result RunResult) {
 	if c.Execution.StepRun == nil {
-		return errors.New("no step is set")
+		return
 	}
 
 	// TODO: improve this logic
@@ -185,9 +191,26 @@ func (c *Context) UnsetStep() error {
 
 	c.Steps[sr.Step.ID] = sc
 
-	c.Execution.StepRun = nil
+	// only export the result of the main stage
+	if c.Execution.StepRun.Stage == core.StepStageMain {
+		// write the job run result to the file system
+		// ignoring error since directory must exist at this point of execution
+		dir, _ := c.GetStepRunPath()
 
-	return nil
+		report := NewStepRunReport(&result, c.Execution.StepRun)
+
+		if err := fs.WriteJSONFile(filepath.Join(dir, "step_run.json"), &report); err != nil {
+			log.Errorf("failed to write step run", "error", err, "workflow", c.Execution.WorkflowRun.Workflow.Name)
+		}
+
+		if c.Execution.StepRun.Summary != "" {
+			if err := fs.WriteFile(filepath.Join(dir, "summary.md"), []byte(c.Execution.StepRun.Summary), 0600); err != nil {
+				log.Errorf("failed to write step run summary", "error", err, "workflow", c.Execution.WorkflowRun.Workflow.Name)
+			}
+		}
+	}
+
+	c.Execution.StepRun = nil
 }
 
 func (c *Context) SetStepResults(conclusion, outcome core.Conclusion) error {
@@ -230,6 +253,27 @@ func (c *Context) SetStepState(key, value string) error {
 	}
 
 	c.Execution.StepRun.State[key] = value
+
+	return nil
+}
+
+// AddStepPath adds the given path to the step path.
+func (c *Context) AddStepPath(path string) error {
+	if c.Execution.StepRun == nil {
+		return errors.New("no step is set")
+	}
+
+	c.Execution.StepRun.Path = append(c.Execution.StepRun.Path, path)
+
+	return nil
+}
+
+func (c *Context) SetStepEnv(key, value string) error {
+	if c.Execution.StepRun == nil {
+		return errors.New("no step is set")
+	}
+
+	c.Execution.StepRun.Environment[key] = value
 
 	return nil
 }

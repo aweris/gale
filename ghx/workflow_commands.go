@@ -108,6 +108,10 @@ func (p *CommandProcessor) ProcessOutput(ctx *context.Context, output string) er
 		if err := os.Setenv(cmd.Parameters["name"], cmd.Value); err != nil {
 			return err
 		}
+		// FIXME: for now it's just reporting but we should use this as source of truth for step extra env
+		if err := ctx.SetStepEnv(cmd.Parameters["name"], cmd.Value); err != nil {
+			return err
+		}
 	case CommandNameSetOutput:
 		if err := ctx.SetStepOutput(cmd.Parameters["name"], cmd.Value); err != nil {
 			return err
@@ -121,6 +125,10 @@ func (p *CommandProcessor) ProcessOutput(ctx *context.Context, output string) er
 	case CommandNameAddMatcher:
 		log.Info(cmd.Value)
 	case CommandNameAddPath:
+		// FIXME: for now it's just reporting but we should use this as source of truth for step path
+		if err := ctx.AddStepPath(cmd.Value); err != nil {
+			return err
+		}
 		path := os.Getenv("PATH")
 		path = fmt.Sprintf("%s:%s", path, cmd.Value)
 		if err := os.Setenv("PATH", path); err != nil {

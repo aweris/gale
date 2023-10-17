@@ -2,7 +2,6 @@ package context
 
 import (
 	"context"
-	"path/filepath"
 
 	"dagger.io/dagger"
 
@@ -89,7 +88,12 @@ func New(std context.Context, client *dagger.Client) (*Context, error) {
 	}
 
 	// set secrets ctx
-	ctx.Secrets.MountPath = filepath.Join(ctx.GhxConfig.HomeDir, "secrets", "secret.json")
+	secretsMountPath, err := ctx.GetSecretsPath()
+
+	ctx.Secrets.MountPath = secretsMountPath
+	if err != nil {
+		return nil, err
+	}
 
 	if err := fs.EnsureFile(ctx.Secrets.MountPath); err != nil {
 		return nil, err

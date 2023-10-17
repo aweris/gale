@@ -112,7 +112,7 @@ func planWorkflow(workflow core.Workflow, job string) (*task.Runner, error) {
 
 func newTaskPreRunFnForWorkflow(wf core.Workflow) task.PreRunFn {
 	return func(ctx *context.Context) error {
-		runID, err := idgen.GenerateWorkflowRunID()
+		runID, err := idgen.GenerateWorkflowRunID(ctx)
 		if err != nil {
 			return fmt.Errorf("failed to generate workflow run id: %w", err)
 		}
@@ -131,8 +131,9 @@ func newTaskPreRunFnForWorkflow(wf core.Workflow) task.PreRunFn {
 }
 
 func newTaskPostRunFnForWorkflow() task.PostRunFn {
-	return func(ctx *context.Context) error {
-		log.Infof("Complete", "workflow", ctx.Execution.WorkflowRun.Workflow.Name, "conclusion", ctx.Execution.WorkflowRun.Conclusion)
-		return nil
+	return func(ctx *context.Context, result task.Result) {
+		log.Infof("Complete", "workflow", ctx.Execution.WorkflowRun.Workflow.Name, "conclusion", result.Conclusion)
+
+		ctx.UnsetWorkflow(context.RunResult(result))
 	}
 }

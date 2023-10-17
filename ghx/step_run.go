@@ -44,12 +44,12 @@ func (s *StepRun) main() task.RunFn {
 			shell = s.Step.Shell
 		)
 
-		jrPath, err := ctx.GetJobRunPath()
+		dir, err := ctx.GetStepRunPath()
 		if err != nil {
 			return core.ConclusionFailure, err
 		}
 
-		path := filepath.Join(jrPath, "scripts", s.Step.ID, "run.sh")
+		path := filepath.Join(dir, "run")
 
 		// TODO: add support and test for "pwsh" shell. This is not supported for now because we don't have a pwsh image,
 		//  and we don't have a way to test it for now. We'll add support for it later after making sure that it works.

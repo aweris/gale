@@ -4,11 +4,12 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"github.com/aweris/gale/ghx/context"
 	"github.com/aweris/gale/internal/fs"
 )
 
 const (
-	metadataFile     = "metadata.json"
+	metadataFile     = "idgen.json"
 	keyWorkflowRunID = "workflow_run_id"
 	keyJobRunID      = "job_run_id"
 )
@@ -18,15 +19,25 @@ type counter map[string]int
 // TODO: This is not concurrency safe. Need to use lock file or something similar to make it concurrency safe
 
 // GenerateWorkflowRunID generates a unique workflow run id for the given repository
-func GenerateWorkflowRunID() (string, error) {
-	dataPath := filepath.Join("/home/runner/_temp/ghx", metadataFile)
+func GenerateWorkflowRunID(ctx *context.Context) (string, error) {
+	path, err := ctx.GetMetadataPath()
+	if err != nil {
+		return "", err
+	}
+
+	dataPath := filepath.Join(path, metadataFile)
 
 	return generateID(dataPath, keyWorkflowRunID)
 }
 
 // GenerateJobRunID generates a unique job run id for the given repository
-func GenerateJobRunID() (string, error) {
-	dataPath := filepath.Join("/home/runner/_temp/ghx", metadataFile)
+func GenerateJobRunID(ctx *context.Context) (string, error) {
+	path, err := ctx.GetMetadataPath()
+	if err != nil {
+		return "", err
+	}
+
+	dataPath := filepath.Join(path, metadataFile)
 
 	return generateID(dataPath, keyJobRunID)
 }

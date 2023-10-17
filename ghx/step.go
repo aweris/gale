@@ -89,8 +89,8 @@ func newTaskPreRunFnForStep(stage core.StepStage, step core.Step) task.PreRunFn 
 }
 
 func newTaskPostRunFnForStep() task.PostRunFn {
-	return func(ctx *context.Context) (err error) {
-		return ctx.UnsetStep()
+	return func(ctx *context.Context, result task.Result) {
+		ctx.UnsetStep(context.RunResult(result))
 	}
 }
 

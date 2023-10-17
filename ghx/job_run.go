@@ -254,7 +254,7 @@ func newTaskConditionalFnForJob(job core.Job) task.ConditionalFn {
 // matrix parameter is optional. If it's provided, first matrix combination will be set to the job run.
 func newTaskPreRunFnForJob(job core.Job, matrix ...core.MatrixCombination) task.PreRunFn {
 	return func(ctx *context.Context) error {
-		runID, err := idgen.GenerateJobRunID()
+		runID, err := idgen.GenerateJobRunID(ctx)
 		if err != nil {
 			return fmt.Errorf("failed to generate job run id: %w", err)
 		}
@@ -270,9 +270,7 @@ func newTaskPreRunFnForJob(job core.Job, matrix ...core.MatrixCombination) task.
 }
 
 func newTaskPostRunFnForJob() task.PostRunFn {
-	return func(ctx *context.Context) (err error) {
-		ctx.UnsetJob()
-
-		return nil
+	return func(ctx *context.Context, result task.Result) {
+		ctx.UnsetJob(context.RunResult(result))
 	}
 }
