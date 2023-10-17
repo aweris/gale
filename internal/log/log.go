@@ -47,13 +47,13 @@ func (l *Logger) Infof(message string, keyvals ...interface{}) {
 }
 
 func (l *Logger) Debug(message string) {
-	if os.Getenv("RUNNER_DEBUG") != "1" {
+	if os.Getenv("RUNNER_DEBUG") == "1" {
 		l.log("", LevelDebug, message)
 	}
 }
 
 func (l *Logger) Debugf(message string, keyvals ...interface{}) {
-	if os.Getenv("RUNNER_DEBUG") != "1" {
+	if os.Getenv("RUNNER_DEBUG") == "1" {
 		l.logf(LevelDebug, message, keyvals...)
 	}
 }
