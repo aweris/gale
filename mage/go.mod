@@ -1,4 +1,4 @@
-module github.com/aweris/gale/internal/mage
+module github.com/aweris/gale/common/mage
 
 go 1.20
 

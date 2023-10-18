@@ -6,8 +6,8 @@ import (
 
 	"dagger.io/dagger"
 
+	"github.com/aweris/gale/common/log"
 	"github.com/aweris/gale/ghx/journal"
-	"github.com/aweris/gale/internal/log"
 )
 
 func getDaggerClient(ctx context.Context) (*dagger.Client, error) {

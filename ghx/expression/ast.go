@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/aweris/gale/internal/log"
+	"github.com/aweris/gale/common/log"
 )
 
 // The original source code is from https://github.com/rhysd/actionlint/blob/5656337c1ab1c7022a74181428f6ebb4504d2d25/ast.go

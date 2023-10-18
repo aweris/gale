@@ -7,7 +7,7 @@ import (
 
 	"github.com/magefile/mage/mg"
 
-	"github.com/aweris/gale/internal/mage/docker"
+	"github.com/aweris/gale/common/mage/docker"
 )
 
 type Docker mg.Namespace

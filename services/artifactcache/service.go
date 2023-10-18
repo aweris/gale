@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"time"
 
-	galefs "github.com/aweris/gale/internal/fs"
-	"github.com/aweris/gale/internal/log"
+	galefs "github.com/aweris/gale/common/fs"
+	"github.com/aweris/gale/common/log"
 )
 
 var (

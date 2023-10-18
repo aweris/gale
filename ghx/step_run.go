@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/aweris/gale/common/fs"
 	"github.com/aweris/gale/ghx/context"
 	"github.com/aweris/gale/ghx/core"
 	"github.com/aweris/gale/ghx/expression"
 	"github.com/aweris/gale/ghx/task"
-	"github.com/aweris/gale/internal/fs"
 )
 
 // Step is

@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/aweris/gale/internal/fs"
+	"github.com/aweris/gale/common/fs"
 )
 
 // GetMetadataPath returns the path of the metadata path. If the path does not exist, it creates it. This path assumes

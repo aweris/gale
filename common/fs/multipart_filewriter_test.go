@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/aweris/gale/internal/fs"
+	"github.com/aweris/gale/common/fs"
 )
 
 // TestMultipartFileWriter tests the functionality of MultipartFileWriter.

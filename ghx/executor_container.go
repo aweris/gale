@@ -8,9 +8,9 @@ import (
 
 	"dagger.io/dagger"
 
+	"github.com/aweris/gale/common/log"
 	"github.com/aweris/gale/ghx/context"
 	"github.com/aweris/gale/ghx/expression"
-	"github.com/aweris/gale/internal/log"
 )
 
 var _ Executor = new(ContainerExecutor)

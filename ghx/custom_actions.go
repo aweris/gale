@@ -14,9 +14,9 @@ import (
 
 	"gopkg.in/yaml.v3"
 
+	"github.com/aweris/gale/common/fs"
+	"github.com/aweris/gale/common/log"
 	"github.com/aweris/gale/ghx/core"
-	"github.com/aweris/gale/internal/fs"
-	"github.com/aweris/gale/internal/log"
 )
 
 // LoadActionFromSource loads an action from given source to the target directory. If the source is a local action,

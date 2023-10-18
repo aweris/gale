@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/aweris/gale/common/log"
 	"github.com/aweris/gale/ghx/context"
 	"github.com/aweris/gale/ghx/core"
-	"github.com/aweris/gale/internal/log"
 )
 
 // Status is the phase of the lifecycle that object currently in

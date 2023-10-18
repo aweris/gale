@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/aweris/gale/common/log"
 	"github.com/aweris/gale/ghx/context"
 	"github.com/aweris/gale/ghx/core"
 	"github.com/aweris/gale/ghx/expression"
 	"github.com/aweris/gale/ghx/idgen"
 	"github.com/aweris/gale/ghx/task"
-	"github.com/aweris/gale/internal/log"
 )
 
 // planJob plans the job and returns the job runner.

@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/aweris/gale/common/fs"
 	"github.com/aweris/gale/ghx/core"
-	"github.com/aweris/gale/internal/fs"
 )
 
 func LoadWorkflows(path string) (map[string]core.Workflow, error) {

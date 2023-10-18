@@ -7,7 +7,7 @@ set -euo pipefail
 IFS=$'\n\t'
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-MAGE_DIR="${ROOT_DIR}/internal/mage"
+MAGE_DIR="${ROOT_DIR}/mage"
 
 cd "${MAGE_DIR}"
 

@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/aweris/gale/internal/fs"
+	"github.com/aweris/gale/common/fs"
 )
 
 // NewLocalEnvironmentFiles creates a new environment files in the given directory path.

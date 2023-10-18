@@ -7,7 +7,7 @@ import (
 
 	"github.com/caarlos0/env/v9"
 
-	"github.com/aweris/gale/internal/fs"
+	"github.com/aweris/gale/common/fs"
 )
 
 // Context represents the main context of the application.

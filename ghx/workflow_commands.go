@@ -6,8 +6,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/aweris/gale/common/log"
 	"github.com/aweris/gale/ghx/context"
-	"github.com/aweris/gale/internal/log"
 )
 
 var (

@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	galefs "github.com/aweris/gale/internal/fs"
+	galefs "github.com/aweris/gale/common/fs"
 )
 
 // Service represents the artifact service

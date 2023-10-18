@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/aweris/gale/common/fs"
 	"github.com/aweris/gale/ghx/context"
-	"github.com/aweris/gale/internal/fs"
 )
 
 func main() {

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aweris/gale/internal/log"
+	"github.com/aweris/gale/common/log"
 	"github.com/julienschmidt/httprouter"
 )
 

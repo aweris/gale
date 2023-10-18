@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/aweris/gale/common/fs"
+	"github.com/aweris/gale/common/log"
 	"github.com/aweris/gale/ghx/core"
-	"github.com/aweris/gale/internal/fs"
-	"github.com/aweris/gale/internal/log"
 )
 
 // SetWorkflow creates a new execution context with the given workflow and sets it to the context.
