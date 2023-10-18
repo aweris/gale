@@ -82,7 +82,7 @@ func (c *Context) SetJob(jr *core.JobRun) error {
 		for _, need := range jr.Job.Needs {
 			need := c.Execution.WorkflowRun.Jobs[need]
 
-			c.Needs[jr.Job.ID] = NeedContext{Result: need.Conclusion, Outputs: need.Outputs}
+			c.Needs[need.Job.ID] = NeedContext{Result: need.Conclusion, Outputs: need.Outputs}
 		}
 	}
 
