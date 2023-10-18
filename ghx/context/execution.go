@@ -45,6 +45,18 @@ func (c *Context) UnsetWorkflow(result RunResult) {
 	if err := fs.WriteJSONFile(filepath.Join(dir, "workflow_run.json"), report); err != nil {
 		log.Errorf("failed to write workflow run", "error", err, "workflow", c.Execution.WorkflowRun.Workflow.Name)
 	}
+
+	// copy file to the workflow run directory
+	var (
+		src = c.Execution.WorkflowRun.Workflow.Path
+		dst = filepath.Join(dir, "workflow.yaml")
+	)
+
+	// copy the workflow file to the workflow run directory to keep the workflow file as it is to prevent potential
+	// changes when marshaling the workflow file again from context
+	if err := fs.CopyFile(src, dst); err != nil {
+		log.Errorf("failed to write workflow", "error", err, "workflow", c.Execution.WorkflowRun.Workflow.Name)
+	}
 }
 
 // SetJob sets the given job to the execution context.

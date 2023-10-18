@@ -2,6 +2,7 @@ package fs
 
 import (
 	"encoding/json"
+	"io"
 	"os"
 	"path/filepath"
 
@@ -113,4 +114,41 @@ func ReadYAMLFile[T any](file string, val *T) error {
 	}
 
 	return yaml.Unmarshal(data, val)
+}
+
+// CopyFile copies the given file from src to dst.
+func CopyFile(src, dst string) error {
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+
+	out, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	_, err = io.Copy(out, in)
+	if err != nil {
+		return err
+	}
+
+	err = out.Sync()
+	if err != nil {
+		return err
+	}
+
+	s, err := os.Stat(src)
+	if err != nil {
+		return err
+	}
+
+	err = os.Chmod(dst, s.Mode())
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
