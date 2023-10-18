@@ -3,6 +3,12 @@ on: [ pull_request ]
 jobs:
   golangci-lint:
     runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        workdir: [common, ghx, services/artifact, services/artifactcache]
+
     steps:
       - name: Check out code
         uses: actions/checkout@v3
@@ -14,3 +20,5 @@ jobs:
 
       - name: golangci-lint
         uses: reviewdog/action-golangci-lint@v2
+        with:
+          workdir: ${{ matrix.workdir }}
