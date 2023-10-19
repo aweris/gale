@@ -9,7 +9,7 @@ import (
 
 type CustomAction struct {
 	Path string            // Path to the custom action
-	Meta *CustomActionMeta // Meta information about the custom action
+	Meta CustomActionMeta  // Meta information about the custom action
 	Dir  *dagger.Directory // Dir where the custom action is located
 }
 

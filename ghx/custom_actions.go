@@ -87,25 +87,25 @@ func ensureActionExistsLocally(ctx context.Context, client *dagger.Client, sourc
 }
 
 // getCustomActionMeta returns the meta information about the custom action from the action directory.
-func getCustomActionMeta(ctx context.Context, actionDir *dagger.Directory) (*core.CustomActionMeta, error) {
+func getCustomActionMeta(ctx context.Context, actionDir *dagger.Directory) (core.CustomActionMeta, error) {
 	var meta core.CustomActionMeta
 
 	file, err := findActionMetadataFileName(ctx, actionDir)
 	if err != nil {
-		return nil, err
+		return meta, err
 	}
 
 	content, err := actionDir.File(file).Contents(ctx)
 	if err != nil {
-		return nil, err
+		return meta, err
 	}
 
 	err = yaml.Unmarshal([]byte(content), &meta)
 	if err != nil {
-		return nil, err
+		return meta, err
 	}
 
-	return &meta, nil
+	return meta, nil
 }
 
 // getActionDirectory returns the directory of the action from given source.
@@ -127,15 +127,18 @@ func getActionDirectory(client *dagger.Client, source string) (*dagger.Directory
 
 	var gitRef *dagger.GitRef
 
-	switch determineRefTypeFromRepo(actionRepo, actionRef) {
+	refType, err := determineRefTypeFromRepo(actionRepo, actionRef)
+	if err != nil {
+		return nil, err
+	}
+
+	switch refType {
 	case core.RefTypeBranch:
 		gitRef = gitRepo.Branch(actionRef)
 	case core.RefTypeTag:
 		gitRef = gitRepo.Tag(actionRef)
 	case core.RefTypeCommit:
 		gitRef = gitRepo.Commit(actionRef)
-	default:
-		return nil, fmt.Errorf("failed to determine ref type for %s: %v", source, err)
 	}
 
 	dir := gitRef.Tree()
@@ -196,28 +199,30 @@ func parseRepoRef(input string) (repo string, path string, ref string, err error
 //
 // The method will use GitHub API to determine the type of ref. If the ref does not exist on remote, it will
 // return RefTypeUnknown.
-func determineRefTypeFromRepo(repo, ref string) core.RefType {
+func determineRefTypeFromRepo(repo, ref string) (core.RefType, error) {
 	client, err := api.DefaultRESTClient()
 	if err != nil {
-		return core.RefTypeUnknown
+		return core.RefTypeUnknown, fmt.Errorf("failed to create github client: %w\n", err)
 	}
 
 	var dummy interface{}
 
 	err = client.Get(fmt.Sprintf("repos/%s/git/ref/heads/%s", repo, ref), &dummy)
 	if err == nil {
-		return core.RefTypeBranch
+		return core.RefTypeBranch, nil
 	}
 
 	err = client.Get(fmt.Sprintf("repos/%s/git/ref/tags/%s", repo, ref), &dummy)
 	if err == nil {
-		return core.RefTypeTag
+		return core.RefTypeTag, nil
 	}
 
 	err = client.Get(fmt.Sprintf("repos/%s/git/commits/%s", repo, ref), &dummy)
 	if err == nil {
-		return core.RefTypeCommit
+		return core.RefTypeCommit, nil
 	}
 
-	return core.RefTypeUnknown
+	log.Warn(fmt.Sprintf("%s repo does not have tag, branch or commit ref for %s", repo, ref))
+
+	return core.RefTypeUnknown, fmt.Errorf("failed to determine ref type for %s@%s\n", repo, ref)
 }

@@ -119,7 +119,7 @@ func planJob(job core.Job) ([]*task.Runner, error) {
 			}
 
 			if err != nil {
-				log.Errorf(te.Name, "error", err.Error())
+				log.Errorf(te.Name, "error", err)
 			}
 
 			// set the job status to the conclusion of the job status is success and the conclusion is not success.
