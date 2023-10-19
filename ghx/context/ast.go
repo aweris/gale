@@ -40,29 +40,6 @@ type ExecutionContext struct {
 	CurrentAction *core.CustomAction
 }
 
-// RepositoryContext is the context for the repository information. This context is holds duplicated information from
-// the GithubContext. However, this context is used to load the repository information from the host and update the
-// GithubContext with the loaded information.
-type RepositoryContext struct {
-	// Ref is the branch or tag ref that triggered the workflow.
-	Ref string
-
-	// RefName is the short name (without refs/heads/ prefix) of the branch or tag ref that triggered the workflow.
-	RefName string
-
-	// RefType is the type of ref that triggered the workflow. Possible values are branch, tag, or empty, if neither
-	RefType core.RefType
-
-	// SHA is the commit SHA that triggered the workflow. The value of this commit SHA depends on the event that
-	SHA string
-
-	// ShortSHA is the short commit SHA that triggered the workflow. The value of this commit SHA depends on the event that
-	ShortSHA string
-
-	// IsRemote is true if the ref is a remote ref.
-	IsRemote bool
-}
-
 // ActionsContext is the context for the internal services configuration for used by GitHub Actions.
 type ActionsContext struct {
 	// RuntimeURL is the URL for the actions runtime. In scope of gale, this is the URL of the artifact service.

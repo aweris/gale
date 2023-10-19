@@ -15,7 +15,6 @@ type Context struct {
 	Context   context.Context
 	GhxConfig GhxConfig
 	Dagger    DaggerContext
-	Repo      RepositoryContext
 	Execution ExecutionContext
 	Actions   ActionsContext
 	Github    GithubContext
@@ -63,16 +62,6 @@ func New(std context.Context, client *dagger.Client) (*Context, error) {
 
 	// set the dagger client
 	ctx.Dagger.Client = client
-
-	// load current repository information -- ghx executed from the repository root directory, using "." as path should be fine
-	if err := ctx.Repo.LoadFromDirectory("."); err != nil {
-		return nil, err
-	}
-
-	ctx.Github.Ref = ctx.Repo.Ref
-	ctx.Github.RefName = ctx.Repo.RefName
-	ctx.Github.RefType = string(ctx.Repo.RefType)
-	ctx.Github.SHA = ctx.Repo.SHA
 
 	// set non environment config for github ctx
 	if ctx.Github.EventPath != "" {
