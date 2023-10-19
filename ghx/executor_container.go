@@ -95,7 +95,7 @@ func (c *ContainerExecutor) Execute(ctx *context.Context) error {
 	}
 
 	if len(args) > 0 {
-		c.container = c.container.WithExec(args)
+		c.container = c.container.WithExec(args, dagger.ContainerWithExecOpts{ExperimentalPrivilegedNesting: true})
 	}
 
 	env := make(map[string]string)
