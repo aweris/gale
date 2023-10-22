@@ -3,15 +3,14 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/go-git/go-git/v5/plumbing"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 
-	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing"
-
 	"dagger.io/dagger"
+	"github.com/go-git/go-git/v5"
 
 	"gopkg.in/yaml.v3"
 
@@ -82,13 +81,29 @@ func ensureActionExistsLocally(source, repo, ref, target string) error {
 	url := fmt.Sprintf("https://github.com/%s.git", repo)
 
 	// Clone the repository into the target directory using go-git
-	_, err = git.PlainClone(target, false, &git.CloneOptions{
-		URL:           url,
-		ReferenceName: plumbing.ReferenceName(ref),
-		Progress:      os.Stdout,
+	r, err := git.PlainClone(target, false, &git.CloneOptions{
+		URL:      url,
+		Progress: os.Stdout,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to clone action repository: %w", err)
+	}
+
+	// Resolve the revision (be it a branch, tag or commit hash)
+	hash, err := r.ResolveRevision(plumbing.Revision(ref))
+	if err != nil {
+		return fmt.Errorf("failed to resolve revision: %w", err)
+	}
+
+	// Checkout to the commit
+	w, err := r.Worktree()
+	if err != nil {
+		return fmt.Errorf("failed to get worktree: %w", err)
+	}
+
+	err = w.Checkout(&git.CheckoutOptions{Hash: *hash})
+	if err != nil {
+		return fmt.Errorf("failed to checkout: %w", err)
 	}
 
 	return nil
