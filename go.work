@@ -3,7 +3,6 @@ go 1.21
 use (
 	common
 	ghx
-	mage
 	services/artifact
 	services/artifactcache
 )
