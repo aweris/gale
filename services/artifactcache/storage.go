@@ -8,7 +8,7 @@ import (
 
 	"go.etcd.io/bbolt"
 
-	"github.com/aweris/gale/internal/log"
+	"github.com/aweris/gale/common/log"
 )
 
 var (

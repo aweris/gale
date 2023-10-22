@@ -1,6 +1,11 @@
 go 1.21
 
 use (
-	.
-	./internal/mage
+	common
+	daggerverse/gale
+	daggerverse/repo
+	daggerverse/source
+	ghx
+	services/artifact
+	services/artifactcache
 )

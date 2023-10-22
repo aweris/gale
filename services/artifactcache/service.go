@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"time"
 
-	galefs "github.com/aweris/gale/internal/fs"
-	"github.com/aweris/gale/internal/log"
+	galefs "github.com/aweris/gale/common/fs"
+	"github.com/aweris/gale/common/log"
 )
 
 var (
@@ -39,7 +39,7 @@ type Service interface {
 	//
 	// In list of keys, the first key is always exact match and the rest are partial matches. The partial matches
 	// are used to find the latest cache entry with given restore-keys.
-	Find(keys []string, version string) (bool, *ArtifactCacheEntry, error)
+	Find(keys []string, version string) (bool, *CacheEntry, error)
 
 	// GetFilePath returns the path to the cache entry with the given id. If the cache entry is not found or not
 	// complete, it will return error.
@@ -52,27 +52,20 @@ var (
 )
 
 type LocalService struct {
-	path     string     // path to the artifact cache directory
-	db       *BoltStore // db to store cache entries
-	hostname string     // hostname is the external hostname of the artifact cache service. It is used to construct the artifact cache URL
-	port     string     // port is the external port of the artifact cache service. It is used to construct the artifact cache URL
+	path string     // path to the artifact cache directory
+	db   *BoltStore // db to store cache entries
 }
 
 // TODO: add cache entry expiration / cleanup. Currently, the cache entries are never deleted. Only when dagger cache volume is deleted, the cache entries are deleted.
 
 // NewLocalService creates a new local artifact service.
-func NewLocalService(root, hostname, port string) (*LocalService, error) {
+func NewLocalService(root string) (*LocalService, error) {
 	db, err := NewBoltStore(filepath.Join(root, "metadata"))
 	if err != nil {
 		return nil, err
 	}
 
-	return &LocalService{
-		db:       db,
-		path:     root,
-		hostname: hostname,
-		port:     port,
-	}, nil
+	return &LocalService{db: db, path: root}, nil
 }
 
 // Close closes the local artifact service.
@@ -186,7 +179,7 @@ func (s *LocalService) Commit(cacheID int) error {
 	return nil
 }
 
-func (s *LocalService) Find(keys []string, version string) (bool, *ArtifactCacheEntry, error) {
+func (s *LocalService) Find(keys []string, version string) (bool, *CacheEntry, error) {
 	log.Debugf("Finding cache entry", "keys", keys, "version", version)
 
 	// exact match
@@ -207,7 +200,7 @@ func (s *LocalService) Find(keys []string, version string) (bool, *ArtifactCache
 
 		log.Debugf("Found cache entry", "key", key, "version", version, "id", entry.ID)
 
-		return true, entry.toArtifactCacheEntry(s.hostname, s.port), nil
+		return true, entry, nil
 	}
 
 	// partial match
@@ -223,7 +216,7 @@ func (s *LocalService) Find(keys []string, version string) (bool, *ArtifactCache
 		if entry != nil {
 			log.Debugf("Found cache entry with key prefix", "key", key, "version", version, "entryID", entry.ID, "entryKey", entry.Key)
 
-			return true, entry.toArtifactCacheEntry(s.hostname, s.port), nil
+			return true, entry, nil
 		}
 	}
 

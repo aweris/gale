@@ -59,12 +59,12 @@ type CacheEntry struct {
 }
 
 // toArtifactCacheEntry converts the cache entry to an artifact cache entry.
-func (c *CacheEntry) toArtifactCacheEntry(hostname, port string) *ArtifactCacheEntry {
+func (c *CacheEntry) toArtifactCacheEntry(hostname string) *ArtifactCacheEntry {
 	return &ArtifactCacheEntry{
 		CacheKey:        c.Key,
 		CacheVersion:    c.Version,
 		CreationTime:    time.Unix(c.CreatedAt, 0).UTC().Format(time.RFC3339),
-		ArchiveLocation: fmt.Sprintf("http://%s:%s/_apis/artifactcache/artifacts/%d", hostname, port, c.ID),
+		ArchiveLocation: fmt.Sprintf("http://%s/_apis/artifactcache/artifacts/%d", hostname, c.ID),
 	}
 }
 

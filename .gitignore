@@ -22,3 +22,6 @@ dist/
 
 # IDE files
 .idea/
+
+# Local configuration files
+.envrc
