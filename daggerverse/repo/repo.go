@@ -98,7 +98,7 @@ func (ri *RepoInfo) Workdir() string {
 }
 
 // Configure configures the container with the repository information.
-func (ri *RepoInfo) Configure(ctx context.Context, c *Container) (*Container, error) {
+func (ri *RepoInfo) Configure(_ context.Context, c *Container) (*Container, error) {
 	return c.WithEnvVariable("GH_REPO", ri.NameWithOwner).
 		WithEnvVariable("GITHUB_REPOSITORY", ri.NameWithOwner).
 		WithEnvVariable("GITHUB_REPOSITORY_OWNER", ri.Owner).

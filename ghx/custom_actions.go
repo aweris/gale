@@ -3,16 +3,17 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/go-git/go-git/v5/plumbing"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 
 	"dagger.io/dagger"
-	"github.com/go-git/go-git/v5"
 
 	"gopkg.in/yaml.v3"
+
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 
 	"github.com/aweris/gale/common/fs"
 	"github.com/aweris/gale/common/log"

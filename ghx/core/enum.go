@@ -1,14 +1,5 @@
 package core
 
-// Status is the phase of the lifecycle that object currently in
-type Status string
-
-const (
-	StatusQueued     Status = "queued"
-	StatusInProgress Status = "in_progress"
-	StatusCompleted  Status = "completed"
-)
-
 // Conclusion is outcome of the operation
 type Conclusion string
 
@@ -19,7 +10,7 @@ const (
 	ConclusionSkipped   Conclusion = "skipped"
 )
 
-//TODO: add support for docker and composite steps types
+// TODO: add support for docker and composite steps types
 
 // StepType is the type of the step
 type StepType string
@@ -51,14 +42,4 @@ const (
 	StepStagePre  StepStage = "pre"
 	StepStageMain StepStage = "main"
 	StepStagePost StepStage = "post"
-)
-
-// RefType represents the type of ref. It can be either a branch or a tag.
-type RefType string
-
-const (
-	RefTypeBranch  RefType = "branch"
-	RefTypeTag     RefType = "tag"
-	RefTypeCommit  RefType = "commit"
-	RefTypeUnknown RefType = "unknown"
 )
