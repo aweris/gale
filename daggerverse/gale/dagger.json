@@ -1,0 +1,9 @@
+{
+  "name": "gale",
+  "root": "../..",
+  "sdk": "go",
+  "dependencies": [
+    "../repo",
+    "../source"
+  ]
+}

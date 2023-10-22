@@ -2,6 +2,9 @@ go 1.21
 
 use (
 	common
+	daggerverse/gale
+	daggerverse/repo
+	daggerverse/source
 	ghx
 	services/artifact
 	services/artifactcache
