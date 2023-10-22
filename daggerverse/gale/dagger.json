@@ -3,7 +3,7 @@
   "root": "../..",
   "sdk": "go",
   "dependencies": [
-    "../repo",
-    "../source"
+    "github.com/aweris/gale/daggerverse/repo@main",
+    "github.com/aweris/gale/daggerverse/source@main"
   ]
 }
