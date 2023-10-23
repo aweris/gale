@@ -1,6 +1,5 @@
 {
   "name": "gale",
-  "root": "../..",
   "sdk": "go",
   "dependencies": [
     "github.com/aweris/gale/daggerverse/repo@main",
