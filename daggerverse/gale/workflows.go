@@ -75,10 +75,8 @@ func (w *Workflows) List(ctx context.Context, repoOpts WorkflowsRepoOpts, pathOp
 
 func (w *Workflows) Run(repoOpts WorkflowsRepoOpts, pathOpts WorkflowsDirOpts, runOpts WorkflowsRunOpts) *WorkflowRun {
 	return &WorkflowRun{
-		Config: &WorkflowRunConfig{
-			WorkflowsRepoOpts: &repoOpts,
-			WorkflowsDirOpts:  &pathOpts,
-			WorkflowsRunOpts:  &runOpts,
-		},
+		RepoOpts: repoOpts,
+		PathOpts: pathOpts,
+		RunOpts:  runOpts,
 	}
 }
