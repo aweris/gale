@@ -7,44 +7,9 @@ import (
 	"time"
 )
 
-// WorkflowsRunOpts represents the options for running a workflow.
-type WorkflowsRunOpts struct {
-	Workflow    string  `doc:"The workflow to run." required:"true"`
-	Job         string  `doc:"The job name to run. If empty, all jobs will be run."`
-	Event       string  `doc:"Name of the event that triggered the workflow. e.g. push" default:"push"`
-	EventFile   *File   `doc:"The file with the complete webhook event payload."`
-	RunnerImage string  `doc:"The image to use for the runner." default:"ghcr.io/catthehacker/ubuntu:act-latest"`
-	RunnerDebug bool    `doc:"Enable debug mode." default:"false"`
-	Token       *Secret `doc:"The GitHub token to use for authentication."`
-}
-
-// WorkflowRunDirectoryOpts represents the options for exporting a workflow run.
-type WorkflowRunDirectoryOpts struct {
-	IncludeRepo      bool `doc:"Include the repository source in the exported directory." default:"false"`
-	IncludeSecrets   bool `doc:"Include the secrets in the exported directory." default:"false"`
-	IncludeEvent     bool `doc:"Include the event file in the exported directory." default:"false"`
-	IncludeArtifacts bool `doc:"Include the artifacts in the exported directory." default:"false"`
-}
-
 type WorkflowRun struct {
-	RepoOpts WorkflowsRepoOpts
-	PathOpts WorkflowsDirOpts
-	RunOpts  WorkflowsRunOpts
-}
-
-// FIXME: add jobs to WorkflowRunReport when dagger supports map type
-
-// WorkflowRunReport represents the result of a workflow run.
-type WorkflowRunReport struct {
-	Ran           bool   `json:"ran"`            // Ran indicates if the execution ran
-	Duration      string `json:"duration"`       // Duration of the execution
-	Name          string `json:"name"`           // Name is the name of the workflow
-	Path          string `json:"path"`           // Path is the path of the workflow
-	RunID         string `json:"run_id"`         // RunID is the ID of the run
-	RunNumber     string `json:"run_number"`     // RunNumber is the number of the run
-	RunAttempt    string `json:"run_attempt"`    // RunAttempt is the attempt number of the run
-	RetentionDays string `json:"retention_days"` // RetentionDays is the number of days to keep the run logs
-	Conclusion    string `json:"conclusion"`     // Conclusion is the result of a completed workflow run after continue-on-error is applied
+	// Configuration for the workflow run.
+	Config WorkflowRunConfig
 }
 
 // Result returns executes the workflow run and returns the result.
@@ -103,7 +68,7 @@ func (wr *WorkflowRun) Directory(ctx context.Context, opts WorkflowRunDirectoryO
 		dir = dir.WithDirectory(fmt.Sprintf("runs/%s/secrets", wrID), container.Directory("/home/runner/_temp/ghx/secrets"))
 	}
 
-	if opts.IncludeEvent && wr.RunOpts.EventFile != nil {
+	if opts.IncludeEvent && wr.Config.EventFile != nil {
 		dir = dir.WithFile(fmt.Sprintf("runs/%s/event.json", wrID), container.File(filepath.Join("/home", "runner", "work", "_temp", "_github_workflow", "event.json")))
 	}
 
@@ -150,11 +115,11 @@ func (wr *WorkflowRun) run(ctx context.Context) (*Container, error) {
 }
 
 func (wr *WorkflowRun) container(ctx context.Context) (*Container, error) {
-	container := dag.Container().From(wr.RunOpts.RunnerImage)
+	container := dag.Container().From(wr.Config.RunnerImage)
 
 	// set github token as secret if provided
-	if wr.RunOpts.Token != nil {
-		container = container.WithSecretVariable("GITHUB_TOKEN", wr.RunOpts.Token)
+	if wr.Config.Token != nil {
+		container = container.WithSecretVariable("GITHUB_TOKEN", wr.Config.Token)
 	}
 
 	// configure internal components
@@ -164,8 +129,18 @@ func (wr *WorkflowRun) container(ctx context.Context) (*Container, error) {
 
 	// configure repo -- when *Directory can be included in to repo info, we can move source mounting to repo module as well
 	var (
-		info   = dag.Repo().Info((RepoInfoOpts)(wr.RepoOpts))
-		source = dag.Repo().Source((RepoSourceOpts)(wr.RepoOpts))
+		info = dag.Repo().Info(RepoInfoOpts{
+			Source: wr.Config.Source,
+			Repo:   wr.Config.Repo,
+			Branch: wr.Config.Branch,
+			Tag:    wr.Config.Tag,
+		})
+		source = dag.Repo().Source(RepoSourceOpts{
+			Source: wr.Config.Source,
+			Repo:   wr.Config.Repo,
+			Branch: wr.Config.Branch,
+			Tag:    wr.Config.Tag,
+		})
 	)
 
 	workdir, err := info.Workdir(ctx)
@@ -186,17 +161,17 @@ func (wr *WorkflowRun) container(ctx context.Context) (*Container, error) {
 func (wr *WorkflowRun) configure(c *Container) *Container {
 	container := c
 
-	container = container.WithEnvVariable("GHX_WORKFLOW", wr.RunOpts.Workflow)
-	container = container.WithEnvVariable("GHX_JOB", wr.RunOpts.Job)
-	container = container.WithEnvVariable("GHX_WORKFLOWS_DIR", wr.PathOpts.WorkflowsDir)
+	container = container.WithEnvVariable("GHX_WORKFLOW", wr.Config.Workflow)
+	container = container.WithEnvVariable("GHX_JOB", wr.Config.Job)
+	container = container.WithEnvVariable("GHX_WORKFLOWS_DIR", wr.Config.WorkflowsDir)
 
-	container = container.WithEnvVariable("GITHUB_EVENT_NAME", wr.RunOpts.Event)
+	container = container.WithEnvVariable("GITHUB_EVENT_NAME", wr.Config.Event)
 
-	if wr.RunOpts.EventFile != nil {
-		container = container.WithMountedFile("/home/runner/_temp/_github_workflow/event.json", wr.RunOpts.EventFile)
+	if wr.Config.EventFile != nil {
+		container = container.WithMountedFile("/home/runner/_temp/_github_workflow/event.json", wr.Config.EventFile)
 	}
 
-	if wr.RunOpts.RunnerDebug {
+	if wr.Config.RunnerDebug {
 		container = container.WithEnvVariable("RUNNER_DEBUG", "1")
 	}
 
