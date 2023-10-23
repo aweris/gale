@@ -5,15 +5,15 @@ import (
 	"strings"
 
 	"github.com/aweris/gale/common/log"
+	"github.com/aweris/gale/common/model"
 	"github.com/aweris/gale/ghx/context"
-	"github.com/aweris/gale/ghx/core"
 	"github.com/aweris/gale/ghx/expression"
 	"github.com/aweris/gale/ghx/idgen"
 	"github.com/aweris/gale/ghx/task"
 )
 
 // planJob plans the job and returns the job runner.
-func planJob(job core.Job) ([]*task.Runner, error) {
+func planJob(job model.Job) ([]*task.Runner, error) {
 	// step task executors that execute the steps
 	var (
 		setupFns = make([]task.RunFn, 0)
@@ -40,9 +40,9 @@ func planJob(job core.Job) ([]*task.Runner, error) {
 
 		// if step implements pre hook, add the pre task taskRunner to the tasks slice.
 		if hook, ok := sr.(PreHook); ok {
-			preRunFn := newTaskPreRunFnForStep(core.StepStagePre, step)
+			preRunFn := newTaskPreRunFnForStep(model.StepStagePre, step)
 			if pre, ok := sr.(PreRunHook); ok {
-				preRunFn = pre.preRun(core.StepStagePre)
+				preRunFn = pre.preRun(model.StepStagePre)
 			}
 
 			postRunFn := newTaskPostRunFnForStep()
@@ -57,9 +57,9 @@ func planJob(job core.Job) ([]*task.Runner, error) {
 			pre = append(pre, task.New(getStepName("Pre", step), hook.pre(), opt))
 		}
 
-		preRunFn := newTaskPreRunFnForStep(core.StepStageMain, step)
+		preRunFn := newTaskPreRunFnForStep(model.StepStageMain, step)
 		if pre, ok := sr.(PreRunHook); ok {
-			preRunFn = pre.preRun(core.StepStageMain)
+			preRunFn = pre.preRun(model.StepStageMain)
 		}
 
 		postRunFn := newTaskPostRunFnForStep()
@@ -82,9 +82,9 @@ func planJob(job core.Job) ([]*task.Runner, error) {
 		main = append(main, task.New(getStepName(prefix, step), sr.main(), opt))
 
 		if hook, ok := sr.(PostHook); ok {
-			preRunFn := newTaskPreRunFnForStep(core.StepStagePost, step)
+			preRunFn := newTaskPreRunFnForStep(model.StepStagePost, step)
 			if pre, ok := sr.(PreRunHook); ok {
-				preRunFn = pre.preRun(core.StepStagePost)
+				preRunFn = pre.preRun(model.StepStagePost)
 			}
 
 			postRunFn := newTaskPostRunFnForStep()
@@ -109,7 +109,7 @@ func planJob(job core.Job) ([]*task.Runner, error) {
 	tasks = append(tasks, post...)
 	tasks = append(tasks, task.New("Complete job", complete()))
 
-	runFn := func(ctx *context.Context) (core.Conclusion, error) {
+	runFn := func(ctx *context.Context) (model.Conclusion, error) {
 		for _, te := range tasks {
 			result, err := te.Run(ctx)
 
@@ -123,7 +123,7 @@ func planJob(job core.Job) ([]*task.Runner, error) {
 			}
 
 			// set the job status to the conclusion of the job status is success and the conclusion is not success.
-			if ctx.Job.Status == core.ConclusionSuccess && result.Conclusion != ctx.Job.Status {
+			if ctx.Job.Status == model.ConclusionSuccess && result.Conclusion != ctx.Job.Status {
 				ctx.Job.Status = result.Conclusion
 			}
 		}
@@ -209,7 +209,7 @@ func planJob(job core.Job) ([]*task.Runner, error) {
 
 // setup returns a task taskRunner function that will be executed by the task taskRunner for the setup step.
 func setup(setupFns ...task.RunFn) task.RunFn {
-	return func(ctx *context.Context) (core.Conclusion, error) {
+	return func(ctx *context.Context) (model.Conclusion, error) {
 		// To accurately evaluate conditions like always() or failure(), context inherits the workflow status.
 		// This inheritance allow us to evaluate the conditions like always() or failure() correctly. However,
 		// we need to reset the status of the job to success before running the steps. Otherwise, the
@@ -218,7 +218,7 @@ func setup(setupFns ...task.RunFn) task.RunFn {
 		// To work around this, we're setting the job status to success as a first step of the setup task taskRunner.
 		// This will allow us to reset the job status to success after job condition check and before running the
 		// actual job steps.
-		ctx.Job.Status = core.ConclusionSuccess
+		ctx.Job.Status = model.ConclusionSuccess
 
 		for _, setupFn := range setupFns {
 			conclusion, err := setupFn(ctx)
@@ -227,7 +227,7 @@ func setup(setupFns ...task.RunFn) task.RunFn {
 			}
 		}
 
-		return core.ConclusionSuccess, nil
+		return model.ConclusionSuccess, nil
 	}
 }
 
@@ -237,29 +237,29 @@ const MB = 1024 * 1024
 
 // complete returns a task taskRunner function that will be executed by the task taskRunner for the complete step.
 func complete() task.RunFn {
-	return func(ctx *context.Context) (core.Conclusion, error) {
+	return func(ctx *context.Context) (model.Conclusion, error) {
 		log.Infof("Complete", "job", ctx.Execution.JobRun.Job.Name, "conclusion", ctx.Job.Status)
 
-		return core.ConclusionSuccess, nil
+		return model.ConclusionSuccess, nil
 	}
 }
 
-func newTaskConditionalFnForJob(job core.Job) task.ConditionalFn {
-	return func(ctx *context.Context) (bool, core.Conclusion, error) {
+func newTaskConditionalFnForJob(job model.Job) task.ConditionalFn {
+	return func(ctx *context.Context) (bool, model.Conclusion, error) {
 		return evalCondition(job.If, ctx)
 	}
 }
 
 // newTaskPreRunFnForJob returns a task pre run function that will be executed by the task taskRunner for the job. The
 // matrix parameter is optional. If it's provided, first matrix combination will be set to the job run.
-func newTaskPreRunFnForJob(job core.Job, matrix ...core.MatrixCombination) task.PreRunFn {
+func newTaskPreRunFnForJob(job model.Job, matrix ...model.MatrixCombination) task.PreRunFn {
 	return func(ctx *context.Context) error {
 		runID, err := idgen.GenerateJobRunID(ctx)
 		if err != nil {
 			return fmt.Errorf("failed to generate job run id: %w", err)
 		}
 
-		jr := &core.JobRun{RunID: runID, Job: job, Outputs: make(map[string]string)}
+		jr := &model.JobRun{RunID: runID, Job: job, Outputs: make(map[string]string)}
 
 		if len(matrix) > 0 {
 			jr.Matrix = matrix[0]

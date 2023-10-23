@@ -33,10 +33,6 @@ func TestCustomActionManager_GetCustomAction(t *testing.T) {
 			t.Fatal("action dir is different than expected")
 		}
 
-		if ca.Meta == nil {
-			t.Fatal("action meta is nil")
-		}
-
 		if _, err := os.Stat(filepath.Join(dir, "actions", "actions/checkout@v2")); err != nil {
 			t.Fatal("action dir not exported")
 		}
@@ -67,10 +63,6 @@ func TestCustomActionManager_GetCustomAction(t *testing.T) {
 
 		if ca.Path != target {
 			t.Fatal("action dir is different than expected")
-		}
-
-		if ca.Meta == nil {
-			t.Fatal("action meta is nil")
 		}
 
 		if ca.Meta.Name != "some-action" {

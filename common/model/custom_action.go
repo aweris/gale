@@ -1,16 +1,13 @@
-package core
+package model
 
 import (
 	"fmt"
 	"strings"
-
-	"dagger.io/dagger"
 )
 
 type CustomAction struct {
-	Path string            // Path to the custom action
-	Meta CustomActionMeta  // Meta information about the custom action
-	Dir  *dagger.Directory // Dir where the custom action is located
+	Path string           // Path to the custom action
+	Meta CustomActionMeta // Meta information about the custom action
 }
 
 // CustomActionMeta represents a metadata for a GitHub Action. It contains all the information needed to run the action.

@@ -17,13 +17,13 @@ import (
 
 	"github.com/aweris/gale/common/fs"
 	"github.com/aweris/gale/common/log"
-	"github.com/aweris/gale/ghx/core"
+	"github.com/aweris/gale/common/model"
 )
 
 // LoadActionFromSource loads an action from given source to the target directory. If the source is a local action,
 // the target directory will be the same as the source. If the source is a remote action, the action will be downloaded
 // to the target directory using the source as the reference(e.g. {target}/{owner}/{repo}/{path}@{ref}).
-func LoadActionFromSource(ctx context.Context, client *dagger.Client, source, targetDir string) (*core.CustomAction, error) {
+func LoadActionFromSource(ctx context.Context, client *dagger.Client, source, targetDir string) (*model.CustomAction, error) {
 	var target string
 
 	repo, path, ref, err := parseRepoRef(source)
@@ -54,7 +54,7 @@ func LoadActionFromSource(ctx context.Context, client *dagger.Client, source, ta
 		return nil, err
 	}
 
-	return &core.CustomAction{Meta: meta, Path: target, Dir: dir}, nil
+	return &model.CustomAction{Meta: meta, Path: target}, nil
 }
 
 // isLocalAction checks if the given source is a local action
@@ -111,8 +111,8 @@ func ensureActionExistsLocally(source, repo, ref, target string) error {
 }
 
 // getCustomActionMeta returns the meta information about the custom action from the action directory.
-func getCustomActionMeta(ctx context.Context, actionDir *dagger.Directory) (core.CustomActionMeta, error) {
-	var meta core.CustomActionMeta
+func getCustomActionMeta(ctx context.Context, actionDir *dagger.Directory) (model.CustomActionMeta, error) {
+	var meta model.CustomActionMeta
 
 	file, err := findActionMetadataFileName(ctx, actionDir)
 	if err != nil {

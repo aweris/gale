@@ -7,11 +7,11 @@ import (
 	"strings"
 
 	"github.com/aweris/gale/common/fs"
-	"github.com/aweris/gale/ghx/core"
+	"github.com/aweris/gale/common/model"
 )
 
-func LoadWorkflows(path string) (map[string]core.Workflow, error) {
-	workflows := make(map[string]core.Workflow)
+func LoadWorkflows(path string) (map[string]model.Workflow, error) {
+	workflows := make(map[string]model.Workflow)
 
 	err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -23,7 +23,7 @@ func LoadWorkflows(path string) (map[string]core.Workflow, error) {
 		}
 
 		if strings.HasSuffix(path, ".yaml") || strings.HasSuffix(path, ".yml") {
-			var workflow core.Workflow
+			var workflow model.Workflow
 
 			if err := fs.ReadYAMLFile(path, &workflow); err != nil {
 				return err

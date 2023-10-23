@@ -7,8 +7,8 @@ import (
 	"dagger.io/dagger"
 
 	"github.com/aweris/gale/common/log"
+	"github.com/aweris/gale/common/model"
 	"github.com/aweris/gale/ghx/context"
-	"github.com/aweris/gale/ghx/core"
 	"github.com/aweris/gale/ghx/task"
 )
 
@@ -24,20 +24,20 @@ var (
 // StepAction is a step that runs an action.
 type StepAction struct {
 	container *dagger.Container
-	Step      core.Step
-	Action    core.CustomAction
+	Step      model.Step
+	Action    model.CustomAction
 }
 
 func (s *StepAction) setup() task.RunFn {
-	return func(ctx *context.Context) (core.Conclusion, error) {
+	return func(ctx *context.Context) (model.Conclusion, error) {
 		path, err := ctx.GetActionsPath()
 		if err != nil {
-			return core.ConclusionFailure, err
+			return model.ConclusionFailure, err
 		}
 
 		ca, err := LoadActionFromSource(ctx.Context, ctx.Dagger.Client, s.Step.Uses, path)
 		if err != nil {
-			return core.ConclusionFailure, err
+			return model.ConclusionFailure, err
 		}
 
 		// update the step action with the loaded action
@@ -45,7 +45,7 @@ func (s *StepAction) setup() task.RunFn {
 
 		log.Info(fmt.Sprintf("Download action repository '%s'", s.Step.Uses))
 
-		if s.Action.Meta.Runs.Using == core.ActionRunsUsingDocker {
+		if s.Action.Meta.Runs.Using == model.ActionRunsUsingDocker {
 			var (
 				image        = ca.Meta.Runs.Image
 				workspace    = ctx.Github.Workspace
@@ -54,28 +54,28 @@ func (s *StepAction) setup() task.RunFn {
 
 			switch {
 			case image == "Dockerfile":
-				s.container = ctx.Dagger.Client.Container().Build(ca.Dir)
+				s.container = ctx.Dagger.Client.Container().Build(ctx.Dagger.Client.Host().Directory(s.Action.Path))
 			case strings.HasPrefix(image, "docker://"):
 				s.container = ctx.Dagger.Client.Container().From(strings.TrimPrefix(image, "docker://"))
 			default:
 				// This should never happen. Adding it for safety.
-				return core.ConclusionFailure, fmt.Errorf("invalid docker image: %s", image)
+				return model.ConclusionFailure, fmt.Errorf("invalid docker image: %s", image)
 			}
 
 			// add repository to the container
 			s.container = s.container.WithMountedDirectory(workspace, workspaceDir).WithWorkdir(workspace)
 		}
 
-		return core.ConclusionSuccess, nil
+		return model.ConclusionSuccess, nil
 	}
 }
 
-func (s *StepAction) preRun(stage core.StepStage) task.PreRunFn {
+func (s *StepAction) preRun(stage model.StepStage) task.PreRunFn {
 	return func(ctx *context.Context) error {
 		ctx.SetAction(&s.Action)
 
 		return ctx.SetStep(
-			&core.StepRun{
+			&model.StepRun{
 				Step:    s.Step,
 				Stage:   stage,
 				Outputs: make(map[string]string),
@@ -93,7 +93,7 @@ func (s *StepAction) postRun() task.PostRunFn {
 }
 
 func (s *StepAction) preCondition() task.ConditionalFn {
-	return func(ctx *context.Context) (bool, core.Conclusion, error) {
+	return func(ctx *context.Context) (bool, model.Conclusion, error) {
 		run, condition := s.Action.Meta.Runs.PreCondition()
 		if !run {
 			return false, "", nil
@@ -104,16 +104,16 @@ func (s *StepAction) preCondition() task.ConditionalFn {
 }
 
 func (s *StepAction) pre() task.RunFn {
-	return func(ctx *context.Context) (core.Conclusion, error) {
+	return func(ctx *context.Context) (model.Conclusion, error) {
 		var executor Executor
 
 		switch s.Action.Meta.Runs.Using {
-		case core.ActionRunsUsingDocker:
+		case model.ActionRunsUsingDocker:
 			executor = NewContainerExecutorFromStepAction(s, s.Action.Meta.Runs.PreEntrypoint)
-		case core.ActionRunsUsingNode12, core.ActionRunsUsingNode16, core.ActionRunsUsingNode20:
+		case model.ActionRunsUsingNode12, model.ActionRunsUsingNode16, model.ActionRunsUsingNode20:
 			executor = NewCmdExecutorFromStepAction(s, s.Action.Meta.Runs.Pre)
 		default:
-			return core.ConclusionFailure, fmt.Errorf("invalid action runs using: %s", s.Action.Meta.Runs.Using)
+			return model.ConclusionFailure, fmt.Errorf("invalid action runs using: %s", s.Action.Meta.Runs.Using)
 		}
 
 		// execute the step
@@ -122,22 +122,22 @@ func (s *StepAction) pre() task.RunFn {
 }
 
 func (s *StepAction) condition() task.ConditionalFn {
-	return func(ctx *context.Context) (bool, core.Conclusion, error) {
+	return func(ctx *context.Context) (bool, model.Conclusion, error) {
 		return evalCondition(s.Step.If, ctx)
 	}
 }
 
 func (s *StepAction) main() task.RunFn {
-	return func(ctx *context.Context) (core.Conclusion, error) {
+	return func(ctx *context.Context) (model.Conclusion, error) {
 		var executor Executor
 
 		switch s.Action.Meta.Runs.Using {
-		case core.ActionRunsUsingDocker:
+		case model.ActionRunsUsingDocker:
 			executor = NewContainerExecutorFromStepAction(s, s.Action.Meta.Runs.Entrypoint)
-		case core.ActionRunsUsingNode12, core.ActionRunsUsingNode16, core.ActionRunsUsingNode20:
+		case model.ActionRunsUsingNode12, model.ActionRunsUsingNode16, model.ActionRunsUsingNode20:
 			executor = NewCmdExecutorFromStepAction(s, s.Action.Meta.Runs.Main)
 		default:
-			return core.ConclusionFailure, fmt.Errorf("invalid action runs using: %s", s.Action.Meta.Runs.Using)
+			return model.ConclusionFailure, fmt.Errorf("invalid action runs using: %s", s.Action.Meta.Runs.Using)
 		}
 
 		// execute the step
@@ -146,7 +146,7 @@ func (s *StepAction) main() task.RunFn {
 }
 
 func (s *StepAction) postCondition() task.ConditionalFn {
-	return func(ctx *context.Context) (bool, core.Conclusion, error) {
+	return func(ctx *context.Context) (bool, model.Conclusion, error) {
 		run, condition := s.Action.Meta.Runs.PostCondition()
 		if !run {
 			return false, "", nil
@@ -157,16 +157,16 @@ func (s *StepAction) postCondition() task.ConditionalFn {
 }
 
 func (s *StepAction) post() task.RunFn {
-	return func(ctx *context.Context) (core.Conclusion, error) {
+	return func(ctx *context.Context) (model.Conclusion, error) {
 		var executor Executor
 
 		switch s.Action.Meta.Runs.Using {
-		case core.ActionRunsUsingDocker:
+		case model.ActionRunsUsingDocker:
 			executor = NewContainerExecutorFromStepAction(s, s.Action.Meta.Runs.PostEntrypoint)
-		case core.ActionRunsUsingNode12, core.ActionRunsUsingNode16, core.ActionRunsUsingNode20:
+		case model.ActionRunsUsingNode12, model.ActionRunsUsingNode16, model.ActionRunsUsingNode20:
 			executor = NewCmdExecutorFromStepAction(s, s.Action.Meta.Runs.Post)
 		default:
-			return core.ConclusionFailure, fmt.Errorf("invalid action runs using: %s", s.Action.Meta.Runs.Using)
+			return model.ConclusionFailure, fmt.Errorf("invalid action runs using: %s", s.Action.Meta.Runs.Using)
 		}
 
 		// execute the step

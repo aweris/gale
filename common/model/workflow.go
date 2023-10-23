@@ -1,4 +1,4 @@
-package core
+package model
 
 // Workflow represents a GitHub Actions workflow.
 //

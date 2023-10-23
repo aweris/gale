@@ -5,14 +5,14 @@ import (
 	"fmt"
 
 	"github.com/aweris/gale/common/log"
+	"github.com/aweris/gale/common/model"
 	"github.com/aweris/gale/ghx/context"
-	"github.com/aweris/gale/ghx/core"
 	"github.com/aweris/gale/ghx/idgen"
 	"github.com/aweris/gale/ghx/task"
 )
 
 // planWorkflow plans the workflow and returns the workflow runner.
-func planWorkflow(workflow core.Workflow, job string) (*task.Runner, error) {
+func planWorkflow(workflow model.Workflow, job string) (*task.Runner, error) {
 	var (
 		order   []string                // order keeps track of job execution order
 		visited map[string]bool         // visited keeps track of visited jobs
@@ -66,18 +66,18 @@ func planWorkflow(workflow core.Workflow, job string) (*task.Runner, error) {
 	}
 
 	// runFn is the function that runs the workflow
-	runFn := func(ctx *context.Context) (core.Conclusion, error) {
-		conclusion := core.ConclusionSuccess
+	runFn := func(ctx *context.Context) (model.Conclusion, error) {
+		conclusion := model.ConclusionSuccess
 
 		for _, job := range order {
 			jm, ok := workflow.Jobs[job]
 			if !ok {
-				return core.ConclusionFailure, fmt.Errorf("job %s not found", job)
+				return model.ConclusionFailure, fmt.Errorf("job %s not found", job)
 			}
 
 			runners, err := planJob(jm)
 			if err != nil {
-				return core.ConclusionFailure, err
+				return model.ConclusionFailure, err
 			}
 
 			// FIXME: ignoring fail-fast for now. it is always true for now. Fix this later.
@@ -86,10 +86,10 @@ func planWorkflow(workflow core.Workflow, job string) (*task.Runner, error) {
 			for _, runner := range runners {
 				result, err := runner.Run(ctx)
 				if err != nil {
-					return core.ConclusionFailure, err
+					return model.ConclusionFailure, err
 				}
 
-				if conclusion == core.ConclusionSuccess && result.Conclusion != conclusion {
+				if conclusion == model.ConclusionSuccess && result.Conclusion != conclusion {
 					conclusion = result.Conclusion
 				}
 			}
@@ -110,7 +110,7 @@ func planWorkflow(workflow core.Workflow, job string) (*task.Runner, error) {
 	return &runner, nil
 }
 
-func newTaskPreRunFnForWorkflow(wf core.Workflow) task.PreRunFn {
+func newTaskPreRunFnForWorkflow(wf model.Workflow) task.PreRunFn {
 	return func(ctx *context.Context) error {
 		runID, err := idgen.GenerateWorkflowRunID(ctx)
 		if err != nil {
@@ -118,13 +118,13 @@ func newTaskPreRunFnForWorkflow(wf core.Workflow) task.PreRunFn {
 		}
 
 		return ctx.SetWorkflow(
-			&core.WorkflowRun{
+			&model.WorkflowRun{
 				RunID:         runID,
 				RunNumber:     "1",
 				RunAttempt:    "1",
 				RetentionDays: "0",
 				Workflow:      wf,
-				Jobs:          make(map[string]core.JobRun),
+				Jobs:          make(map[string]model.JobRun),
 			},
 		)
 	}
