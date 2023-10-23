@@ -54,7 +54,7 @@ func (s *StepAction) setup() task.RunFn {
 
 			switch {
 			case image == "Dockerfile":
-				s.container = ctx.Dagger.Client.Container().Build(ca.Dir)
+				s.container = ctx.Dagger.Client.Container().Build(ctx.Dagger.Client.Host().Directory(s.Action.Path))
 			case strings.HasPrefix(image, "docker://"):
 				s.container = ctx.Dagger.Client.Container().From(strings.TrimPrefix(image, "docker://"))
 			default:

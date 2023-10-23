@@ -54,7 +54,7 @@ func LoadActionFromSource(ctx context.Context, client *dagger.Client, source, ta
 		return nil, err
 	}
 
-	return &core.CustomAction{Meta: meta, Path: target, Dir: dir}, nil
+	return &core.CustomAction{Meta: meta, Path: target}, nil
 }
 
 // isLocalAction checks if the given source is a local action
