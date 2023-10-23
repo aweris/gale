@@ -26,15 +26,10 @@ type WorkflowRunDirectoryOpts struct {
 	IncludeArtifacts bool `doc:"Include the artifacts in the exported directory." default:"false"`
 }
 
-// WorkflowRunConfig represents the configuration for running a workflow.
-type WorkflowRunConfig struct {
-	*WorkflowsRepoOpts
-	*WorkflowsDirOpts
-	*WorkflowsRunOpts
-}
-
 type WorkflowRun struct {
-	Config *WorkflowRunConfig
+	RepoOpts WorkflowsRepoOpts
+	PathOpts WorkflowsDirOpts
+	RunOpts  WorkflowsRunOpts
 }
 
 // FIXME: add jobs to WorkflowRunReport when dagger supports map type
@@ -108,7 +103,7 @@ func (wr *WorkflowRun) Directory(ctx context.Context, opts WorkflowRunDirectoryO
 		dir = dir.WithDirectory(fmt.Sprintf("runs/%s/secrets", wrID), container.Directory("/home/runner/_temp/ghx/secrets"))
 	}
 
-	if opts.IncludeEvent && wr.Config.EventFile != nil {
+	if opts.IncludeEvent && wr.RunOpts.EventFile != nil {
 		dir = dir.WithFile(fmt.Sprintf("runs/%s/event.json", wrID), container.File(filepath.Join("/home", "runner", "work", "_temp", "_github_workflow", "event.json")))
 	}
 
@@ -132,7 +127,7 @@ func (wr *WorkflowRun) run(ctx context.Context) (*Container, error) {
 	// loading request scoped configs
 
 	// configure workflow run configuration
-	container = container.With(wr.Config.configure)
+	container = container.With(wr.configure)
 
 	// ghx specific directory configuration
 	container = container.WithEnvVariable("GHX_HOME", "/home/runner/_temp/ghx")
@@ -155,11 +150,11 @@ func (wr *WorkflowRun) run(ctx context.Context) (*Container, error) {
 }
 
 func (wr *WorkflowRun) container(ctx context.Context) (*Container, error) {
-	container := dag.Container().From(wr.Config.RunnerImage)
+	container := dag.Container().From(wr.RunOpts.RunnerImage)
 
 	// set github token as secret if provided
-	if wr.Config.Token != nil {
-		container = container.WithSecretVariable("GITHUB_TOKEN", wr.Config.Token)
+	if wr.RunOpts.Token != nil {
+		container = container.WithSecretVariable("GITHUB_TOKEN", wr.RunOpts.Token)
 	}
 
 	// configure internal components
@@ -169,8 +164,8 @@ func (wr *WorkflowRun) container(ctx context.Context) (*Container, error) {
 
 	// configure repo -- when *Directory can be included in to repo info, we can move source mounting to repo module as well
 	var (
-		info   = dag.Repo().Info((RepoInfoOpts)(*wr.Config.WorkflowsRepoOpts))
-		source = dag.Repo().Source((RepoSourceOpts)(*wr.Config.WorkflowsRepoOpts))
+		info   = dag.Repo().Info((RepoInfoOpts)(wr.RepoOpts))
+		source = dag.Repo().Source((RepoSourceOpts)(wr.RepoOpts))
 	)
 
 	workdir, err := info.Workdir(ctx)
@@ -188,20 +183,20 @@ func (wr *WorkflowRun) container(ctx context.Context) (*Container, error) {
 	return container, nil
 }
 
-func (wrc *WorkflowRunConfig) configure(c *Container) *Container {
+func (wr *WorkflowRun) configure(c *Container) *Container {
 	container := c
 
-	container = container.WithEnvVariable("GHX_WORKFLOW", wrc.Workflow)
-	container = container.WithEnvVariable("GHX_JOB", wrc.Job)
-	container = container.WithEnvVariable("GHX_WORKFLOWS_DIR", wrc.WorkflowsDir)
+	container = container.WithEnvVariable("GHX_WORKFLOW", wr.RunOpts.Workflow)
+	container = container.WithEnvVariable("GHX_JOB", wr.RunOpts.Job)
+	container = container.WithEnvVariable("GHX_WORKFLOWS_DIR", wr.PathOpts.WorkflowsDir)
 
-	container = container.WithEnvVariable("GITHUB_EVENT_NAME", wrc.Event)
+	container = container.WithEnvVariable("GITHUB_EVENT_NAME", wr.RunOpts.Event)
 
-	if wrc.EventFile != nil {
-		container = container.WithMountedFile("/home/runner/_temp/_github_workflow/event.json", wrc.EventFile)
+	if wr.RunOpts.EventFile != nil {
+		container = container.WithMountedFile("/home/runner/_temp/_github_workflow/event.json", wr.RunOpts.EventFile)
 	}
 
-	if wrc.RunnerDebug {
+	if wr.RunOpts.RunnerDebug {
 		container = container.WithEnvVariable("RUNNER_DEBUG", "1")
 	}
 
