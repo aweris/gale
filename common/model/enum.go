@@ -1,4 +1,4 @@
-package core
+package model
 
 // Conclusion is outcome of the operation
 type Conclusion string

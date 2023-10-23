@@ -7,11 +7,11 @@ import (
 
 	"github.com/aweris/gale/common/fs"
 	"github.com/aweris/gale/common/log"
-	"github.com/aweris/gale/ghx/core"
+	"github.com/aweris/gale/common/model"
 )
 
 // SetWorkflow creates a new execution context with the given workflow and sets it to the context.
-func (c *Context) SetWorkflow(wr *core.WorkflowRun) error {
+func (c *Context) SetWorkflow(wr *model.WorkflowRun) error {
 	// set the workflow run to the execution context
 	c.Execution = ExecutionContext{WorkflowRun: wr}
 
@@ -25,7 +25,7 @@ func (c *Context) SetWorkflow(wr *core.WorkflowRun) error {
 	c.Github.WorkflowSHA = c.Github.SHA
 
 	// set workflow conclusion to success explicitly
-	c.Execution.WorkflowRun.Conclusion = core.ConclusionSuccess
+	c.Execution.WorkflowRun.Conclusion = model.ConclusionSuccess
 
 	// sync github context with env values
 	syncWithEnvValues(&c.Github)
@@ -60,7 +60,7 @@ func (c *Context) UnsetWorkflow(result RunResult) {
 }
 
 // SetJob sets the given job to the execution context.
-func (c *Context) SetJob(jr *core.JobRun) error {
+func (c *Context) SetJob(jr *model.JobRun) error {
 	if c.Execution.WorkflowRun == nil {
 		return errors.New("no workflow is set")
 	}
@@ -109,7 +109,7 @@ func (c *Context) UnsetJob(result RunResult) {
 	c.Execution.WorkflowRun.Jobs[jr.Job.ID] = *jr
 
 	// update workflow conclusion
-	if c.Execution.WorkflowRun.Conclusion == core.ConclusionSuccess && jr.Conclusion != core.ConclusionSuccess {
+	if c.Execution.WorkflowRun.Conclusion == model.ConclusionSuccess && jr.Conclusion != model.ConclusionSuccess {
 		c.Execution.WorkflowRun.Conclusion = jr.Conclusion
 	}
 	// unset the job run from the github context
@@ -136,7 +136,7 @@ func (c *Context) UnsetJob(result RunResult) {
 }
 
 // SetJobResults sets the status of the job.
-func (c *Context) SetJobResults(conclusion, outcome core.Conclusion, outputs map[string]string) error {
+func (c *Context) SetJobResults(conclusion, outcome model.Conclusion, outputs map[string]string) error {
 	if c.Execution.JobRun == nil {
 		return errors.New("no job is set")
 	}
@@ -153,7 +153,7 @@ func (c *Context) SetJobResults(conclusion, outcome core.Conclusion, outputs map
 }
 
 // SetStep sets the given step to the execution context.
-func (c *Context) SetStep(sr *core.StepRun) error {
+func (c *Context) SetStep(sr *model.StepRun) error {
 	if c.Execution.JobRun == nil {
 		return errors.New("no job is set")
 	}
@@ -204,7 +204,7 @@ func (c *Context) UnsetStep(result RunResult) {
 	c.Steps[sr.Step.ID] = sc
 
 	// only export the result of the main stage
-	if c.Execution.StepRun.Stage == core.StepStageMain {
+	if c.Execution.StepRun.Stage == model.StepStageMain {
 		// write the job run result to the file system
 		// ignoring error since directory must exist at this point of execution
 		dir, _ := c.GetStepRunPath()
@@ -225,7 +225,7 @@ func (c *Context) UnsetStep(result RunResult) {
 	c.Execution.StepRun = nil
 }
 
-func (c *Context) SetStepResults(conclusion, outcome core.Conclusion) error {
+func (c *Context) SetStepResults(conclusion, outcome model.Conclusion) error {
 	if c.Execution.StepRun == nil {
 		return errors.New("no step is set")
 	}
@@ -290,7 +290,7 @@ func (c *Context) SetStepEnv(key, value string) error {
 	return nil
 }
 
-func (c *Context) SetAction(action *core.CustomAction) {
+func (c *Context) SetAction(action *model.CustomAction) {
 	c.Execution.CurrentAction = action
 }
 

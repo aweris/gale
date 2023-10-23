@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/aweris/gale/common/log"
+	"github.com/aweris/gale/common/model"
 	"github.com/aweris/gale/ghx/context"
-	"github.com/aweris/gale/ghx/core"
 )
 
 // Status is the phase of the lifecycle that object currently in
@@ -23,7 +23,7 @@ const (
 // The return values are:
 //   - conclusion: conclusion of the execution
 //   - err: error if any
-type RunFn func(ctx *context.Context) (conclusion core.Conclusion, err error)
+type RunFn func(ctx *context.Context) (conclusion model.Conclusion, err error)
 
 // ConditionalFn is the function that determines if the task should be executed. If the task should not be
 // executed, the conclusion is returned as well.
@@ -40,7 +40,7 @@ type RunFn func(ctx *context.Context) (conclusion core.Conclusion, err error)
 //   - If run is false, conclusion is empty and err is nil, invalid task. Ignore it completely. The reason this
 //     scenario exist is that the task is not invalid by itself. It is just not applicable to the current context, and
 //     we can't determine if it is invalid or not in planning phase.
-type ConditionalFn func(ctx *context.Context) (run bool, conclusion core.Conclusion, err error)
+type ConditionalFn func(ctx *context.Context) (run bool, conclusion model.Conclusion, err error)
 
 // PreRunFn is the function that will be executed before the task is executed. If the function returns an error,
 // the task will not be executed. PreRunFn is useful for tasks that need to perform some actions before the execution
@@ -103,7 +103,7 @@ func (t *Runner) Run(ctx *context.Context) (Result, error) {
 	// run preFn if any
 	if t.preFn != nil {
 		if err := t.preFn(ctx); err != nil {
-			result.Conclusion = core.ConclusionFailure
+			result.Conclusion = model.ConclusionFailure
 			result.Duration = time.Since(startedAt)
 
 			return result, err
@@ -121,7 +121,7 @@ func (t *Runner) Run(ctx *context.Context) (Result, error) {
 	if t.conditionFn != nil {
 		run, conclusion, err := t.conditionFn(ctx)
 		if err != nil {
-			result.Conclusion = core.ConclusionFailure
+			result.Conclusion = model.ConclusionFailure
 			result.Duration = time.Since(startedAt)
 
 			return result, err
@@ -142,12 +142,12 @@ func (t *Runner) Run(ctx *context.Context) (Result, error) {
 		// run the task update named return values
 		result.Conclusion, err = t.runFn(ctx)
 		if err != nil {
-			result.Conclusion = core.ConclusionFailure
+			result.Conclusion = model.ConclusionFailure
 			result.Duration = time.Since(startedAt)
 
 			return result, err
 		}
-	} else if result.Conclusion != "" && result.Conclusion != core.ConclusionSuccess {
+	} else if result.Conclusion != "" && result.Conclusion != model.ConclusionSuccess {
 		// if the task should not be executed, log the conclusion
 		log.Info(fmt.Sprintf("%s (%s)", t.Name, result.Conclusion))
 	}

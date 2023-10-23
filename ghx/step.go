@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 
+	"github.com/aweris/gale/common/model"
 	"github.com/aweris/gale/ghx/context"
-	"github.com/aweris/gale/ghx/core"
 	"github.com/aweris/gale/ghx/task"
 )
 
@@ -44,7 +44,7 @@ type PostHook interface {
 // PreRunHook is the interface that defines contract for steps capable of performing a pre run task. Pre run task is
 // executed before the step is executed for each stage.
 type PreRunHook interface {
-	preRun(stage core.StepStage) task.PreRunFn
+	preRun(stage model.StepStage) task.PreRunFn
 }
 
 // PostRunHook is the interface that defines contract for steps capable of performing a post run task. Post run task is
@@ -58,15 +58,15 @@ type PostRunHook interface {
 // TODO: if pre and post run fn is missing use default fns
 
 // NewStep creates a new step from the given step configuration.
-func NewStep(s core.Step) (Step, error) {
+func NewStep(s model.Step) (Step, error) {
 	var step Step
 
 	switch s.Type() {
-	case core.StepTypeAction:
+	case model.StepTypeAction:
 		step = &StepAction{Step: s}
-	case core.StepTypeRun:
+	case model.StepTypeRun:
 		step = &StepRun{Step: s}
-	case core.StepTypeDocker:
+	case model.StepTypeDocker:
 		step = &StepDocker{Step: s}
 	default:
 		return nil, fmt.Errorf("unknown step type: %s", s.Type())
@@ -75,10 +75,10 @@ func NewStep(s core.Step) (Step, error) {
 	return step, nil
 }
 
-func newTaskPreRunFnForStep(stage core.StepStage, step core.Step) task.PreRunFn {
+func newTaskPreRunFnForStep(stage model.StepStage, step model.Step) task.PreRunFn {
 	return func(ctx *context.Context) error {
 		return ctx.SetStep(
-			&core.StepRun{
+			&model.StepRun{
 				Step:    step,
 				Stage:   stage,
 				Outputs: make(map[string]string),
@@ -94,22 +94,22 @@ func newTaskPostRunFnForStep() task.PostRunFn {
 	}
 }
 
-func executeStep(ctx *context.Context, executor Executor, continueOnError bool) (core.Conclusion, error) {
+func executeStep(ctx *context.Context, executor Executor, continueOnError bool) (model.Conclusion, error) {
 	// execute the step
 	if err := executor.Execute(ctx); err != nil {
 		if continueOnError {
-			ctx.SetStepResults(core.ConclusionSuccess, core.ConclusionFailure)
+			ctx.SetStepResults(model.ConclusionSuccess, model.ConclusionFailure)
 
-			return core.ConclusionSuccess, nil
+			return model.ConclusionSuccess, nil
 		}
 
-		ctx.SetStepResults(core.ConclusionFailure, core.ConclusionFailure)
+		ctx.SetStepResults(model.ConclusionFailure, model.ConclusionFailure)
 
-		return core.ConclusionFailure, err
+		return model.ConclusionFailure, err
 	}
 
 	// update the step outputs
-	ctx.SetStepResults(core.ConclusionSuccess, core.ConclusionSuccess)
+	ctx.SetStepResults(model.ConclusionSuccess, model.ConclusionSuccess)
 
-	return core.ConclusionSuccess, nil
+	return model.ConclusionSuccess, nil
 }

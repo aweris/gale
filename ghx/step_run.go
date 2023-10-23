@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 
 	"github.com/aweris/gale/common/fs"
+	"github.com/aweris/gale/common/model"
 	"github.com/aweris/gale/ghx/context"
-	"github.com/aweris/gale/ghx/core"
 	"github.com/aweris/gale/ghx/expression"
 	"github.com/aweris/gale/ghx/task"
 )
@@ -16,7 +16,7 @@ var _ Step = new(StepRun)
 
 // StepRun is a step that runs a job.
 type StepRun struct {
-	Step      core.Step
+	Step      model.Step
 	Shell     string   // Shell is the shell to use to run the script.
 	ShellArgs []string // ShellArgs are the arguments to pass to the shell.
 	Path      string   // Path is the script path to run.
@@ -24,7 +24,7 @@ type StepRun struct {
 }
 
 func (s *StepRun) condition() task.ConditionalFn {
-	return func(ctx *context.Context) (bool, core.Conclusion, error) {
+	return func(ctx *context.Context) (bool, model.Conclusion, error) {
 		return evalCondition(s.Step.If, ctx)
 	}
 }
@@ -36,7 +36,7 @@ const (
 )
 
 func (s *StepRun) main() task.RunFn {
-	return func(ctx *context.Context) (core.Conclusion, error) {
+	return func(ctx *context.Context) (model.Conclusion, error) {
 		var (
 			pre   string
 			pos   string
@@ -46,7 +46,7 @@ func (s *StepRun) main() task.RunFn {
 
 		dir, err := ctx.GetStepRunPath()
 		if err != nil {
-			return core.ConclusionFailure, err
+			return model.ConclusionFailure, err
 		}
 
 		path := filepath.Join(dir, "run")
@@ -80,7 +80,7 @@ func (s *StepRun) main() task.RunFn {
 			path += extSH
 			args = []string{"-e", path}
 		default:
-			return core.ConclusionFailure, fmt.Errorf("not supported shell: %s", shell)
+			return model.ConclusionFailure, fmt.Errorf("not supported shell: %s", shell)
 		}
 
 		// evaluate run script against the expressions
@@ -90,7 +90,7 @@ func (s *StepRun) main() task.RunFn {
 
 		err = fs.WriteFile(path, content, 0755)
 		if err != nil {
-			return core.ConclusionFailure, err
+			return model.ConclusionFailure, err
 		}
 
 		s.Shell = shell
@@ -104,20 +104,20 @@ func (s *StepRun) main() task.RunFn {
 			if s.Step.ContinueOnError {
 				// execution failed and the step is configured to continue on error. So, fail the outcome but succeed the
 				// conclusion.
-				ctx.SetStepResults(core.ConclusionSuccess, core.ConclusionFailure)
+				ctx.SetStepResults(model.ConclusionSuccess, model.ConclusionFailure)
 
-				return core.ConclusionSuccess, nil
+				return model.ConclusionSuccess, nil
 			}
 
 			// execution failed and the step is not configured to continue on error. So, we need to fail the step.
-			ctx.SetStepResults(core.ConclusionFailure, core.ConclusionFailure)
+			ctx.SetStepResults(model.ConclusionFailure, model.ConclusionFailure)
 
-			return core.ConclusionFailure, err
+			return model.ConclusionFailure, err
 		}
 
 		// update the step outputs
-		ctx.SetStepResults(core.ConclusionSuccess, core.ConclusionSuccess)
+		ctx.SetStepResults(model.ConclusionSuccess, model.ConclusionSuccess)
 
-		return core.ConclusionSuccess, nil
+		return model.ConclusionSuccess, nil
 	}
 }

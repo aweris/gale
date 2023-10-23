@@ -3,7 +3,7 @@ package context
 import (
 	"dagger.io/dagger"
 
-	"github.com/aweris/gale/ghx/core"
+	"github.com/aweris/gale/common/model"
 )
 
 type GhxConfig struct {
@@ -28,16 +28,16 @@ type DaggerContext struct {
 
 type ExecutionContext struct {
 	// Workflow is the current workflow that is being executed.
-	WorkflowRun *core.WorkflowRun
+	WorkflowRun *model.WorkflowRun
 
 	// Job is the current job that is being executed.
-	JobRun *core.JobRun
+	JobRun *model.JobRun
 
 	// Step is the current step that is being executed.
-	StepRun *core.StepRun
+	StepRun *model.StepRun
 
 	// CurrentAction is the current action that is being executed. This is only available on step level if the step is uses a custom action.
-	CurrentAction *core.CustomAction
+	CurrentAction *model.CustomAction
 }
 
 // ActionsContext is the context for the internal services configuration for used by GitHub Actions.
@@ -173,7 +173,7 @@ type InputsContext map[string]string
 //
 // See: https://docs.github.com/en/actions/learn-github-actions/contexts#job-context
 type JobContext struct {
-	Status core.Conclusion `json:"status"` // Status is the current status of the job. Possible values are success, failure, or cancelled.
+	Status model.Conclusion `json:"status"` // Status is the current status of the job. Possible values are success, failure, or cancelled.
 
 	// TODO: add other fields when needed.
 }
@@ -185,7 +185,7 @@ type NeedsContext map[string]NeedContext
 
 // NeedContext is a context that contains information about dependent job.
 type NeedContext struct {
-	Result  core.Conclusion   `json:"result"`  // Result is conclusion of the job. It can be success, failure, skipped or cancelled.
+	Result  model.Conclusion  `json:"result"`  // Result is conclusion of the job. It can be success, failure, skipped or cancelled.
 	Outputs map[string]string `json:"outputs"` // Outputs of the job
 }
 
@@ -231,10 +231,10 @@ type StepsContext map[string]StepContext
 // This context created per step execution.
 type StepContext struct {
 	// Conclusion is the result of a completed step after continue-on-error is applied
-	Conclusion core.Conclusion `json:"conclusion"`
+	Conclusion model.Conclusion `json:"conclusion"`
 
 	// Outcome is  the result of a completed step before continue-on-error is applied
-	Outcome core.Conclusion `json:"outcome"`
+	Outcome model.Conclusion `json:"outcome"`
 
 	// Outputs is a map of output name to output value
 	Outputs map[string]string `json:"outputs"`
@@ -254,4 +254,4 @@ type EnvContext map[string]string
 // MatrixContext is a context that contains matrix information.
 //
 // See: https://docs.github.com/en/actions/learn-github-actions/contexts#matrix-context
-type MatrixContext core.MatrixCombination
+type MatrixContext model.MatrixCombination
