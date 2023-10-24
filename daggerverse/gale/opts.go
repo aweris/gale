@@ -5,34 +5,34 @@ package main
 // This is copy of RepoOpts from daggerverse/gale/repo.go to be able to expose options with gale module and pass them to
 // the repo module just type casting.
 type RepoOpts struct {
-	Source *Directory `doc:"The directory containing the repository source. If source is provided, rest of the options are ignored."`
-	Repo   string     `doc:"The name of the repository. Format: owner/name."`
-	Branch string     `doc:"Branch name to checkout. Only one of branch or tag can be used. Precedence is as follows: tag, branch."`
-	Tag    string     `doc:"Tag name to checkout. Only one of branch or tag can be used. Precedence is as follows: tag, branch."`
+	Source *Directory `doc:"Directory containing the repository source. Has precedence over repo."`
+	Repo   string     `doc:"Name of the repository. Format: owner/name."`
+	Branch string     `doc:"Git branch to checkout. Used with --repo. If tag and branch are both specified, tag takes precedence."`
+	Tag    string     `doc:"Git tag to checkout. Used with --repo. If tag and branch are both specified, tag takes precedence."`
 }
 
 // WorkflowsDirOpts represents the options for getting workflow information.
 type WorkflowsDirOpts struct {
-	WorkflowsDir string `doc:"The relative path to the workflow directory." default:".github/workflows"`
+	WorkflowsDir string `doc:"Path to the workflow directory." default:".github/workflows"`
 }
 
 // WorkflowsRunOpts represents the options for running a workflow.
 type WorkflowsRunOpts struct {
-	Workflow    string  `doc:"The workflow to run." required:"true"`
-	Job         string  `doc:"The job name to run. If empty, all jobs will be run."`
-	Event       string  `doc:"Name of the event that triggered the workflow. e.g. push" default:"push"`
-	EventFile   *File   `doc:"The file with the complete webhook event payload."`
-	RunnerImage string  `doc:"The image to use for the runner." default:"ghcr.io/catthehacker/ubuntu:act-latest"`
-	RunnerDebug bool    `doc:"Enable debug mode." default:"false"`
-	Token       *Secret `doc:"The GitHub token to use for authentication."`
+	Workflow    string  `doc:"Name of the workflow to run."`
+	Job         string  `doc:"Name of the job to run. If empty, all jobs will be run."`
+	Event       string  `doc:"Name of the event that triggered the workflow." default:"push"`
+	EventFile   *File   `doc:"The file with the complete webhook json event payload."`
+	RunnerImage string  `doc:"Docker image to use for the runner." default:"ghcr.io/catthehacker/ubuntu:act-latest"`
+	RunnerDebug bool    `doc:"Enables debug mode." default:"false"`
+	Token       *Secret `doc:"GitHub token to use for authentication."`
 }
 
 // WorkflowRunDirectoryOpts represents the options for exporting a workflow run.
 type WorkflowRunDirectoryOpts struct {
-	IncludeRepo      bool `doc:"Include the repository source in the exported directory." default:"false"`
-	IncludeSecrets   bool `doc:"Include the secrets in the exported directory." default:"false"`
-	IncludeEvent     bool `doc:"Include the event file in the exported directory." default:"false"`
-	IncludeArtifacts bool `doc:"Include the artifacts in the exported directory." default:"false"`
+	IncludeRepo      bool `doc:"Adds the repository source to the exported directory." default:"false"`
+	IncludeSecrets   bool `doc:"Adds the mounted secrets to the exported directory." default:"false"`
+	IncludeEvent     bool `doc:"Adds the event file to the exported directory." default:"false"`
+	IncludeArtifacts bool `doc:"Adds the uploaded artifacts to the exported directory." default:"false"`
 }
 
 // FIXME: add jobs to WorkflowRunReport when dagger supports map type

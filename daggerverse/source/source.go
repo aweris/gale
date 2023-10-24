@@ -152,6 +152,10 @@ func (m *ArtifactServiceSource) BindAsService(ctx context.Context, container *Co
 		return nil, err
 	}
 
+	// normalise the endpoint to remove the trailing slash -- dagger returns the endpoint without the trailing slash
+	// but the github actions expects the endpoint with the trailing slash
+	endpoint = endpoint + "/"
+
 	return container.
 		WithServiceBinding("artifact-service", service).
 		WithEnvVariable("ACTIONS_RUNTIME_URL", endpoint).
@@ -221,6 +225,10 @@ func (m *ArtifactCacheServiceSource) BindAsService(ctx context.Context, containe
 	if err != nil {
 		return nil, err
 	}
+
+	// normalise the endpoint to remove the trailing slash -- dagger returns the endpoint without the trailing slash
+	// but the github actions expects the endpoint with the trailing slash
+	endpoint = endpoint + "/"
 
 	return container.
 		WithServiceBinding("artifact-cache-service", service).
