@@ -30,7 +30,126 @@ Once you have these tools, you are ready to install and use `gale`.
 
 ## How to Use
 
-Coming Soon!
+### Setup Dagger Module
+
+To avoid adding `-m github.com/aweris/gale/daggerverse/gale` to every command, you can add run the following command to
+set `DAGGER_MODULE` environment variable:
+
+```shell
+export DAGGER_MODULE=github.com/aweris/gale/daggerverse/gale
+```
+
+### Listing a Workflows
+
+To get a list of workflows, you can use the dagger call workflows list command.
+
+Below is the help output showing the usage and options:
+
+```shell
+ Usage:
+   dagger call workflows list [flags]
+
+ Aliases:
+   list, List
+
+ Flags:
+       --branch string          Git branch to checkout. Used with --repo. If tag and branch are both specified, tag takes precedence.
+   -h, --help                   help for list
+       --repo string            Name of the repository. Format: owner/name.
+       --source Directory       Directory containing the repository source. Has precedence over repo.
+       --tag string             Git tag to checkout. Used with --repo. If tag and branch are both specified, tag takes precedence.
+       --workflows-dir string   Path to the workflow directory. (default ".github/workflows")
+```
+
+#### Examples
+
+List all workflows for current repository:
+
+```shell
+dagger call workflows list --source "."
+```
+
+List workflows for a specific repository and directory:
+
+```shell
+dagger call workflows list --repo aweris/gale --branch main --workflows-dir ci/workflows
+```
+
+### Run a Workflow
+
+For running workflows, you'll mainly use `dagger [call|download] workflows run [flags] [sub-command]`. Below is
+the help output showing the usage and options:
+
+```shell
+ Usage:
+   dagger call workflows run [flags]
+   dagger call workflows run [command]
+
+ Aliases:
+   run, Run
+
+ Available Commands:
+   config      Configuration for the workflow run.
+   directory   Directory returns the directory of the workflow run information.
+   result      Result returns executes the workflow run and returns the result.
+
+ Flags:
+       --branch string          Git branch to checkout. Used with --repo. If tag and branch are both specified, tag takes precedence.
+       --event string           Name of the event that triggered the workflow. (default "push")
+       --event-file File        The file with the complete webhook json event payload.
+   -h, --help                   help for run
+       --job string             Name of the job to run. If empty, all jobs will be run.
+       --repo string            Name of the repository. Format: owner/name.
+       --runner-debug           Enables debug mode.
+       --runner-image string    Docker image to use for the runner. (default "ghcr.io/dagger/gale:latest")
+       --source Directory       Directory containing the repository source. Has precedence over repo.
+       --tag string             Git tag to checkout. Used with --repo. If tag and branch are both specified, tag takes precedence.
+       --token Secret           GitHub token to use for authentication.
+       --workflow string        Name of the workflow to run.
+```
+
+#### Sub-Commands
+
+- **result**: Returns the summary of the workflow run.
+
+```shell
+dagger call workflow run ... --workflow build results
+```
+
+- **directory**: Exports workflow run data.
+
+The help output for directory option
+```shell
+Usage:
+  dagger download workflows run directory [flags]
+
+Aliases:
+  directory, Directory
+
+Flags:
+   -h, --help                help for directory
+       --include-artifacts   Adds the uploaded artifacts to the exported directory.
+       --include-event       Adds the event file to the exported directory.
+       --include-repo        Adds the repository source to the exported directory.
+       --include-secrets     Adds the mounted secrets to the exported directory.
+```
+
+Example command for exporting the workflow run data:
+```shell
+dagger download workflow run ... --workflow build directory --export-path .gale/exports --include-artifacts
+```
+
+##### Examples
+
+Running a workflow for remote repository and downloading exporting the workflow run data and artifacts:
+
+```shell
+ dagger download --focus=false workflows run --repo kubernetes/minikube --branch master --workflow build --job build_minikube --token $GITHUB_TOKEN directory --export-path .gale/exports --include-artifacts
+```
+
+**Notes for Above Example:**
+- `--focus=false` is used to disable focus mode. Required for displaying the execution logs.
+- `--token` is optional however it is required for the workflow in this example.
 
 ## Feedback and Collaboration
 
