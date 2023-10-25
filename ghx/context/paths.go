@@ -50,7 +50,7 @@ func (c *Context) GetWorkflowRunPath() (string, error) {
 		return "", errors.New("no workflow run is set")
 	}
 
-	return EnsureDir(c.GhxConfig.HomeDir, "runs", c.Execution.WorkflowRun.RunID)
+	return EnsureDir(c.GhxConfig.HomeDir, "run")
 }
 
 // GetJobRunPath returns the path of the current job run path. If the path does not exist, it creates it. If the job run
@@ -60,7 +60,7 @@ func (c *Context) GetJobRunPath() (string, error) {
 		return "", errors.New("no job is set")
 	}
 
-	return EnsureDir(c.GhxConfig.HomeDir, "runs", c.Execution.WorkflowRun.RunID, "jobs", c.Execution.JobRun.RunID)
+	return EnsureDir(c.GhxConfig.HomeDir, "run", "jobs", c.Execution.JobRun.Job.ID)
 }
 
 // GetStepRunPath returns the path of the current step run path. If the path does not exist, it creates it. If the step
@@ -70,7 +70,7 @@ func (c *Context) GetStepRunPath() (string, error) {
 		return "", errors.New("no step is set")
 	}
 
-	return EnsureDir(c.GhxConfig.HomeDir, "runs", c.Execution.WorkflowRun.RunID, "jobs", c.Execution.JobRun.RunID, "steps", c.Execution.StepRun.Step.ID)
+	return EnsureDir(c.GhxConfig.HomeDir, "run", "jobs", c.Execution.JobRun.Job.ID, "steps", c.Execution.StepRun.Step.ID)
 }
 
 // EnsureDir return the joined path and ensures that the directory exists. and returns the joined path.

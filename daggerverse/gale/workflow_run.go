@@ -21,19 +21,7 @@ func (wr *WorkflowRun) Result(ctx context.Context) (string, error) {
 
 	var result WorkflowRunReport
 
-	runs := container.Directory("/home/runner/_temp/ghx/runs")
-
-	// runs directory should only have one entry with the workflow run id
-	entries, err := runs.Entries(ctx)
-	if err != nil {
-		return "", err
-	}
-
-	wrID := entries[0]
-
-	resultJSON := filepath.Join("/home/runner/_temp/ghx/runs", wrID, "workflow_run.json")
-
-	err = container.File(resultJSON).unmarshalContentsToJSON(ctx, &result)
+	err = container.File("/home/runner/_temp/ghx/run/workflow_run.json").unmarshalContentsToJSON(ctx, &result)
 	if err != nil {
 		return "", err
 	}
@@ -48,36 +36,33 @@ func (wr *WorkflowRun) Directory(ctx context.Context, opts WorkflowRunDirectoryO
 		return nil, err
 	}
 
-	runs := container.Directory("/home/runner/_temp/ghx/runs")
-
-	// runs directory should only have one entry with the workflow run id
-	entries, err := runs.Entries(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	wrID := entries[0]
-
-	dir := dag.Directory().WithDirectory("runs", runs)
+	dir := dag.Directory().WithDirectory("run", container.Directory("/home/runner/_temp/ghx/run"))
 
 	if opts.IncludeRepo {
-		dir = dir.WithDirectory(fmt.Sprintf("runs/%s/repo", wrID), container.Directory("."))
+		dir = dir.WithDirectory("repo", container.Directory("."))
 	}
 
 	if opts.IncludeSecrets {
-		dir = dir.WithDirectory(fmt.Sprintf("runs/%s/secrets", wrID), container.Directory("/home/runner/_temp/ghx/secrets"))
+		dir = dir.WithDirectory("secrets", container.Directory("/home/runner/_temp/ghx/secrets"))
 	}
 
 	if opts.IncludeEvent && wr.Config.EventFile != nil {
-		dir = dir.WithFile(fmt.Sprintf("runs/%s/event.json", wrID), container.File(filepath.Join("/home", "runner", "work", "_temp", "_github_workflow", "event.json")))
+		dir = dir.WithFile("event.json", container.File("/home/runner/_temp/_github_workflow/event.json"))
 	}
 
 	if opts.IncludeArtifacts {
+		var report WorkflowRunReport
+
+		err := dir.File("run/workflow_run.json").unmarshalContentsToJSON(ctx, &report)
+		if err != nil {
+			return nil, err
+		}
+
 		container = dag.Container().From("alpine:latest").
 			WithMountedCache("/artifacts", dag.Source().ArtifactService().CacheVolume()).
-			WithExec([]string{"cp", "-r", fmt.Sprintf("/artifacts/%s", wrID), "/exported_artifacts"})
+			WithExec([]string{"cp", "-r", fmt.Sprintf("/artifacts/%s", report.RunID), "/exported_artifacts"})
 
-		dir = dir.WithDirectory(fmt.Sprintf("runs/%s/artifacts", wrID), container.Directory("/exported_artifacts"))
+		dir = dir.WithDirectory("artifacts", container.Directory("/exported_artifacts"))
 	}
 
 	return dir, nil
