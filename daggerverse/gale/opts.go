@@ -18,13 +18,14 @@ type WorkflowsDirOpts struct {
 
 // WorkflowsRunOpts represents the options for running a workflow.
 type WorkflowsRunOpts struct {
-	Workflow    string  `doc:"Name of the workflow to run."`
-	Job         string  `doc:"Name of the job to run. If empty, all jobs will be run."`
-	Event       string  `doc:"Name of the event that triggered the workflow." default:"push"`
-	EventFile   *File   `doc:"The file with the complete webhook json event payload."`
-	RunnerImage string  `doc:"Docker image to use for the runner." default:"ghcr.io/catthehacker/ubuntu:act-latest"`
-	RunnerDebug bool    `doc:"Enables debug mode." default:"false"`
-	Token       *Secret `doc:"GitHub token to use for authentication."`
+	WorkflowFile *File   `doc:"External workflow file to run."`
+	Workflow     string  `doc:"Name of the workflow to run."`
+	Job          string  `doc:"Name of the job to run. If empty, all jobs will be run."`
+	Event        string  `doc:"Name of the event that triggered the workflow." default:"push"`
+	EventFile    *File   `doc:"The file with the complete webhook json event payload."`
+	RunnerImage  string  `doc:"Docker image to use for the runner." default:"ghcr.io/catthehacker/ubuntu:act-latest"`
+	RunnerDebug  bool    `doc:"Enables debug mode." default:"false"`
+	Token        *Secret `doc:"GitHub token to use for authentication."`
 }
 
 // WorkflowRunDirectoryOpts represents the options for exporting a workflow run.
@@ -75,6 +76,9 @@ type WorkflowRunConfig struct {
 
 	// Path to the workflow directory.
 	WorkflowsDir string
+
+	// WorkflowFile is external workflow file to run.
+	WorkflowFile *File
 
 	// Workflow to run.
 	Workflow string
