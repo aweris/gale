@@ -161,9 +161,23 @@ func (wr *WorkflowRun) container(ctx context.Context) (*Container, error) {
 func (wr *WorkflowRun) configure(c *Container) *Container {
 	container := c
 
-	container = container.WithEnvVariable("GHX_WORKFLOW", wr.Config.Workflow)
+	if wr.Config.WorkflowFile != nil {
+		path := "/home/runner/_temp/_github_workflow/.gale/dagger.yaml"
+
+		container = container.WithMountedFile(path, wr.Config.WorkflowFile)
+		container = container.WithEnvVariable("GHX_WORKFLOWS_DIR", filepath.Dir(path))
+
+		if wr.Config.Workflow != "" {
+			container = container.WithEnvVariable("GHX_WORKFLOW", wr.Config.Workflow)
+		} else {
+			container = container.WithEnvVariable("GHX_WORKFLOW", path)
+		}
+	} else {
+		container = container.WithEnvVariable("GHX_WORKFLOWS_DIR", wr.Config.WorkflowsDir)
+		container = container.WithEnvVariable("GHX_WORKFLOW", wr.Config.Workflow)
+	}
+
 	container = container.WithEnvVariable("GHX_JOB", wr.Config.Job)
-	container = container.WithEnvVariable("GHX_WORKFLOWS_DIR", wr.Config.WorkflowsDir)
 
 	container = container.WithEnvVariable("GITHUB_EVENT_NAME", wr.Config.Event)
 

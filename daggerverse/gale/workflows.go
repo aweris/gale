@@ -65,6 +65,7 @@ func (w *Workflows) Run(repoOpts RepoOpts, pathOpts WorkflowsDirOpts, runOpts Wo
 			Branch:       repoOpts.Branch,
 			Tag:          repoOpts.Tag,
 			WorkflowsDir: pathOpts.WorkflowsDir,
+			WorkflowFile: runOpts.WorkflowFile,
 			Workflow:     runOpts.Workflow,
 			Job:          runOpts.Job,
 			Event:        runOpts.Event,
