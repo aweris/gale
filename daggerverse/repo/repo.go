@@ -9,14 +9,6 @@ import (
 
 type Repo struct{}
 
-// RepoOpts represents the options for getting repository information.
-type RepoOpts struct {
-	Source *Directory `doc:"The directory containing the repository source. If source is provided, rest of the options are ignored."`
-	Repo   string     `doc:"The name of the repository. Format: owner/name."`
-	Branch string     `doc:"Branch name to checkout. Only one of branch or tag can be used. Precedence is as follows: tag, branch."`
-	Tag    string     `doc:"Tag name to checkout. Only one of branch or tag can be used. Precedence is as follows: tag, branch."`
-}
-
 // RepoInfo represents a repository information.
 type RepoInfo struct {
 	Owner         string // Owner of the repository.
@@ -35,19 +27,38 @@ type RepoInfo struct {
 // this method is separate from the RepoInfo struct because we're not able to return *Directory as part of RepoInfo.
 // Until it is fixed, we're returning *Directory from this method.
 
-func (_ *Repo) Source(opts RepoOpts) (*Directory, error) {
-	return getRepoSource(opts)
+func (_ *Repo) Source(
+	// The directory containing the repository source. If source is provided, rest of the options are ignored.
+	source Optional[*Directory],
+	// The name of the repository. Format: owner/name.
+	repo Optional[string],
+	// Tag name to check out. Only one of branch or tag can be used. Precedence is as follows: tag, branch.
+	tag Optional[string],
+	// Branch name to check out. Only one of branch or tag can be used. Precedence is as follows: tag, branch.
+	branch Optional[string],
+) (*Directory, error) {
+	return getRepoSource(source, repo, tag, branch)
 }
 
-func (_ *Repo) Info(ctx context.Context, opts RepoOpts) (*RepoInfo, error) {
+func (_ *Repo) Info(
+	ctx context.Context,
+	// The directory containing the repository source. If source is provided, rest of the options are ignored.
+	source Optional[*Directory],
+	// The name of the repository. Format: owner/name.
+	repo Optional[string],
+	// Tag name to check out. Only one of branch or tag can be used. Precedence is as follows: tag, branch.
+	tag Optional[string],
+	// Branch name to check out. Only one of branch or tag can be used. Precedence is as follows: tag, branch.
+	branch Optional[string],
+) (*RepoInfo, error) {
 	// get the repository source from the options
-	source, err := getRepoSource(opts)
+	dir, err := getRepoSource(source, repo, tag, branch)
 	if err != nil {
 		return nil, err
 	}
 
 	// create a git container with the repository source to execute git commands
-	container := gitContainer(source)
+	container := gitContainer(dir)
 
 	// get the repository url
 	url, err := getTrimmedOutput(ctx, container, "config", "--get", "remote.origin.url")
@@ -67,7 +78,7 @@ func (_ *Repo) Info(ctx context.Context, opts RepoOpts) (*RepoInfo, error) {
 	}
 
 	// get the ref and ref type
-	ref, refType, err := getRefAndRefType(ctx, opts, container, sha)
+	ref, refType, err := getRefAndRefType(ctx, branch, tag, container, sha)
 	if err != nil {
 		return nil, err
 	}
@@ -77,6 +88,8 @@ func (_ *Repo) Info(ctx context.Context, opts RepoOpts) (*RepoInfo, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	_, isLocal := source.Get()
 
 	return &RepoInfo{
 		Owner:         owner,
@@ -88,7 +101,7 @@ func (_ *Repo) Info(ctx context.Context, opts RepoOpts) (*RepoInfo, error) {
 		RefType:       refType,
 		SHA:           sha,
 		ShortSHA:      shortSHA,
-		IsRemote:      opts.Source == nil,
+		IsRemote:      !isLocal,
 	}, nil
 }
 
@@ -109,8 +122,41 @@ func (ri *RepoInfo) Configure(_ context.Context, c *Container) (*Container, erro
 		WithEnvVariable("GITHUB_SHA", ri.SHA), nil
 }
 
+// getRepoSource returns the repository source based on the options provided.
+func getRepoSource(sourceOpt Optional[*Directory], repoOpt, tagOpt, branchOpt Optional[string]) (*Directory, error) {
+	if source, ok := sourceOpt.Get(); ok {
+		return source, nil
+	}
+
+	repo, ok := repoOpt.Get()
+	if !ok {
+		return nil, fmt.Errorf("either a repo or a source directory must be provided")
+	}
+
+	var (
+		gitURL  = fmt.Sprintf("https://github.com/%s.git", repo)
+		gitRepo = dag.Git(gitURL, GitOpts{KeepGitDir: true})
+	)
+
+	if tag, ok := tagOpt.Get(); ok {
+		return gitRepo.Tag(tag).Tree(), nil
+	}
+
+	if branch, ok := branchOpt.Get(); ok {
+		return gitRepo.Branch(branch).Tree(), nil
+	}
+
+	return nil, fmt.Errorf("when repo is provided, either a branch or a tag must be provided")
+}
+
 // getRefAndRefType returns the ref and ref type for given options.
-func getRefAndRefType(ctx context.Context, opts RepoOpts, container *Container, sha string) (string, string, error) {
+func getRefAndRefType(
+	ctx context.Context,
+	tagOpt Optional[string],
+	branchOpt Optional[string],
+	container *Container,
+	sha string,
+) (string, string, error) {
 	var (
 		ref     string
 		refType string
@@ -120,55 +166,34 @@ func getRefAndRefType(ctx context.Context, opts RepoOpts, container *Container, 
 	// if branch or tag is provided, then repository cloned would be in detached head state. In that case, to work
 	// around the issue, we're using given options to get the ref. If no branch or tag is provided, then we're using
 	// the ref from the source code of the repository.
-	switch {
-	case opts.Tag != "":
-		ref = fmt.Sprintf("refs/tags/%s", opts.Tag)
+
+	if tag, ok := tagOpt.Get(); ok {
+		ref = fmt.Sprintf("refs/tags/%s", tag)
 		refType = "tag"
-	case opts.Branch != "":
-		ref = fmt.Sprintf("refs/heads/%s", opts.Branch)
+		return ref, refType, nil
+	}
+
+	if branch, ok := branchOpt.Get(); ok {
+		ref = fmt.Sprintf("refs/heads/%s", branch)
+		refType = "branch"
+		return ref, refType, nil
+	}
+
+	ref, err = getRefFromSource(ctx, container, sha)
+	if err != nil {
+		return "", "", err
+	}
+
+	switch {
+	case strings.HasPrefix(ref, "refs/tags/"):
+		refType = "tag"
+	case strings.HasPrefix(ref, "refs/heads/"):
 		refType = "branch"
 	default:
-		ref, err = getRefFromSource(ctx, container, sha)
-		if err != nil {
-			return "", "", err
-		}
-
-		switch {
-		case strings.HasPrefix(ref, "refs/tags/"):
-			refType = "tag"
-		case strings.HasPrefix(ref, "refs/heads/"):
-			refType = "branch"
-		default:
-			return "", "", fmt.Errorf("unsupported ref type: %s", ref)
-		}
+		return "", "", fmt.Errorf("unsupported ref type: %s", ref)
 	}
 
 	return ref, refType, nil
-}
-
-// getRepoSource returns the repository source based on the options provided.
-func getRepoSource(opts RepoOpts) (*Directory, error) {
-	if opts.Source != nil {
-		return opts.Source, nil
-	}
-
-	if opts.Repo == "" {
-		return nil, fmt.Errorf("either a repo or a source directory must be provided")
-	}
-
-	var (
-		gitURL  = fmt.Sprintf("https://github.com/%s.git", opts.Repo)
-		gitRepo = dag.Git(gitURL, GitOpts{KeepGitDir: true})
-	)
-
-	switch {
-	case opts.Tag != "":
-		return gitRepo.Tag(opts.Tag).Tree(), nil
-	case opts.Branch != "":
-		return gitRepo.Branch(opts.Branch).Tree(), nil
-	}
-
-	return nil, fmt.Errorf("when repo is provided, either a branch or a tag must be provided")
 }
 
 // getRefFromSource returns the ref for given head from the repository source.

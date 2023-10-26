@@ -9,9 +9,31 @@ import (
 
 type Workflows struct{}
 
-func (w *Workflows) List(ctx context.Context, repoOpts RepoOpts, dirOpts WorkflowsDirOpts) (string, error) {
-	dir := dag.Repo().Source((RepoSourceOpts)(repoOpts)).Directory(dirOpts.WorkflowsDir)
+func (w *Workflows) List(
+	ctx context.Context,
+	// The directory containing the repository source. If source is provided, rest of the options are ignored.
+	source Optional[*Directory],
+	// The name of the repository. Format: owner/name.
+	repo Optional[string],
+	// Tag name to check out. Only one of branch or tag can be used. Precedence is as follows: tag, branch.
+	tag Optional[string],
+	// Branch name to check out. Only one of branch or tag can be used. Precedence is as follows: tag, branch.
+	branch Optional[string],
+	// Path to the workflows directory. (default: .github/workflows)
+	workflowsDir Optional[string],
+) (string, error) {
+	// convert workflows list options to repo source options
+	opts := RepoSourceOpts{
+		Source: source.GetOr(nil),
+		Repo:   repo.GetOr(""),
+		Tag:    tag.GetOr(""),
+		Branch: branch.GetOr(""),
+	}
 
+	// get the repository source working directory from the options
+	dir := dag.Repo().Source(opts).Directory(workflowsDir.GetOr(".github/workflows"))
+
+	// list all entries in the workflows directory
 	entries, err := dir.Entries(ctx)
 	if err != nil {
 		return "", err
@@ -23,7 +45,7 @@ func (w *Workflows) List(ctx context.Context, repoOpts RepoOpts, dirOpts Workflo
 		// load only .yaml and .yml files
 		if strings.HasSuffix(entry, ".yaml") || strings.HasSuffix(entry, ".yml") {
 			file := dir.File(entry)
-			path := filepath.Join(dirOpts.WorkflowsDir, entry)
+			path := filepath.Join(workflowsDir.GetOr(".github/workflows"), entry)
 
 			// dagger do not support maps yet, so we're defining anonymous struct to unmarshal the yaml file to avoid
 			// hit this limitation.
@@ -33,7 +55,7 @@ func (w *Workflows) List(ctx context.Context, repoOpts RepoOpts, dirOpts Workflo
 				Jobs map[string]interface{} `yaml:"jobs"`
 			}
 
-			if err := file.unmarshalContentsToYAML(ctx, &workflow); err != nil {
+			if err := unmarshalContentsToYAML(ctx, file, &workflow); err != nil {
 				return "", err
 			}
 
@@ -57,22 +79,49 @@ func (w *Workflows) List(ctx context.Context, repoOpts RepoOpts, dirOpts Workflo
 	return sb.String(), nil
 }
 
-func (w *Workflows) Run(repoOpts RepoOpts, pathOpts WorkflowsDirOpts, runOpts WorkflowsRunOpts) *WorkflowRun {
+func (w *Workflows) Run(
+	// The directory containing the repository source. If source is provided, rest of the options are ignored.
+	source Optional[*Directory],
+	// The name of the repository. Format: owner/name.
+	repo Optional[string],
+	// Tag name to check out. Only one of branch or tag can be used. Precedence is as follows: tag, branch.
+	tag Optional[string],
+	// Branch name to check out. Only one of branch or tag can be used. Precedence is as follows: tag, branch.
+	branch Optional[string],
+	// Path to the workflows directory. (default: .github/workflows)
+	workflowsDir Optional[string],
+	// External workflow file to run.
+	workflowFile Optional[*File],
+	// Name of the workflow to run.
+	workflow Optional[string],
+	// Name of the job to run. If empty, all jobs will be run.
+	job Optional[string],
+	// Name of the event that triggered the workflow. e.g. push
+	event Optional[string],
+	// File with the complete webhook event payload.
+	eventFile Optional[*File],
+	// Image to use for the runner.
+	runnerImage Optional[string],
+	// Enables debug mode.
+	runnerDebug Optional[bool],
+	// GitHub token to use for authentication.
+	token Optional[*Secret],
+) *WorkflowRun {
 	return &WorkflowRun{
 		Config: WorkflowRunConfig{
-			Source:       repoOpts.Source,
-			Repo:         repoOpts.Repo,
-			Branch:       repoOpts.Branch,
-			Tag:          repoOpts.Tag,
-			WorkflowsDir: pathOpts.WorkflowsDir,
-			WorkflowFile: runOpts.WorkflowFile,
-			Workflow:     runOpts.Workflow,
-			Job:          runOpts.Job,
-			Event:        runOpts.Event,
-			EventFile:    runOpts.EventFile,
-			RunnerImage:  runOpts.RunnerImage,
-			RunnerDebug:  runOpts.RunnerDebug,
-			Token:        runOpts.Token,
+			Source:       source.GetOr(nil),
+			Repo:         repo.GetOr(""),
+			Branch:       branch.GetOr(""),
+			Tag:          tag.GetOr(""),
+			WorkflowsDir: workflowsDir.GetOr(".github/workflows"),
+			WorkflowFile: workflowFile.GetOr(nil),
+			Workflow:     workflow.GetOr(""),
+			Job:          job.GetOr(""),
+			Event:        event.GetOr("push"),
+			EventFile:    eventFile.GetOr(nil),
+			RunnerImage:  runnerImage.GetOr("ghcr.io/catthehacker/ubuntu:act-latest"),
+			RunnerDebug:  runnerDebug.GetOr(false),
+			Token:        token.GetOr(nil),
 		},
 	}
 }
