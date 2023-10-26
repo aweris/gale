@@ -12,21 +12,14 @@ type WorkflowRun struct {
 	Config WorkflowRunConfig
 }
 
-// Result returns executes the workflow run and returns the result.
-func (wr *WorkflowRun) Result(ctx context.Context) (string, error) {
+// Sync evaluates the workflow run and returns the container that executed the workflow.
+func (wr *WorkflowRun) Sync(ctx context.Context) (*Container, error) {
 	container, err := wr.run(ctx)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	var result WorkflowRunReport
-
-	err = container.File("/home/runner/_temp/ghx/run/workflow_run.json").unmarshalContentsToJSON(ctx, &result)
-	if err != nil {
-		return "", err
-	}
-
-	return fmt.Sprintf("Workflow %s completed with conclusion %s in %s", result.Name, result.Conclusion, result.Duration), nil
+	return container.Sync(ctx)
 }
 
 // Directory returns the directory of the workflow run information.

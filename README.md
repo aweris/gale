@@ -91,7 +91,7 @@ the help output showing the usage and options:
  Available Commands:
    config      Configuration for the workflow run.
    directory   Directory returns the directory of the workflow run information.
-   result      Result returns executes the workflow run and returns the result.
+   sync        Sync evaluates the workflow run and returns the container at executed the workflow.
 
  Flags:
        --branch string          Git branch to checkout. Used with --repo. If tag and branch are both specified, tag takes precedence.
@@ -110,10 +110,10 @@ the help output showing the usage and options:
 
 #### Sub-Commands
 
-- **result**: Returns the summary of the workflow run.
+- **sync**: Sync evaluates the workflow run and returns the container at executed the workflow.
 
 ```shell
-dagger call workflow run ... --workflow build results
+dagger call workflow run ... --workflow build sync
 ```
 
 - **directory**: Exports workflow run data.
