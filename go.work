@@ -4,6 +4,7 @@ use (
 	common
 	daggerverse/actions/runtime
 	daggerverse/gale
+	daggerverse/gha/trufflesecurity/trufflehog
 	daggerverse/repo
 	daggerverse/source
 	gha2dagger
