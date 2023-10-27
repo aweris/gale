@@ -10,7 +10,7 @@ type Source struct{}
 
 // Repo returns the source code of the repository.
 func (m *Source) Repo() *Directory {
-	return dag.Host().root()
+	return dag.Host().Directory(root())
 }
 
 func (m *Source) Ghx() *GhxSource {
@@ -30,7 +30,7 @@ type GhxSource struct{}
 
 // Code returns the source code of the ghx module.
 func (m *GhxSource) Code() *Directory {
-	return dag.Host().root(HostDirectoryOpts{
+	return dag.Host().Directory(root(), HostDirectoryOpts{
 		Include: []string{
 			"common/**/*.go",
 			"common/go.*",
@@ -63,7 +63,7 @@ func (m *GhxSource) Binary(ctx context.Context, container *Container) (*Containe
 		return nil, err
 	}
 
-	source, err := GoBase(version).
+	source, err := goBase(version).
 		With(m.MountedCode).
 		WithExec([]string{"go", "mod", "download"}).
 		WithExec([]string{"go", "build", "-o", "bin/ghx", "."}).
@@ -93,7 +93,7 @@ type ArtifactServiceSource struct{}
 
 // Code returns the source code of the artifact service.
 func (m *ArtifactServiceSource) Code() *Directory {
-	return dag.Host().root(HostDirectoryOpts{
+	return dag.Host().Directory(root(), HostDirectoryOpts{
 		Include: []string{
 			"common/**/*.go",
 			"common/go.*",
@@ -129,7 +129,7 @@ func (m *ArtifactServiceSource) Container(ctx context.Context) (*Container, erro
 		return nil, err
 	}
 
-	return GoBase(version).
+	return goBase(version).
 		With(m.MountedCode).
 		WithExec([]string{"go", "mod", "download"}).
 		WithMountedCache("/artifacts", m.CacheVolume(), ContainerWithMountedCacheOpts{Sharing: Shared}).
@@ -167,7 +167,7 @@ type ArtifactCacheServiceSource struct{}
 
 // Code returns the source code of the artifact cache service.
 func (m *ArtifactCacheServiceSource) Code() *Directory {
-	return dag.Host().root(HostDirectoryOpts{
+	return dag.Host().Directory(root(), HostDirectoryOpts{
 		Include: []string{
 			"common/**/*.go",
 			"common/go.*",
@@ -203,7 +203,7 @@ func (m *ArtifactCacheServiceSource) Container(ctx context.Context) (*Container,
 		return nil, err
 	}
 
-	return GoBase(version).
+	return goBase(version).
 		With(m.MountedCode).
 		WithExec([]string{"go", "mod", "download"}).
 		WithMountedCache("/cache", m.CacheVolume(), ContainerWithMountedCacheOpts{Sharing: Shared}).

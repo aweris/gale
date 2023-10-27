@@ -8,22 +8,88 @@ import (
 )
 
 type WorkflowRun struct {
-	// Configuration for the workflow run.
 	Config WorkflowRunConfig
 }
 
-// Sync evaluates the workflow run and returns the container that executed the workflow.
+// WorkflowRunConfig holds the configuration of a workflow run.
+type WorkflowRunConfig struct {
+	// Directory containing the repository source.
+	Source *Directory
+
+	// Name of the repository. Format: owner/name.
+	Repo string
+
+	// Branch name to check out. Only one of branch or tag can be used. Precedence: tag, branch.
+	Branch string
+
+	// Tag name to check out. Only one of branch or tag can be used. Precedence: tag, branch.
+	Tag string
+
+	// Path to the workflow directory.
+	WorkflowsDir string
+
+	// WorkflowFile is external workflow file to run.
+	WorkflowFile *File
+
+	// Workflow to run.
+	Workflow string
+
+	// Job name to run. If empty, all jobs will be run.
+	Job string
+
+	// Name of the event that triggered the workflow. e.g. push
+	Event string
+
+	// File with the complete webhook event payload.
+	EventFile *File
+
+	// Image to use for the runner.
+	RunnerImage string
+
+	// Enables debug mode.
+	RunnerDebug bool
+
+	// GitHub token to use for authentication.
+	Token *Secret
+}
+
+// FIXME: add jobs to WorkflowRunReport when dagger supports map type
+
+// WorkflowRunReport represents the result of a workflow run.
+type WorkflowRunReport struct {
+	Ran           bool   `json:"ran"`            // Ran indicates if the execution ran
+	Duration      string `json:"duration"`       // Duration of the execution
+	Name          string `json:"name"`           // Name is the name of the workflow
+	Path          string `json:"path"`           // Path is the path of the workflow
+	RunID         string `json:"run_id"`         // RunID is the ID of the run
+	RunNumber     string `json:"run_number"`     // RunNumber is the number of the run
+	RunAttempt    string `json:"run_attempt"`    // RunAttempt is the attempt number of the run
+	RetentionDays string `json:"retention_days"` // RetentionDays is the number of days to keep the run logs
+	Conclusion    string `json:"conclusion"`     // Conclusion is the result of a completed workflow run after continue-on-error is applied
+}
+
+// Sync runs the workflow and returns the container that ran the workflow.
 func (wr *WorkflowRun) Sync(ctx context.Context) (*Container, error) {
 	container, err := wr.run(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	return container.Sync(ctx)
+	return container, nil
 }
 
 // Directory returns the directory of the workflow run information.
-func (wr *WorkflowRun) Directory(ctx context.Context, opts WorkflowRunDirectoryOpts) (*Directory, error) {
+func (wr *WorkflowRun) Directory(
+	ctx context.Context,
+	// Adds the repository source to the exported directory. (default: false)
+	includeRepo Optional[bool],
+	// Adds the mounted secrets to the exported directory. (default: false)
+	includeSecrets Optional[bool],
+	// Adds the event file to the exported directory. (default: false)
+	includeEvent Optional[bool],
+	// Adds the uploaded artifacts to the exported directory. (default: false)
+	includeArtifacts Optional[bool],
+) (*Directory, error) {
 	container, err := wr.run(ctx)
 	if err != nil {
 		return nil, err
@@ -31,22 +97,22 @@ func (wr *WorkflowRun) Directory(ctx context.Context, opts WorkflowRunDirectoryO
 
 	dir := dag.Directory().WithDirectory("run", container.Directory("/home/runner/_temp/ghx/run"))
 
-	if opts.IncludeRepo {
+	if includeRepo.GetOr(false) {
 		dir = dir.WithDirectory("repo", container.Directory("."))
 	}
 
-	if opts.IncludeSecrets {
+	if includeSecrets.GetOr(false) {
 		dir = dir.WithDirectory("secrets", container.Directory("/home/runner/_temp/ghx/secrets"))
 	}
 
-	if opts.IncludeEvent && wr.Config.EventFile != nil {
+	if includeEvent.GetOr(false) && wr.Config.EventFile != nil {
 		dir = dir.WithFile("event.json", container.File("/home/runner/_temp/_github_workflow/event.json"))
 	}
 
-	if opts.IncludeArtifacts {
+	if includeArtifacts.GetOr(false) {
 		var report WorkflowRunReport
 
-		err := dir.File("run/workflow_run.json").unmarshalContentsToJSON(ctx, &report)
+		err := unmarshalContentsToJSON(ctx, dir.File("run/workflow_run.json"), &report)
 		if err != nil {
 			return nil, err
 		}
