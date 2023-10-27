@@ -6,6 +6,7 @@ use (
 	daggerverse/gale
 	daggerverse/repo
 	daggerverse/source
+	gha2dagger
 	ghx
 	services/artifact
 	services/artifactcache
