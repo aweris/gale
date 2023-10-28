@@ -2,6 +2,7 @@ go 1.21
 
 use (
 	common
+	daggerverse/actions/generator
 	daggerverse/actions/runtime
 	daggerverse/gale
 	daggerverse/gha/actions/hello-world-javascript-action
