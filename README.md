@@ -1,5 +1,7 @@
 # GitHub Action Local Executor
 
+![dagger-min-version](https://img.shields.io/badge/dagger%20version-v0.9.1-green)
+
 Welcome to project `gale`!
 
 Project `gale` is a Dagger module that allows you to run GitHub Actions locally or anywhere you can run Dagger as if 
@@ -24,7 +26,7 @@ To start using `gale`, make sure your computer has these tools:
 
 1. **Docker**: Dagger, requires [Docker](https://www.docker.com/) running on your host system.
 
-2. **Dagger CLI**: You need to install the Dagger CLI , version >= v0.9.0, to use `gale`. [Install the Dagger CLI](https://docs.dagger.io/quickstart/729236/cli)
+2. **Dagger CLI**: You need to install the Dagger CLI , version >= v0.9.1, to use `gale`. [Install the Dagger CLI](https://docs.dagger.io/quickstart/729236/cli)
 
 Once you have these tools, you are ready to install and use `gale`.
 
