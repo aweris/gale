@@ -49,12 +49,15 @@ func (m *ActionsGenerator) Generate(
 		WithExec(cmdModInit, opt).
 		WithExec(cmdModUse, opt).
 		Directory("/module").
-		WithoutFile("main.go").       // remove initial main.go from the directory
-		WithFile("main.go", main).    // add generated main.go
-		WithFile("README.md", readme) // add generated README.md
+		WithoutFile("main.go").                                                                // remove initial main.go from the directory
+		WithFile("main.go", main).                                                             // add generated main.go
+		WithFile("README.md", readme).                                                         // add generated README.md
+		WithNewFile(".gitignore", "/dagger.gen.go\n/internal/querybuilder/\n/querybuilder/\n") // add generated .gitignore
+
+	// FIXME: need to look why .gitignore is not being added to the module. For now, we are generating it manually.
 
 	// return a directory prefixed with the owner/repo name to simplify extraction of the module to host filesystem
-	return dag.Directory().WithDirectory(ca.Repo, source), nil
+	return dag.Directory().WithDirectory(ca.Repo, source, DirectoryWithDirectoryOpts{Include: []string{"**/*", ".git*"}}), nil
 }
 
 // dagger returns a dagger container with the specified dagger version. If no version is specified, the latest version
