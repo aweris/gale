@@ -1,0 +1,7 @@
+{
+  "name": "trivy-action",
+  "sdk": "go",
+  "dependencies": [
+    "github.com/aweris/gale/daggerverse/actions/runtime@01999763545556511d53a8649fb66ffe4e977d8f"
+  ]
+}
