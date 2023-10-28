@@ -13,7 +13,7 @@ import (
 	"github.com/aweris/gale/common/model"
 )
 
-type CustomAction struct {
+type action struct {
 	// Repo is the repository name in the form "owner/repo".
 	Repo string
 
@@ -30,7 +30,7 @@ type CustomAction struct {
 	Meta model.CustomActionMeta
 }
 
-func NewCustomAction(source string) (*CustomAction, error) {
+func getCustomAction(source string) (*action, error) {
 	regex := regexp.MustCompile(`^([^/]+)/([^/@]+)(?:/([^@]+))?@(.+)$`)
 	matches := regex.FindStringSubmatch(source)
 
@@ -48,9 +48,23 @@ func NewCustomAction(source string) (*CustomAction, error) {
 	resp, err := http.Get(fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/action.yml", repo, ref))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error downloading action.yml: %v\n", err)
-		os.Exit(1)
 	}
 	defer resp.Body.Close()
+
+	// if action.yml does not exist, try action.yaml instead. // FIXME: Find a better way to do this.
+	if resp.StatusCode == http.StatusNotFound {
+		println(fmt.Sprintf("==> action.yml not found for %s@%s. Trying action.yaml instead...", repo, ref))
+
+		resp, err = http.Get(fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/action.yaml", repo, ref))
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error downloading action.yaml: %v\n", err)
+		}
+		// defer already called above, so no need to call again
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("error downloading action.yaml: %v", resp.Status)
+	}
 
 	contents, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -63,7 +77,7 @@ func NewCustomAction(source string) (*CustomAction, error) {
 		panic(err)
 	}
 
-	return &CustomAction{
+	return &action{
 		Owner:    owner,
 		RepoName: name,
 		Repo:     repo,

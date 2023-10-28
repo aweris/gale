@@ -2,13 +2,13 @@ go 1.21
 
 use (
 	common
+	daggerverse/actions/generator
 	daggerverse/actions/runtime
 	daggerverse/gale
 	daggerverse/gha/actions/hello-world-javascript-action
 	daggerverse/gha/trufflesecurity/trufflehog
 	daggerverse/repo
 	daggerverse/source
-	gha2dagger
 	ghx
 	services/artifact
 	services/artifactcache
