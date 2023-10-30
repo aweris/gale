@@ -1,0 +1,7 @@
+kind: Added
+body: '- **Generate trufflesecurity/trufflehog Module**: Adds codebase security scanning
+  features'
+time: 2023-10-30T15:07:17.90655+01:00
+custom:
+  Author: aweris
+  PR: "157"

@@ -1,0 +1,6 @@
+kind: Added
+body: '**Generate actions/hello-world-javascript-action Module**: Adds a sample action written in JavaScript'
+time: 2023-10-30T15:07:48.492173+01:00
+custom:
+  Author: aweris
+  PR: "158"

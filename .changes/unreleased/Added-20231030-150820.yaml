@@ -1,0 +1,7 @@
+kind: Added
+body: '**Add actions-generator to Daggerverse**: Adds a new module to the project
+  that generates a new Daggerverse project from given Github Custom Action repository'
+time: 2023-10-30T15:08:20.823351+01:00
+custom:
+  Author: aweris
+  PR: "159"
