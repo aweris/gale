@@ -1,5 +1,5 @@
 {
   "name": "actions-generator",
-  "sdk": "go",
-  "root": "../../.."
+  "root": "../../..",
+  "sdk": "go"
 }
