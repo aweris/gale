@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -144,9 +145,12 @@ func (c *ContainerExecutor) Execute(ctx *context.Context) error {
 
 	out := strings.TrimSpace(strings.Join([]string{strings.TrimSpace(stdout), strings.TrimSpace(stderr)}, ""))
 
+	failed := false
+
 	// it seems that dagger no longer returns the stdout or stderr when the container fails. However, same information
 	// is available in the error message. So, we extract the stdout and stderr from the error message.
-	if out == "" {
+	if out == "" && err != nil {
+		failed = true
 		out = extractLogFromError(err)
 	}
 
@@ -159,7 +163,17 @@ func (c *ContainerExecutor) Execute(ctx *context.Context) error {
 		}
 	}
 
-	return efs.Process(ctx)
+	if err := efs.Process(ctx); err != nil {
+		return err
+	}
+
+	// if the container failed, return a simple error. Dagger error contains dag information which is not useful for
+	// the user.
+	if failed {
+		return errors.New("step execution encountered an error")
+	}
+
+	return nil
 }
 
 // extractLogFromError extracts the stdout and stderr from the error message
