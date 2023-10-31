@@ -7,54 +7,54 @@ type TrivyAction struct{}
 
 // Runs the aquasecurity/trivy-action GitHub Action.
 func (m TrivyAction) Run(
-	// GitHub Personal Access Token (PAT) for submitting SBOM to GitHub Dependency Snapshot API
-	withGithubPat Optional[string],
-	// timeout (default 5m0s)
-	withTimeout Optional[string],
-	// comma-separated list of what security issues to detect
-	withScanners Optional[string],
-	// exit code when vulnerabilities were found
-	withExitCode Optional[string],
-	// severities of vulnerabilities to be displayed
-	withSeverity Optional[string],
-	// output format (table, json, template)
-	withFormat Optional[string],
-	// comma separated list of directories where traversal is skipped
-	withSkipDirs Optional[string],
-	// specify where the cache is stored
-	withCacheDir Optional[string],
-	// output all packages regardless of vulnerability
-	withListAllPkgs Optional[string],
-	// reference of tar file to scan
-	withInput Optional[string],
-	// Scan reference
-	withScanRef Optional[string],
-	// use an existing template for rendering output (@/contrib/gitlab.tpl, @/contrib/junit.tpl, @/contrib/html.tpl)
-	withTemplate Optional[string],
-	// writes results to a file with the specified file name
-	withOutput Optional[string],
-	// input artifact type (image, fs, repo, archive) for SBOM generation
-	withArtifactType Optional[string],
-	// ignore unfixed vulnerabilities
-	withIgnoreUnfixed Optional[string],
+	// image reference(for backward compatibility)
+	withImageRef Optional[string],
 	// comma-separated list of vulnerability types (os,library)
 	withVulnType Optional[string],
+	// use an existing template for rendering output (@/contrib/gitlab.tpl, @/contrib/junit.tpl, @/contrib/html.tpl)
+	withTemplate Optional[string],
+	// comma separated list of directories where traversal is skipped
+	withSkipDirs Optional[string],
+	// timeout (default 5m0s)
+	withTimeout Optional[string],
+	// output all packages regardless of vulnerability
+	withListAllPkgs Optional[string],
+	// Scan type to use for scanning vulnerability
+	withScanType Optional[string],
+	// output format (table, json, template)
+	withFormat Optional[string],
 	// comma separated list of files to be skipped
 	withSkipFiles Optional[string],
-	// filter vulnerabilities with OPA rego language
-	withIgnorePolicy Optional[string],
-	// hide progress output
-	withHideProgress Optional[string],
+	// comma-separated list of what security issues to detect
+	withScanners Optional[string],
 	// comma-separated list of relative paths in repository to one or more .trivyignore files
 	withTrivyignores Optional[string],
+	// GitHub Personal Access Token (PAT) for submitting SBOM to GitHub Dependency Snapshot API
+	withGithubPat Optional[string],
+	// exit code when vulnerabilities were found
+	withExitCode Optional[string],
+	// ignore unfixed vulnerabilities
+	withIgnoreUnfixed Optional[string],
+	// writes results to a file with the specified file name
+	withOutput Optional[string],
+	// filter vulnerabilities with OPA rego language
+	withIgnorePolicy Optional[string],
 	// path to trivy.yaml config
 	withTrivyConfig Optional[string],
 	// limit severities for SARIF format
 	withLimitSeveritiesForSarif Optional[string],
-	// Scan type to use for scanning vulnerability
-	withScanType Optional[string],
-	// image reference(for backward compatibility)
-	withImageRef Optional[string],
+	// reference of tar file to scan
+	withInput Optional[string],
+	// Scan reference
+	withScanRef Optional[string],
+	// severities of vulnerabilities to be displayed
+	withSeverity Optional[string],
+	// specify where the cache is stored
+	withCacheDir Optional[string],
+	// hide progress output
+	withHideProgress Optional[string],
+	// input artifact type (image, fs, repo, archive) for SBOM generation
+	withArtifactType Optional[string],
 	// Directory containing the repository source. Takes precedence over `--repo`.
 	source Optional[*Directory],
 	// Repository name, format: owner/name. Takes precedence over `--source`.
@@ -83,29 +83,29 @@ func (m TrivyAction) Run(
 
 	return dag.ActionsRuntime().
 		Run("aquasecurity/trivy-action@master", opts).
-		WithInput("timeout", withTimeout.GetOr("")).
-		WithInput("scanners", withScanners.GetOr("")).
-		WithInput("github-pat", withGithubPat.GetOr("")).
-		WithInput("severity", withSeverity.GetOr("UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL")).
-		WithInput("format", withFormat.GetOr("table")).
-		WithInput("skip-dirs", withSkipDirs.GetOr("")).
 		WithInput("cache-dir", withCacheDir.GetOr("")).
-		WithInput("list-all-pkgs", withListAllPkgs.GetOr("false")).
+		WithInput("hide-progress", withHideProgress.GetOr("")).
+		WithInput("artifact-type", withArtifactType.GetOr("")).
 		WithInput("input", withInput.GetOr("")).
 		WithInput("scan-ref", withScanRef.GetOr(".")).
-		WithInput("exit-code", withExitCode.GetOr("")).
-		WithInput("output", withOutput.GetOr("")).
-		WithInput("artifact-type", withArtifactType.GetOr("")).
-		WithInput("ignore-unfixed", withIgnoreUnfixed.GetOr("false")).
+		WithInput("severity", withSeverity.GetOr("UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL")).
+		WithInput("skip-dirs", withSkipDirs.GetOr("")).
+		WithInput("timeout", withTimeout.GetOr("")).
+		WithInput("list-all-pkgs", withListAllPkgs.GetOr("false")).
+		WithInput("image-ref", withImageRef.GetOr("")).
 		WithInput("vuln-type", withVulnType.GetOr("os,library")).
 		WithInput("template", withTemplate.GetOr("")).
-		WithInput("ignore-policy", withIgnorePolicy.GetOr("")).
-		WithInput("hide-progress", withHideProgress.GetOr("")).
+		WithInput("scanners", withScanners.GetOr("")).
 		WithInput("trivyignores", withTrivyignores.GetOr("")).
+		WithInput("github-pat", withGithubPat.GetOr("")).
+		WithInput("scan-type", withScanType.GetOr("image")).
+		WithInput("format", withFormat.GetOr("table")).
+		WithInput("skip-files", withSkipFiles.GetOr("")).
+		WithInput("ignore-policy", withIgnorePolicy.GetOr("")).
 		WithInput("trivy-config", withTrivyConfig.GetOr("")).
 		WithInput("limit-severities-for-sarif", withLimitSeveritiesForSarif.GetOr("")).
-		WithInput("scan-type", withScanType.GetOr("image")).
-		WithInput("image-ref", withImageRef.GetOr("")).
-		WithInput("skip-files", withSkipFiles.GetOr("")).
+		WithInput("exit-code", withExitCode.GetOr("")).
+		WithInput("ignore-unfixed", withIgnoreUnfixed.GetOr("false")).
+		WithInput("output", withOutput.GetOr("")).
 		Sync()
 }

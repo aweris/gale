@@ -7,14 +7,14 @@ type Trufflehog struct{}
 
 // Runs the trufflesecurity/trufflehog GitHub Action.
 func (m Trufflehog) Run(
+	// Repository path
+	withPath string,
 	// Start scanning from here (usually main branch).
 	withBase Optional[string],
 	// Scan commits until here (usually dev branch).
 	withHead Optional[string],
 	// Extra args to be passed to the trufflehog cli.
 	withExtraArgs Optional[string],
-	// Repository path
-	withPath string,
 	// Directory containing the repository source. Takes precedence over `--repo`.
 	source Optional[*Directory],
 	// Repository name, format: owner/name. Takes precedence over `--source`.
@@ -43,9 +43,9 @@ func (m Trufflehog) Run(
 
 	return dag.ActionsRuntime().
 		Run("trufflesecurity/trufflehog@main", opts).
+		WithInput("path", withPath).
 		WithInput("base", withBase.GetOr("")).
 		WithInput("head", withHead.GetOr("")).
 		WithInput("extra_args", withExtraArgs.GetOr("")).
-		WithInput("path", withPath).
 		Sync()
 }

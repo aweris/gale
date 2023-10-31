@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-const DefaultRuntimeRef = "01999763545556511d53a8649fb66ffe4e977d8f"
+const DefaultRuntimeRef = "c9b01b328a59ec6452eb451ebf0e9b2a1280a504"
 
 // ActionsGenerator generates dagger modules using Github Actions.
 type ActionsGenerator struct{}
