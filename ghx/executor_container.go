@@ -96,6 +96,8 @@ func (c *ContainerExecutor) Execute(ctx *context.Context) error {
 
 	if len(args) > 0 {
 		c.container = c.container.WithExec(args, dagger.ContainerWithExecOpts{ExperimentalPrivilegedNesting: true})
+	} else {
+		c.container = c.container.WithExec(nil, dagger.ContainerWithExecOpts{ExperimentalPrivilegedNesting: true})
 	}
 
 	env := make(map[string]string)
@@ -137,12 +139,15 @@ func (c *ContainerExecutor) Execute(ctx *context.Context) error {
 		c.container = c.container.WithEnvVariable(k, v)
 	}
 
-	// TODO: if no args are provided, we need to execute the container with the default entrypoint and args
-	//  however this is causing an error since Stdout is looking for last execs output. We need to find a way to
-	//  execute the container without execs and get the output.
-	out, err := c.container.Stdout(ctx.Context)
-	if err != nil {
-		return err
+	stdout, _ := c.container.Stdout(ctx.Context)
+	stderr, err := c.container.Stderr(ctx.Context)
+
+	out := strings.TrimSpace(strings.Join([]string{strings.TrimSpace(stdout), strings.TrimSpace(stderr)}, ""))
+
+	// it seems that dagger no longer returns the stdout or stderr when the container fails. However, same information
+	// is available in the error message. So, we extract the stdout and stderr from the error message.
+	if out == "" {
+		out = extractLogFromError(err)
 	}
 
 	scanner := bufio.NewScanner(strings.NewReader(out))
@@ -155,4 +160,18 @@ func (c *ContainerExecutor) Execute(ctx *context.Context) error {
 	}
 
 	return efs.Process(ctx)
+}
+
+// extractLogFromError extracts the stdout and stderr from the error message
+func extractLogFromError(err error) string {
+	parts := strings.Split(err.Error(), "Stderr:")
+	stdoutPart := strings.Split(parts[0], "Stdout:")
+
+	if len(stdoutPart) > 1 && len(parts) > 1 {
+		stdout := strings.TrimSpace(stdoutPart[1])
+		stderr := strings.TrimSpace(parts[1])
+		return stdout + "\n" + stderr
+	}
+
+	return ""
 }
