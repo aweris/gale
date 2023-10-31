@@ -1,6 +1,6 @@
 # Module: Aqua Security Trivy
 
-![dagger-min-version](https://img.shields.io/badge/dagger%20version-v0.9.1-green)
+![dagger-min-version](https://img.shields.io/badge/dagger%20version-v0.9.2-green)
 
 Scans container images for vulnerabilities with Trivy
 

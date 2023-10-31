@@ -1,6 +1,6 @@
 # Module: TruffleHog OSS
 
-![dagger-min-version](https://img.shields.io/badge/dagger%20version-v0.9.1-green)
+![dagger-min-version](https://img.shields.io/badge/dagger%20version-v0.9.2-green)
 
 Scan Github Actions with TruffleHog
 
