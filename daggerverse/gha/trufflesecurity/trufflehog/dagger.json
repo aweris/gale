@@ -2,6 +2,6 @@
   "name": "trufflehog",
   "sdk": "go",
   "dependencies": [
-    "github.com/aweris/gale/daggerverse/actions/runtime@c9b01b328a59ec6452eb451ebf0e9b2a1280a504"
+    "github.com/aweris/gale/daggerverse/actions/runtime@da8e5dada0126583ef9201b8d6b494af765b7d31"
   ]
 }
