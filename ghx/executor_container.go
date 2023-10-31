@@ -26,7 +26,7 @@ func NewContainerExecutorFromStepDocker(sd *StepDocker) *ContainerExecutor {
 	return &ContainerExecutor{
 		entrypoint: sd.Step.With["entrypoint"],
 		args:       []string{sd.Step.With["args"]},
-		cp:         NewEnvCommandsProcessor(),
+		cp:         NewCommandProcessor(),
 		container:  sd.container,
 	}
 }
@@ -35,7 +35,7 @@ func NewContainerExecutorFromStepAction(sa *StepAction, entrypoint string) *Cont
 	return &ContainerExecutor{
 		entrypoint: entrypoint,
 		args:       sa.Action.Meta.Runs.Args,
-		cp:         NewEnvCommandsProcessor(),
+		cp:         NewCommandProcessor(),
 		container:  sa.container,
 	}
 }
