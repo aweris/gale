@@ -1,7 +1,0 @@
-kind: Breaking
-body: |
-  **Major Refactoring**: The project has been restructured to use Dagger modules instead of a standalone CLI. The execution flow now relies solely on Dagger.
-time: 2023-10-30T15:00:18.73339+01:00
-custom:
-  Author: aweris
-  PR: "144"

@@ -1,6 +1,0 @@
-kind: Added
-body: '**Add actions-runtime to Daggerverse**: Adds the ability to run single GitHub Actions'
-time: 2023-10-30T15:06:41.858541+01:00
-custom:
-  Author: aweris
-  PR: "156"

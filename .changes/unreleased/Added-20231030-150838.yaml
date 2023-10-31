@@ -1,7 +1,0 @@
-kind: Added
-body: '**Generate aquasecurity/trivy-Action Module**: Adds security scanning capabilities
-  to the project'
-time: 2023-10-30T15:08:38.015676+01:00
-custom:
-  Author: aweris
-  PR: "162"
