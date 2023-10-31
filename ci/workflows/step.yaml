@@ -35,11 +35,11 @@ jobs:
         with:
           args: log --pretty=oneline
 
-      - name: Print go.mod
+      - name: Print go.work
         uses: docker://alpine:latest
         with:
           entrypoint: /bin/cat
-          args: go.mod
+          args: go.work
 
       - name: Use env and expression
         uses: docker://alpine:latest
