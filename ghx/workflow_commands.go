@@ -44,30 +44,6 @@ type CommandProcessor struct {
 	exclude map[CommandName]bool // exclude is a map of command names to exclude from processing
 }
 
-// NewLoggingCommandProcessor creates a new command processor that processes logging commands.
-func NewLoggingCommandProcessor() *CommandProcessor {
-	return NewCommandProcessor(
-		CommandNameSetEnv,
-		CommandNameSetOutput,
-		CommandNameSaveState,
-		CommandNameAddMask,
-		CommandNameAddMatcher,
-		CommandNameAddPath,
-	)
-}
-
-// NewEnvCommandsProcessor returns a new command processor that processes commands that manipulate execution environment.
-func NewEnvCommandsProcessor() *CommandProcessor {
-	return NewCommandProcessor(
-		CommandNameGroup,
-		CommandNameEndGroup,
-		CommandNameDebug,
-		CommandNameError,
-		CommandNameWarning,
-		CommandNameNotice,
-	)
-}
-
 func NewCommandProcessor(excluded ...CommandName) *CommandProcessor {
 	exclude := make(map[CommandName]bool, len(excluded))
 

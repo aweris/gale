@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 
+	"dagger.io/dagger"
+
 	"github.com/aweris/gale/common/fs"
 	"github.com/aweris/gale/ghx/context"
 )
@@ -12,7 +14,7 @@ import (
 func main() {
 	stdctx := stdContext.Background()
 
-	client, err := getDaggerClient(stdctx)
+	client, err := dagger.Connect(stdctx, dagger.WithLogOutput(os.Stdout))
 	if err != nil {
 		fmt.Printf("failed to get dagger client: %v", err)
 		os.Exit(1)
