@@ -1,6 +1,6 @@
 module github.com/aweris/gale/services/artifact
 
-go 1.21
+go 1.21.3
 
 require (
 	github.com/aweris/gale/common v0.0.0-00010101000000-000000000000

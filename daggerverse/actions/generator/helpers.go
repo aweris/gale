@@ -1,6 +1,7 @@
 package main
 
 import (
+	"sort"
 	"strings"
 
 	"golang.org/x/text/cases"
@@ -30,4 +31,17 @@ func toTitleCase(str string) string {
 		words[i] = title.String(words[i])
 	}
 	return strings.Join(words, "")
+}
+
+// getSortedKeys returns a sorted list of keys from a map.
+func getSortedKeys[T any](m map[string]T) []string {
+	var keys []string
+
+	for k := range m {
+		keys = append(keys, k)
+	}
+
+	sort.Strings(keys)
+
+	return keys
 }

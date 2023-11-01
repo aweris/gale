@@ -35,12 +35,14 @@ func (m *ActionsGenerator) Generate(
 	readme := generateModuleREADME(ca, daggerVersion.GetOr("v0.9.1"))
 
 	var (
-		runtime    = runtimeVersion.GetOr(DefaultRuntimeRef)
-		runtimeDep = fmt.Sprintf("github.com/aweris/gale/daggerverse/actions/runtime@%s", runtime)
-		dagger     = dagger(daggerVersion)
-		opt        = ContainerWithExecOpts{ExperimentalPrivilegedNesting: true}
-		cmdModInit = []string{"mod", "init", "--name", filepath.Base(ca.Repo), "--sdk", "go", "--silent"}
-		cmdModUse  = []string{"mod", "use", runtimeDep}
+		runtime     = runtimeVersion.GetOr(DefaultRuntimeRef)
+		runtimeDep  = fmt.Sprintf("github.com/aweris/gale/daggerverse/actions/runtime@%s", runtime)
+		dagger      = dagger(daggerVersion)
+		opt         = ContainerWithExecOpts{ExperimentalPrivilegedNesting: true}
+		moduleName  = filepath.Base(ca.Repo)
+		cmdModInit  = []string{"mod", "init", "--name", moduleName, "--sdk", "go", "--silent"}
+		cmdModUse   = []string{"mod", "use", runtimeDep}
+		cmdFixGoMod = []string{"sed", "-i", "s/module main/module " + moduleName + "/", "go.mod"} // replace module main with module <module-name> in go.mod
 	)
 
 	// create a new dagger module and replace the initial main.go with the generated main.go
@@ -48,6 +50,7 @@ func (m *ActionsGenerator) Generate(
 		WithWorkdir("/module").
 		WithExec(cmdModInit, opt).
 		WithExec(cmdModUse, opt).
+		WithExec(cmdFixGoMod, ContainerWithExecOpts{SkipEntrypoint: true}).
 		Directory("/module").
 		WithoutFile("main.go").                                                                // remove initial main.go from the directory
 		WithFile("main.go", main).                                                             // add generated main.go

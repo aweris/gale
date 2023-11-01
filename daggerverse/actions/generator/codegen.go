@@ -96,7 +96,9 @@ func generateRunFnBody(ca *action) *jen.Statement {
 func generateParams(caInputs map[string]model.CustomActionInput) []jen.Code {
 	params := make([]jen.Code, 0, len(caInputs)+len(DefaultRuntimeParams)+1) // +1 for newline after last param
 
-	for inputName, input := range caInputs {
+	// use sorted keys to ensure consistent output
+	for _, inputName := range getSortedKeys(caInputs) {
+		input := caInputs[inputName]
 		param := jen.Line().Comment(input.Description).Line().Id(formatActionInputName(inputName))
 		if !input.Required || input.Default != "" {
 			param.Id("Optional[string]")
@@ -115,13 +117,17 @@ func generateParams(caInputs map[string]model.CustomActionInput) []jen.Code {
 // generateInputs generates the WithInput calls for the action/runtime module call.
 func generateInputs(caInputs map[string]model.CustomActionInput) []jen.Code {
 	inputs := make([]jen.Code, 0, len(caInputs))
-	for inputName, input := range caInputs {
+
+	// use sorted keys to ensure consistent output
+	for _, inputName := range getSortedKeys(caInputs) {
+		input := caInputs[inputName]
 		callType := jen.Id(formatActionInputName(inputName))
 		if !input.Required || input.Default != "" {
 			callType = callType.Dot("GetOr").Call(jen.Lit(input.Default))
 		}
 		inputs = append(inputs, jen.Dot(startWithNewLine("WithInput")).Call(jen.Lit(inputName), callType))
 	}
+
 	return inputs
 }
 

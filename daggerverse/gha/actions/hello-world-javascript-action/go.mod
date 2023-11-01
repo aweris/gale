@@ -1,6 +1,6 @@
 module hello-world-javascript-action
 
-go 1.21
+go 1.21.3
 
 require (
 	github.com/99designs/gqlgen v0.17.31

@@ -34,8 +34,12 @@ func generateModuleREADME(ca *action, daggerVersion string) *File {
 
 	if len(ca.Meta.Inputs) > 0 {
 		writeTableHeader(sb, []string{"Name", "Required", "Description", "Default"})
-		for name, value := range ca.Meta.Inputs {
-			fmt.Fprintf(sb, "| --with-%s | %t | %s | %s |\n", strings.Replace(name, "_", "-", -1), value.Required, value.Description, value.Default)
+
+		// use sorted keys to ensure consistent output
+		for _, name := range getSortedKeys(ca.Meta.Inputs) {
+			value := ca.Meta.Inputs[name]
+
+			fmt.Fprintf(sb, "| %s | %t | %s | %s |\n", name, value.Required, value.Description, value.Default)
 		}
 	} else {
 		sb.WriteString("This action has no inputs.")
@@ -81,7 +85,9 @@ func generateModuleREADME(ca *action, daggerVersion string) *File {
 		},
 	}
 
-	for flag, info := range flags {
+	// use sorted keys to ensure consistent output
+	for _, flag := range getSortedKeys(flags) {
+		info := flags[flag]
 		fmt.Fprintf(sb, "| %s | %s | %s |\n", flag, info.Required, info.Desc)
 	}
 
