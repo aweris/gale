@@ -85,7 +85,9 @@ func generateModuleREADME(ca *action, daggerVersion string) *File {
 		},
 	}
 
-	for flag, info := range flags {
+	// use sorted keys to ensure consistent output
+	for _, flag := range getSortedKeys(flags) {
+		info := flags[flag]
 		fmt.Fprintf(sb, "| %s | %s | %s |\n", flag, info.Required, info.Desc)
 	}
 
