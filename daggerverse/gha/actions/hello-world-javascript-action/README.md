@@ -1,6 +1,6 @@
 # Module: Hello World
 
-![dagger-min-version](https://img.shields.io/badge/dagger%20version-v0.9.2-green)
+![dagger-min-version](https://img.shields.io/badge/dagger%20version-v0.9.1-green)
 
 Greet someone and record the time
 
@@ -22,7 +22,7 @@ Replace `<module-path>` with the local path or a git repo reference to the modul
 
 | Name | Required | Description | Default | 
 | ------| ------| ------| ------| 
-| --with-who-to-greet | true | Who to greet | World |
+| who-to-greet | true | Who to greet | World |
 
 
 ### Action Runtime Inputs
