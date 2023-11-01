@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -12,6 +13,7 @@ const DefaultRuntimeRef = "da8e5dada0126583ef9201b8d6b494af765b7d31"
 type ActionsGenerator struct{}
 
 func (m *ActionsGenerator) Generate(
+	ctx context.Context,
 	// The Github Actions repository to generate dagger modules for. Format: <action-repo>@<version>
 	action string,
 	// The actions/runtime version to use. If not specified, the default version will be used.
@@ -31,8 +33,13 @@ func (m *ActionsGenerator) Generate(
 		return nil, err
 	}
 
+	version, err := latestDaggerVersion(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	// FIXME: need to look for latest dagger version. Not static version.
-	readme := generateModuleREADME(ca, daggerVersion.GetOr("v0.9.1"))
+	readme := generateModuleREADME(ca, daggerVersion.GetOr(version))
 
 	var (
 		runtime     = runtimeVersion.GetOr(DefaultRuntimeRef)
@@ -80,4 +87,25 @@ func dagger(daggerVersion Optional[string]) *Container {
 		WithExec([]string{"apk", "add", "curl"}).
 		WithExec([]string{"sh", "-c", fmt.Sprintf("curl -L https://dl.dagger.io/dagger/install.sh | %s sh", version)}).
 		WithEntrypoint([]string{"/bin/dagger"})
+}
+
+// latestDaggerVersion returns the latest dagger version.
+func latestDaggerVersion(ctx context.Context) (string, error) {
+	versions, err := dag.Container().From("alpine/git:latest").
+		WithExec([]string{"ls-remote", "--tags", "--sort=-v:refname", "https://github.com/dagger/dagger.git"}).
+		Stdout(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	// get the first line
+	version := strings.Split(versions, "\n")[0]
+
+	// get second column from the line
+	version = strings.Split(version, "\t")[1]
+
+	// remove refs/tags/ from the version
+	version = strings.TrimPrefix(version, "refs/tags/")
+
+	return version, nil
 }
