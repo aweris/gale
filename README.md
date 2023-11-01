@@ -74,7 +74,7 @@ dagger call workflows list --source "."
 List workflows for a specific repository and directory:
 
 ```shell
-dagger call workflows list --repo aweris/gale --branch main --workflows-dir ci/workflows
+dagger call workflows list --repo aweris/gale --branch main --workflows-dir examples/workflows
 ```
 
 ### Run a Workflow
