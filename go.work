@@ -1,6 +1,7 @@
 go 1.21.3
 
 use (
+	ci
 	common
 	daggerverse/actions/generator
 	daggerverse/actions/runtime
