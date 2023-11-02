@@ -11,33 +11,17 @@ type Repo struct{}
 
 // RepoInfo represents a repository information.
 type RepoInfo struct {
-	Owner         string // Owner of the repository.
-	Name          string // Name of the repository.
-	NameWithOwner string // NameWithOwner combined version of owner and name. Format: owner/name.
-	URL           string // URL of the repository.
-	Ref           string // Ref is the branch or tag ref that triggered the workflow
-	RefName       string // RefName is the short name (without refs/heads/ prefix) of the branch or tag ref that triggered the workflow.
-	RefType       string // RefType is the type of ref that triggered the workflow. Possible values are branch, tag, or empty, if neither
-	SHA           string // SHA is the commit SHA that triggered the workflow. The value of this commit SHA depends on the event that
-	ShortSHA      string // ShortSHA is the short commit SHA that triggered the workflow. The value of this commit SHA depends on the event that
-	IsRemote      bool   // IsRemote is true if the ref is a remote ref.
-}
-
-// TODO: follow up
-// this method is separate from the RepoInfo struct because we're not able to return *Directory as part of RepoInfo.
-// Until it is fixed, we're returning *Directory from this method.
-
-func (_ *Repo) Source(
-	// The directory containing the repository source. If source is provided, rest of the options are ignored.
-	source Optional[*Directory],
-	// The name of the repository. Format: owner/name.
-	repo Optional[string],
-	// Tag name to check out. Only one of branch or tag can be used. Precedence is as follows: tag, branch.
-	tag Optional[string],
-	// Branch name to check out. Only one of branch or tag can be used. Precedence is as follows: tag, branch.
-	branch Optional[string],
-) (*Directory, error) {
-	return getRepoSource(source, repo, tag, branch)
+	Owner         string     // Owner of the repository.
+	Name          string     // Name of the repository.
+	NameWithOwner string     // NameWithOwner combined version of owner and name. Format: owner/name.
+	URL           string     // URL of the repository.
+	Ref           string     // Ref is the branch or tag ref that triggered the workflow
+	RefName       string     // RefName is the short name (without refs/heads/ prefix) of the branch or tag ref that triggered the workflow.
+	RefType       string     // RefType is the type of ref that triggered the workflow. Possible values are branch, tag, or empty, if neither
+	SHA           string     // SHA is the commit SHA that triggered the workflow. The value of this commit SHA depends on the event that
+	ShortSHA      string     // ShortSHA is the short commit SHA that triggered the workflow. The value of this commit SHA depends on the event that
+	IsRemote      bool       // IsRemote is true if the ref is a remote ref.
+	Source        *Directory // Source is the directory containing the repository source.
 }
 
 func (_ *Repo) Info(
@@ -102,6 +86,7 @@ func (_ *Repo) Info(
 		SHA:           sha,
 		ShortSHA:      shortSHA,
 		IsRemote:      !isLocal,
+		Source:        dir,
 	}, nil
 }
 
@@ -112,7 +97,11 @@ func (ri *RepoInfo) Workdir() string {
 
 // Configure configures the container with the repository information.
 func (ri *RepoInfo) Configure(_ context.Context, c *Container) (*Container, error) {
-	return c.WithEnvVariable("GH_REPO", ri.NameWithOwner).
+	workdir := ri.Workdir()
+	return c.WithMountedDirectory(workdir, ri.Source).
+		WithWorkdir(workdir).
+		WithEnvVariable("GITHUB_WORKSPACE", workdir).
+		WithEnvVariable("GH_REPO", ri.NameWithOwner).
 		WithEnvVariable("GITHUB_REPOSITORY", ri.NameWithOwner).
 		WithEnvVariable("GITHUB_REPOSITORY_OWNER", ri.Owner).
 		WithEnvVariable("GITHUB_REPOSITORY_URL", ri.URL).
