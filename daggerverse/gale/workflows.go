@@ -23,7 +23,7 @@ func (w *Workflows) List(
 	workflowsDir Optional[string],
 ) (string, error) {
 	// convert workflows list options to repo source options
-	opts := RepoSourceOpts{
+	opts := RepoInfoOpts{
 		Source: source.GetOr(nil),
 		Repo:   repo.GetOr(""),
 		Tag:    tag.GetOr(""),
@@ -31,7 +31,10 @@ func (w *Workflows) List(
 	}
 
 	// get the repository source working directory from the options
-	dir := dag.Repo().Source(opts).Directory(workflowsDir.GetOr(".github/workflows"))
+	dir := dag.Repo().
+		Info(opts).
+		Source().
+		Directory(workflowsDir.GetOr(".github/workflows"))
 
 	// list all entries in the workflows directory
 	entries, err := dir.Entries(ctx)

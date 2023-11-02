@@ -171,30 +171,15 @@ func (wr *WorkflowRun) container(ctx context.Context) (*Container, error) {
 	container = container.With(dag.Source().ArtifactService().BindAsService)
 	container = container.With(dag.Source().ArtifactCacheService().BindAsService)
 
-	// configure repo -- when *Directory can be included in to repo info, we can move source mounting to repo module as well
-	var (
-		info = dag.Repo().Info(RepoInfoOpts{
-			Source: wr.Config.Source,
-			Repo:   wr.Config.Repo,
-			Branch: wr.Config.Branch,
-			Tag:    wr.Config.Tag,
-		})
-		source = dag.Repo().Source(RepoSourceOpts{
-			Source: wr.Config.Source,
-			Repo:   wr.Config.Repo,
-			Branch: wr.Config.Branch,
-			Tag:    wr.Config.Tag,
-		})
-	)
-
-	workdir, err := info.Workdir(ctx)
-	if err != nil {
-		return nil, err
-	}
+	// configure repo
+	info := dag.Repo().Info(RepoInfoOpts{
+		Source: wr.Config.Source,
+		Repo:   wr.Config.Repo,
+		Branch: wr.Config.Branch,
+		Tag:    wr.Config.Tag,
+	})
 
 	container = container.With(info.Configure)
-	container = container.WithMountedDirectory(workdir, source).WithWorkdir(workdir)
-	container = container.WithEnvVariable("GITHUB_WORKSPACE", workdir)
 
 	// add env variable to the container to indicate container is configured
 	container = container.WithEnvVariable("GALE_CONFIGURED", "true")
