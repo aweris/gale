@@ -1,0 +1,5 @@
+{
+  "name": "gale-ci",
+  "sdk": "go",
+  "root": ".."
+}
