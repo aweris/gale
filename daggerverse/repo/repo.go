@@ -90,6 +90,16 @@ func (_ *Repo) Info(
 	}, nil
 }
 
+// WorkflowsDir returns the workflows directory for the repository. If workflowsDir is provided, it's used as the
+// returns the workflows directory for the repository, otherwise the default workflows directory .github/workflows is
+// returned.
+func (ri *Info) WorkflowsDir(
+	// Path to the workflows' directory. (default: .github/workflows)
+	workflowsDir Optional[string],
+) *Directory {
+	return ri.Source.Directory(workflowsDir.GetOr(".github/workflows"))
+}
+
 // Workdir returns the runner workdir for the repository.
 func (ri *Info) Workdir() string {
 	return fmt.Sprintf("/home/runner/work/%s/%s", ri.Name, ri.Name)
