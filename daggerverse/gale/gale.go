@@ -98,6 +98,7 @@ func (g *Gale) Run(
 ) *WorkflowRun {
 	return &WorkflowRun{
 		Config: WorkflowRunConfig{
+			Base:         dag.Container().From(runnerImage.GetOr("ghcr.io/catthehacker/ubuntu:act-latest")),
 			Source:       source.GetOr(nil),
 			Repo:         repo.GetOr(""),
 			Branch:       branch.GetOr(""),
@@ -108,7 +109,6 @@ func (g *Gale) Run(
 			Job:          job.GetOr(""),
 			Event:        event.GetOr("push"),
 			EventFile:    eventFile.GetOr(nil),
-			RunnerImage:  runnerImage.GetOr("ghcr.io/catthehacker/ubuntu:act-latest"),
 			RunnerDebug:  runnerDebug.GetOr(false),
 			Token:        token.GetOr(nil),
 		},

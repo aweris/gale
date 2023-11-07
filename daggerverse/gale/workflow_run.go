@@ -13,6 +13,9 @@ type WorkflowRun struct {
 
 // WorkflowRunConfig holds the configuration of a workflow run.
 type WorkflowRunConfig struct {
+	// Base container to use for the workflow run.
+	Base *Container
+
 	// Directory containing the repository source.
 	Source *Directory
 
@@ -42,9 +45,6 @@ type WorkflowRunConfig struct {
 
 	// File with the complete webhook event payload.
 	EventFile *File
-
-	// Image to use for the runner.
-	RunnerImage string
 
 	// Enables debug mode.
 	RunnerDebug bool
@@ -159,7 +159,7 @@ func (wr *WorkflowRun) run(ctx context.Context) (*Container, error) {
 }
 
 func (wr *WorkflowRun) container(ctx context.Context) (*Container, error) {
-	container := dag.Container().From(wr.Config.RunnerImage)
+	container := wr.Config.Base
 
 	// set github token as secret if provided
 	if wr.Config.Token != nil {
