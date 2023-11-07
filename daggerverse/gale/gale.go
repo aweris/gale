@@ -89,16 +89,28 @@ func (g *Gale) Run(
 	event Optional[string],
 	// File with the complete webhook event payload.
 	eventFile Optional[*File],
-	// Image to use for the runner.
-	runnerImage Optional[string],
+	// Image to use for the runner. If --image and --container provided together, --image takes precedence.
+	image Optional[string],
+	// Container to use for the runner. If --image and --container provided together, --image takes precedence.
+	container Optional[*Container],
 	// Enables debug mode.
 	runnerDebug Optional[bool],
 	// GitHub token to use for authentication.
 	token Optional[*Secret],
 ) *WorkflowRun {
+	var base *Container
+
+	if image, ok := image.Get(); ok {
+		base = dag.Container().From(image)
+	} else if container, ok := container.Get(); ok {
+		base = container
+	} else {
+		base = dag.Container().From("ghcr.io/catthehacker/ubuntu:act-latest")
+	}
+
 	return &WorkflowRun{
 		Config: WorkflowRunConfig{
-			Base:         dag.Container().From(runnerImage.GetOr("ghcr.io/catthehacker/ubuntu:act-latest")),
+			Base:         base,
 			Source:       source.GetOr(nil),
 			Repo:         repo.GetOr(""),
 			Branch:       branch.GetOr(""),
