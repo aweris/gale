@@ -9,8 +9,8 @@ import (
 
 type Repo struct{}
 
-// RepoInfo represents a repository information.
-type RepoInfo struct {
+// Info represents a repository information.
+type Info struct {
 	Owner         string     // Owner of the repository.
 	Name          string     // Name of the repository.
 	NameWithOwner string     // NameWithOwner combined version of owner and name. Format: owner/name.
@@ -34,7 +34,7 @@ func (_ *Repo) Info(
 	tag Optional[string],
 	// Branch name to check out. Only one of branch or tag can be used. Precedence is as follows: tag, branch.
 	branch Optional[string],
-) (*RepoInfo, error) {
+) (*Info, error) {
 	// get the repository source from the options
 	dir, err := getRepoSource(source, repo, tag, branch)
 	if err != nil {
@@ -75,7 +75,7 @@ func (_ *Repo) Info(
 
 	_, isLocal := source.Get()
 
-	return &RepoInfo{
+	return &Info{
 		Owner:         owner,
 		Name:          repoName,
 		NameWithOwner: fmt.Sprintf("%s/%s", owner, repoName),
@@ -91,12 +91,12 @@ func (_ *Repo) Info(
 }
 
 // Workdir returns the runner workdir for the repository.
-func (ri *RepoInfo) Workdir() string {
+func (ri *Info) Workdir() string {
 	return fmt.Sprintf("/home/runner/work/%s/%s", ri.Name, ri.Name)
 }
 
 // Configure configures the container with the repository information.
-func (ri *RepoInfo) Configure(_ context.Context, c *Container) (*Container, error) {
+func (ri *Info) Configure(_ context.Context, c *Container) (*Container, error) {
 	workdir := ri.Workdir()
 	return c.WithMountedDirectory(workdir, ri.Source).
 		WithWorkdir(workdir).
