@@ -3,7 +3,7 @@ module github.com/aweris/gale/ghx
 go 1.21.3
 
 require (
-	dagger.io/dagger v0.9.2
+	dagger.io/dagger v0.9.3
 	github.com/aweris/gale/common v0.0.0-00010101000000-000000000000
 	github.com/caarlos0/env/v9 v9.0.0
 	github.com/go-git/go-git/v5 v5.10.0

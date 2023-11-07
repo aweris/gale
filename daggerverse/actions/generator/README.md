@@ -1,12 +1,12 @@
 # Actions Generator
 
-![dagger-min-version](https://img.shields.io/badge/dagger%20version-v0.9.2-green)
+![dagger-min-version](https://img.shields.io/badge/dagger%20version-v0.9.3-green)
 
 Generate Dagger modules from Github Actions([Custom Actions](https://docs.github.com/en/actions/creating-actions/about-custom-actions))
 
 ## Prerequisites
 
-- Module requires Dagger CLI version `v0.9.2` or higher.
+- Module requires Dagger CLI version `v0.9.3` or higher.
 
 ## Before you start
 
