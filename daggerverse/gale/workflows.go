@@ -19,7 +19,7 @@ func (w *Workflows) List(
 	tag Optional[string],
 	// Branch name to check out. Only one of branch or tag can be used. Precedence is as follows: tag, branch.
 	branch Optional[string],
-	// Path to the workflows directory. (default: .github/workflows)
+	// Path to the workflows' directory. (default: .github/workflows)
 	workflowsDir Optional[string],
 ) (string, error) {
 	// convert workflows list options to repo source options
@@ -30,11 +30,9 @@ func (w *Workflows) List(
 		Branch: branch.GetOr(""),
 	}
 
-	// get the repository source working directory from the options
-	dir := dag.Repo().
-		Info(opts).
-		Source().
-		Directory(workflowsDir.GetOr(".github/workflows"))
+	// get the repository source working directory from the options -- default value handled by the repo module, so we
+	// don't need to handle it here.
+	dir := dag.Repo().Info(opts).WorkflowsDir(RepoInfoWorkflowsDirOpts{WorkflowsDir: workflowsDir.GetOr("")})
 
 	// list all entries in the workflows directory
 	entries, err := dir.Entries(ctx)
