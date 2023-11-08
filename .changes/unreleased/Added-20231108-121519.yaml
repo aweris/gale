@@ -1,0 +1,6 @@
+kind: Added
+body: Introduced a new `--container` option to specify the container type for runners.
+time: 2023-11-08T12:15:19.019065+01:00
+custom:
+  Author: aweris
+  PR: "180"
