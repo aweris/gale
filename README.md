@@ -48,19 +48,18 @@ To get a list of workflows, you can use the dagger call workflows list command.
 Below is the help output showing the usage and options:
 
 ```shell
- Usage:
-   dagger call workflows list [flags]
+List returns a list of workflows and their jobs with the given options.
 
- Aliases:
-   list, List
+Usage:
+  dagger call list [flags]
 
- Flags:
-       --branch string          Git branch to checkout. Used with --repo. If tag and branch are both specified, tag takes precedence.
-   -h, --help                   help for list
-       --repo string            Name of the repository. Format: owner/name.
-       --source Directory       Directory containing the repository source. Has precedence over repo.
-       --tag string             Git tag to checkout. Used with --repo. If tag and branch are both specified, tag takes precedence.
-       --workflows-dir string   Path to the workflow directory. (default ".github/workflows")
+Flags:
+      --branch string          Branch name to check out. Only one of branch or tag can be used. Precedence is as follows: tag, branch.
+  -h, --help                   help for list
+      --repo string            The name of the repository. Format: owner/name.
+      --source Directory       The directory containing the repository source. If source is provided, rest of the options are ignored.
+      --tag string             Tag name to check out. Only one of branch or tag can be used. Precedence is as follows: tag, branch.
+      --workflows-dir string   Path to the workflows' directory. (default: .github/workflows)
 ```
 
 #### Examples
@@ -68,46 +67,48 @@ Below is the help output showing the usage and options:
 List all workflows for current repository:
 
 ```shell
-dagger call workflows list --source "."
+dagger call list --source "."
 ```
 
 List workflows for a specific repository and directory:
 
 ```shell
-dagger call workflows list --repo aweris/gale --branch main --workflows-dir examples/workflows
+dagger call list --repo aweris/gale --branch main --workflows-dir examples/workflows
 ```
 
 ### Run a Workflow
 
-For running workflows, you'll mainly use `dagger [call|download] workflows run [flags] [sub-command]`. Below is
+For running workflows, you'll mainly use `dagger [call|download] run [flags] [sub-command]`. Below is
 the help output showing the usage and options:
 
 ```shell
- Usage:
-   dagger call workflows run [flags]
-   dagger call workflows run [command]
+Run runs the workflow with the given options.
 
- Aliases:
-   run, Run
+Usage:
+  dagger call run [flags]
+  dagger call run [command]
 
- Available Commands:
-   config      Configuration for the workflow run.
-   directory   Directory returns the directory of the workflow run information.
-   sync        Sync evaluates the workflow run and returns the container at executed the workflow.
+Available Commands:
+  config      Configuration for the workflow run.
+  directory   Directory returns the directory of the workflow run information.
+  sync        Sync runs the workflow and returns the container that ran the workflow.
 
- Flags:
-       --branch string          Git branch to checkout. Used with --repo. If tag and branch are both specified, tag takes precedence.
-       --event string           Name of the event that triggered the workflow. (default "push")
-       --event-file File        The file with the complete webhook json event payload.
-   -h, --help                   help for run
-       --job string             Name of the job to run. If empty, all jobs will be run.
-       --repo string            Name of the repository. Format: owner/name.
-       --runner-debug           Enables debug mode.
-       --runner-image string    Docker image to use for the runner. (default "ghcr.io/dagger/gale:latest")
-       --source Directory       Directory containing the repository source. Has precedence over repo.
-       --tag string             Git tag to checkout. Used with --repo. If tag and branch are both specified, tag takes precedence.
-       --token Secret           GitHub token to use for authentication.
-       --workflow string        Name of the workflow to run.
+Flags:
+      --branch string          Branch name to check out. Only one of branch or tag can be used. Precedence is as follows: tag, branch.
+      --container Container    Container to use for the runner. If --image and --container provided together, --image takes precedence.
+      --event string           Name of the event that triggered the workflow. e.g. push
+      --event-file File        File with the complete webhook event payload.
+  -h, --help                   help for run
+      --image string           Image to use for the runner. If --image and --container provided together, --image takes precedence.
+      --job string             Name of the job to run. If empty, all jobs will be run.
+      --repo string            The name of the repository. Format: owner/name.
+      --runner-debug           Enables debug mode.
+      --source Directory       The directory containing the repository source. If source is provided, rest of the options are ignored.
+      --tag string             Tag name to check out. Only one of branch or tag can be used. Precedence is as follows: tag, branch.
+      --token Secret           GitHub token to use for authentication.
+      --workflow string        Name of the workflow to run.
+      --workflow-file File     External workflow file to run.
+      --workflows-dir string   Path to the workflows directory. (default: .github/workflows)
 ```
 
 #### Sub-Commands
@@ -123,7 +124,7 @@ dagger call workflow run ... --workflow build sync
 The help output for directory option
 ```shell
 Usage:
-  dagger download workflows run directory [flags]
+  dagger download run directory [flags]
 
 Aliases:
   directory, Directory
@@ -146,7 +147,7 @@ dagger download workflow run ... --workflow build directory --export-path .gale/
 Running a workflow for remote repository and downloading exporting the workflow run data and artifacts:
 
 ```shell
- dagger download --focus=false workflows run --repo kubernetes/minikube --branch master --workflow build --job build_minikube --token $GITHUB_TOKEN directory --export-path .gale/exports --include-artifacts
+ dagger download --focus=false run --repo kubernetes/minikube --branch master --workflow build --job build_minikube --token $GITHUB_TOKEN directory --export-path .gale/exports --include-artifacts
 ```
 
 **Notes for Above Example:**

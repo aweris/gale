@@ -1,0 +1,6 @@
+kind: Breaking
+body: Removed the `workflows` subcommand from the module. `list` and `run` commands are now available directly under module root.
+time: 2023-11-08T12:05:44.825203+01:00
+custom:
+  Author: aweris
+  PR: "180"

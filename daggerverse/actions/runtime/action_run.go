@@ -1,8 +1,9 @@
 package main
 
 import (
-	"actions-runtime/model"
 	"fmt"
+
+	"actions-runtime/model"
 )
 
 type ActionRun struct {
@@ -38,8 +39,11 @@ type ActionRunConfig struct {
 	// File with the complete webhook event payload.
 	EventFile *File
 
-	// Image to use for the runner.
-	RunnerImage string
+	// Image to use for the runner. If --image and --container provided together, --image takes precedence.
+	Image string
+
+	// Container to use for the runner. If --image and --container provided together, --image takes precedence.
+	Container *Container
 
 	// Enables debug mode.
 	RunnerDebug bool
@@ -64,7 +68,7 @@ func (ar *ActionRun) Sync() (*Container, error) {
 		return nil, err
 	}
 
-	opts := GaleWorkflowsRunOpts{
+	opts := GaleRunOpts{
 		Source:       ar.Config.Source,
 		Repo:         ar.Config.Repo,
 		Tag:          ar.Config.Tag,
@@ -72,12 +76,13 @@ func (ar *ActionRun) Sync() (*Container, error) {
 		WorkflowFile: wf,
 		Event:        ar.Config.Event,
 		EventFile:    ar.Config.EventFile,
-		RunnerImage:  ar.Config.RunnerImage,
+		Image:        ar.Config.Image,
+		Container:    ar.Config.Container,
 		RunnerDebug:  ar.Config.RunnerDebug,
 		Token:        ar.Config.Token,
 	}
 
-	return dag.Gale().Workflows().Run(opts).Sync(), nil
+	return dag.Gale().Run(opts).Sync(), nil
 }
 
 // getWorkflowFile returns a workflow file with the given uses, env, and with.

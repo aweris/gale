@@ -18,8 +18,10 @@ func (m *ActionsRuntime) Run(
 	event Optional[string],
 	// File with the complete webhook event payload.
 	eventFile Optional[*File],
-	// Image to use for the runner.
-	runnerImage Optional[string],
+	// Image to use for the runner. If --image and --container provided together, --image takes precedence.
+	image Optional[string],
+	// Container to use for the runner. If --image and --container provided together, --image takes precedence.
+	container Optional[*Container],
 	// Enables debug mode.
 	runnerDebug Optional[bool],
 	// GitHub token to use for authentication.
@@ -36,7 +38,8 @@ func (m *ActionsRuntime) Run(
 			With:        []string{},
 			Event:       event.GetOr("push"),
 			EventFile:   eventFile.GetOr(nil),
-			RunnerImage: runnerImage.GetOr("ghcr.io/catthehacker/ubuntu:act-latest"),
+			Image:       image.GetOr(""), // default value handled by gale module. Handling it here would override the container if it is provided.
+			Container:   container.GetOr(nil),
 			RunnerDebug: runnerDebug.GetOr(false),
 			Token:       token.GetOr(nil),
 		},

@@ -1,0 +1,7 @@
+kind: Changed
+body: Renamed the command line option `--runner-image` to `--image`. This change affects
+  all commands where `--runner-image` was previously used.
+time: 2023-11-08T12:14:39.28384+01:00
+custom:
+  Author: aweris
+  PR: "180"
