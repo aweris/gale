@@ -17,8 +17,10 @@ func (m HelloWorldJavascriptAction) Run(
 	tag Optional[string],
 	// Branch name to check out. Only works with `--repo`.
 	branch Optional[string],
-	// Image for the runner.
-	runnerImage Optional[string],
+	// Image to use for the runner. If --image and --container provided together, --image takes precedence.
+	image Optional[string],
+	// Container to use for the runner. If --image and --container provided together, --image takes precedence.
+	container Optional[*Container],
 	// Enables debug mode.
 	runnerDebug Optional[bool],
 	// GitHub token. May be required for certain actions.
@@ -27,9 +29,10 @@ func (m HelloWorldJavascriptAction) Run(
 	// initializing runtime options
 	opts := ActionsRuntimeRunOpts{
 		Branch:      branch.GetOr(""),
+		Container:   container.GetOr(nil),
+		Image:       image.GetOr(""),
 		Repo:        repo.GetOr(""),
 		RunnerDebug: runnerDebug.GetOr(false),
-		RunnerImage: runnerImage.GetOr(""),
 		Source:      source.GetOr(nil),
 		Tag:         tag.GetOr(""),
 		Token:       token.GetOr(nil),
