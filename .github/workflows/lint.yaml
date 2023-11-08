@@ -22,3 +22,24 @@ jobs:
         uses: reviewdog/action-golangci-lint@v2
         with:
           workdir: ${{ matrix.workdir }}
+
+  daggerverse-lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: 1.21
+
+      - name: Install Dagger CLI
+        run: cd /usr/local && { curl -L https://dl.dagger.io/dagger/install.sh | sh; cd -; }
+
+      - name: Sync dagger modules
+        run: dagger export -m ci daggerverse sync --output daggerverse
+
+      - name: Check if daggerverse is up to date
+        run: git diff --exit-code || (echo 'Uncommitted changes detected' && exit 1)
