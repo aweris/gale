@@ -1,5 +1,8 @@
 {
   "name": "gale-ci",
   "root": "..",
-  "sdk": "go"
+  "sdk": "go",
+  "dependencies": [
+    "../daggerverse/actions/generator"
+  ]
 }
