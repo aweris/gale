@@ -8,26 +8,15 @@ import (
 )
 
 type WorkflowRun struct {
+	// Base container to use for the workflow run.
+	Runner *RunnerContainer
+
+	// Configuration of the workflow run.
 	Config WorkflowRunConfig
 }
 
 // WorkflowRunConfig holds the configuration of a workflow run.
 type WorkflowRunConfig struct {
-	// Base container to use for the workflow run.
-	Base *Container
-
-	// Directory containing the repository source.
-	Source *Directory
-
-	// Name of the repository. Format: owner/name.
-	Repo string
-
-	// Branch name to check out. Only one of branch or tag can be used. Precedence: tag, branch.
-	Branch string
-
-	// Tag name to check out. Only one of branch or tag can be used. Precedence: tag, branch.
-	Tag string
-
 	// Path to the workflow directory.
 	WorkflowsDir string
 
@@ -69,13 +58,8 @@ type WorkflowRunReport struct {
 }
 
 // Sync runs the workflow and returns the container that ran the workflow.
-func (wr *WorkflowRun) Sync(ctx context.Context) (*Container, error) {
-	container, err := wr.run(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	return container, nil
+func (wr *WorkflowRun) Sync() (*Container, error) {
+	return wr.run()
 }
 
 // Directory returns the directory of the workflow run information.
@@ -90,7 +74,7 @@ func (wr *WorkflowRun) Directory(
 	// Adds the uploaded artifacts to the exported directory. (default: false)
 	includeArtifacts Optional[bool],
 ) (*Directory, error) {
-	container, err := wr.run(ctx)
+	container, err := wr.run()
 	if err != nil {
 		return nil, err
 	}
@@ -127,11 +111,8 @@ func (wr *WorkflowRun) Directory(
 	return dir, nil
 }
 
-func (wr *WorkflowRun) run(ctx context.Context) (*Container, error) {
-	container, err := wr.container(ctx)
-	if err != nil {
-		return nil, err
-	}
+func (wr *WorkflowRun) run() (*Container, error) {
+	container := wr.Runner.Ctr
 
 	// loading request scoped configs
 
@@ -158,37 +139,13 @@ func (wr *WorkflowRun) run(ctx context.Context) (*Container, error) {
 	return container, nil
 }
 
-func (wr *WorkflowRun) container(ctx context.Context) (*Container, error) {
-	container := wr.Config.Base
+func (wr *WorkflowRun) configure(c *Container) *Container {
+	container := c
 
 	// set github token as secret if provided
 	if wr.Config.Token != nil {
 		container = container.WithSecretVariable("GITHUB_TOKEN", wr.Config.Token)
 	}
-
-	// configure internal components
-	container = container.With(dag.Source().Ghx().Binary)
-	container = container.With(dag.Source().ArtifactService().BindAsService)
-	container = container.With(dag.Source().ArtifactCacheService().BindAsService)
-
-	// configure repo
-	info := dag.Repo().Info(RepoInfoOpts{
-		Source: wr.Config.Source,
-		Repo:   wr.Config.Repo,
-		Branch: wr.Config.Branch,
-		Tag:    wr.Config.Tag,
-	})
-
-	container = container.With(info.Configure)
-
-	// add env variable to the container to indicate container is configured
-	container = container.WithEnvVariable("GALE_CONFIGURED", "true")
-
-	return container, nil
-}
-
-func (wr *WorkflowRun) configure(c *Container) *Container {
-	container := c
 
 	if wr.Config.WorkflowFile != nil {
 		path := "/home/runner/_temp/_github_workflow/.gale/dagger.yaml"

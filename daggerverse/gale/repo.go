@@ -6,19 +6,14 @@ import (
 	"strings"
 )
 
-// getRepoInfo returns the repository info from the given options.
-func getRepoInfo(source Optional[*Directory], repo, tag, branch Optional[string]) *RepoInfo {
-	// convert workflows list options to repo source options
-	opts := RepoInfoOpts{
+// getRepoInfo returns a RepoInfo object based on the provided options.
+func getRepoInfo(source Optional[*Directory], repo, branch, tag Optional[string]) *RepoInfo {
+	return dag.Repo().Info(RepoInfoOpts{
 		Source: source.GetOr(nil),
 		Repo:   repo.GetOr(""),
-		Tag:    tag.GetOr(""),
 		Branch: branch.GetOr(""),
-	}
-
-	// get the repository source working directory from the options -- default value handled by the repo module, so we
-	// don't need to handle it here.
-	return dag.Repo().Info(opts)
+		Tag:    tag.GetOr(""),
+	})
 }
 
 // getWorkflowsDir returns the workflows directory from the given options.
