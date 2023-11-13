@@ -138,6 +138,16 @@ func (wr *WorkflowRun) run() (*Container, error) {
 	container = container.WithMountedCache(wrPath, cache, cacheOpts)
 	container = container.WithEnvVariable("GHX_HOME", wrPath)
 
+	// set github token as secret if provided
+	if wr.Config.Token != nil {
+		container = container.WithSecretVariable("GITHUB_TOKEN", wr.Config.Token)
+	}
+
+	// set runner debug mode if enabled
+	if wr.Config.RunnerDebug {
+		container = container.WithEnvVariable("RUNNER_DEBUG", "1")
+	}
+
 	// event config
 	eventPath := filepath.Join(wrPath, "run", "event.json")
 
@@ -165,11 +175,6 @@ func (wr *WorkflowRun) run() (*Container, error) {
 func (wr *WorkflowRun) configure(c *Container) *Container {
 	container := c
 
-	// set github token as secret if provided
-	if wr.Config.Token != nil {
-		container = container.WithSecretVariable("GITHUB_TOKEN", wr.Config.Token)
-	}
-
 	if wr.Config.WorkflowFile != nil {
 		path := "/home/runner/_temp/_github_workflow/.gale/dagger.yaml"
 
@@ -187,10 +192,6 @@ func (wr *WorkflowRun) configure(c *Container) *Container {
 	}
 
 	container = container.WithEnvVariable("GHX_JOB", wr.Config.Job)
-
-	if wr.Config.RunnerDebug {
-		container = container.WithEnvVariable("RUNNER_DEBUG", "1")
-	}
 
 	return container
 }
