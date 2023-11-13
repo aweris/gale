@@ -25,9 +25,6 @@ type WorkflowRun struct {
 
 // WorkflowRunConfig holds the configuration of a workflow run.
 type WorkflowRunConfig struct {
-	// Path to the workflow directory.
-	WorkflowsDir string
-
 	// WorkflowFile is external workflow file to run.
 	WorkflowFile *File
 
@@ -148,15 +145,19 @@ func (wr *WorkflowRun) run() (*Container, error) {
 		container = container.WithEnvVariable("RUNNER_DEBUG", "1")
 	}
 
+	// set workflow config
+	path := filepath.Join(wrPath, "run", "workflow.yaml")
+
+	container = container.WithMountedFile(path, wr.Config.WorkflowFile)
+	container = container.WithEnvVariable("GHX_WORKFLOW", wr.Config.Workflow)
+	container = container.WithEnvVariable("GHX_JOB", wr.Config.Job)
+
 	// event config
 	eventPath := filepath.Join(wrPath, "run", "event.json")
 
 	container = container.WithEnvVariable("GITHUB_EVENT_NAME", wr.Config.Event)
 	container = container.WithEnvVariable("GITHUB_EVENT_PATH", eventPath)
 	container = container.WithMountedFile(eventPath, wr.Config.EventFile)
-
-	// configure workflow run configuration
-	container = container.With(wr.configure)
 
 	// workaround for disabling cache
 	container = container.WithEnvVariable("CACHE_BUSTER", time.Now().Format(time.RFC3339Nano))
@@ -165,33 +166,8 @@ func (wr *WorkflowRun) run() (*Container, error) {
 	container = container.WithExec([]string{"ghx"}, ContainerWithExecOpts{ExperimentalPrivilegedNesting: true})
 
 	// unloading request scoped configs
-	container = container.WithoutEnvVariable("GHX_WORKFLOW")
 	container = container.WithoutEnvVariable("GHX_JOB")
 	container = container.WithoutEnvVariable("GHX_WORKFLOWS_DIR")
 
 	return container, nil
-}
-
-func (wr *WorkflowRun) configure(c *Container) *Container {
-	container := c
-
-	if wr.Config.WorkflowFile != nil {
-		path := "/home/runner/_temp/_github_workflow/.gale/dagger.yaml"
-
-		container = container.WithMountedFile(path, wr.Config.WorkflowFile)
-		container = container.WithEnvVariable("GHX_WORKFLOWS_DIR", filepath.Dir(path))
-
-		if wr.Config.Workflow != "" {
-			container = container.WithEnvVariable("GHX_WORKFLOW", wr.Config.Workflow)
-		} else {
-			container = container.WithEnvVariable("GHX_WORKFLOW", path)
-		}
-	} else {
-		container = container.WithEnvVariable("GHX_WORKFLOWS_DIR", wr.Config.WorkflowsDir)
-		container = container.WithEnvVariable("GHX_WORKFLOW", wr.Config.Workflow)
-	}
-
-	container = container.WithEnvVariable("GHX_JOB", wr.Config.Job)
-
-	return container
 }

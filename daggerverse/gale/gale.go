@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"strings"
 )
 
@@ -34,7 +35,7 @@ func (g *Gale) List(
 	sb := strings.Builder{}
 
 	err := walkWorkflowDir(ctx, workflowsDir, workflows,
-		func(ctx context.Context, path string, file *File) error {
+		func(ctx context.Context, path string, file *File) (bool, error) {
 			// dagger do not support maps yet, so we're defining anonymous struct to unmarshal the yaml file to avoid
 			// hit this limitation.
 			var workflow struct {
@@ -43,7 +44,7 @@ func (g *Gale) List(
 			}
 
 			if err := unmarshalContentsToYAML(ctx, file, &workflow); err != nil {
-				return err
+				return false, err
 			}
 
 			sb.WriteString("Workflow: ")
@@ -61,7 +62,7 @@ func (g *Gale) List(
 
 			sb.WriteString("\n") // extra empty line
 
-			return nil
+			return true, nil
 		},
 	)
 
@@ -104,19 +105,58 @@ func (g *Gale) Run(
 	runnerDebug Optional[bool],
 	// GitHub token to use for authentication.
 	token Optional[*Secret],
-) *WorkflowRun {
+) (*WorkflowRun, error) {
+	wp := ""
+	wf, ok := workflowFile.Get()
+	if !ok {
+		workflow, ok := workflow.Get()
+		if !ok {
+			return nil, fmt.Errorf("workflow or workflow file must be provided")
+		}
+
+		workflows := getWorkflowsDir(source, repo, tag, branch, workflowsDir)
+
+		err := walkWorkflowDir(ctx, workflowsDir, workflows, func(ctx context.Context, path string, file *File) (bool, error) {
+			// when relative path or file name is matches with the workflow name, we assume that it is the workflow
+			// file.
+			if path == workflow || filepath.Base(path) == workflow {
+				wf = file
+				wp = path
+				return false, nil
+			}
+
+			// otherwise, look for matching workflow name in the workflow file.
+			var f struct {
+				Name string `yaml:"name"`
+			}
+
+			if err := unmarshalContentsToYAML(ctx, file, &f); err != nil {
+				return false, err
+			}
+
+			if f.Name == workflow {
+				wf = file
+				wp = path
+				return false, nil
+			}
+
+			return true, nil
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	return &WorkflowRun{
 		Runner: g.Runner().Container(ctx, image, container, source, repo, tag, branch),
 		Config: WorkflowRunConfig{
-			WorkflowsDir: workflowsDir.GetOr(".github/workflows"),
-			WorkflowFile: workflowFile.GetOr(nil),
-			Workflow:     workflow.GetOr(""),
+			WorkflowFile: wf,
+			Workflow:     wp,
 			Job:          job.GetOr(""),
 			Event:        event.GetOr("push"),
 			EventFile:    eventFile.GetOr(dag.Directory().WithNewFile("event.json", "{}").File("event.json")),
 			RunnerDebug:  runnerDebug.GetOr(false),
 			Token:        token.GetOr(nil),
 		},
-	}
+	}, nil
 }

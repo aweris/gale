@@ -13,9 +13,6 @@ type GhxConfig struct {
 	// Job name to run. If not specified, the all jobs will be run.
 	Job string `env:"GHX_JOB"`
 
-	// Directory to look for workflows.
-	WorkflowsDir string `env:"GHX_WORKFLOWS_DIR" envDefault:".github/workflows"`
-
 	// Home directory for the ghx to use for storing execution related files.
 	HomeDir string `env:"GHX_HOME" envDefault:"/home/runner/_temp/ghx"`
 
