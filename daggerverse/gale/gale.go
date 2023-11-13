@@ -9,6 +9,11 @@ import (
 // Gale is a Dagger module for running Github Actions workflows.
 type Gale struct{}
 
+// Runner represents a runner to run a Github Actions workflow in.
+func (g *Gale) Runner() *Runner {
+	return &Runner{}
+}
+
 // List returns a list of workflows and their jobs with the given options.
 func (g *Gale) List(
 	// context to use for the operation
@@ -69,6 +74,8 @@ func (g *Gale) List(
 
 // Run runs the workflow with the given options.
 func (g *Gale) Run(
+	// context to use for the operation
+	ctx context.Context,
 	// The directory containing the repository source. If source is provided, rest of the options are ignored.
 	source Optional[*Directory],
 	// The name of the repository. Format: owner/name.
@@ -98,23 +105,10 @@ func (g *Gale) Run(
 	// GitHub token to use for authentication.
 	token Optional[*Secret],
 ) *WorkflowRun {
-	var base *Container
-
-	if image, ok := image.Get(); ok {
-		base = dag.Container().From(image)
-	} else if container, ok := container.Get(); ok {
-		base = container
-	} else {
-		base = dag.Container().From("ghcr.io/catthehacker/ubuntu:act-latest")
-	}
 
 	return &WorkflowRun{
+		Runner: g.Runner().Container(ctx, image, container, source, repo, tag, branch),
 		Config: WorkflowRunConfig{
-			Base:         base,
-			Source:       source.GetOr(nil),
-			Repo:         repo.GetOr(""),
-			Branch:       branch.GetOr(""),
-			Tag:          tag.GetOr(""),
 			WorkflowsDir: workflowsDir.GetOr(".github/workflows"),
 			WorkflowFile: workflowFile.GetOr(nil),
 			Workflow:     workflow.GetOr(""),
