@@ -7,7 +7,6 @@ import (
 
 	"dagger.io/dagger"
 
-	"github.com/aweris/gale/common/fs"
 	"github.com/aweris/gale/ghx/context"
 )
 
@@ -50,11 +49,5 @@ func main() {
 	}
 
 	// Run the workflow
-	result, _ := runner.Run(ctx)
-
-	err = fs.WriteJSONFile("/home/runner/_temp/ghx/result.json", &result)
-	if err != nil {
-		fmt.Printf("failed to write result: %v", err)
-		os.Exit(1)
-	}
+	runner.Run(ctx)
 }
