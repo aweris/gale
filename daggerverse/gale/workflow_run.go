@@ -114,16 +114,12 @@ func (wr *WorkflowRun) Directory(
 func (wr *WorkflowRun) run() (*Container, error) {
 	container := wr.Runner.Ctr
 
-	// loading request scoped configs
-
 	// configure workflow run configuration
 	container = container.With(wr.configure)
 
 	// ghx specific directory configuration
 	container = container.WithEnvVariable("GHX_HOME", "/home/runner/_temp/ghx")
 	container = container.WithMountedDirectory("/home/runner/_temp/ghx", dag.Directory())
-	container = container.WithMountedCache("/home/runner/_temp/ghx/metadata", dag.CacheVolume("gale-metadata"), ContainerWithMountedCacheOpts{Sharing: Shared})
-	container = container.WithMountedCache("/home/runner/_temp/ghx/actions", dag.CacheVolume("gale-actions"), ContainerWithMountedCacheOpts{Sharing: Shared})
 
 	// workaround for disabling cache
 	container = container.WithEnvVariable("CACHE_BUSTER", time.Now().Format(time.RFC3339Nano))

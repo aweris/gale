@@ -77,6 +77,19 @@ func (r *Runner) Container(
 	ctr = ctr.WithEnvVariable("GALE_RUNNER_CACHE", path)
 	ctr = ctr.WithMountedCache(path, cache, ContainerWithMountedCacheOpts{Sharing: Shared})
 
+	// ghx specific directory configuration -- TODO: refactor this later to be more generic for runners
+	var (
+		metadata  = "/home/runner/_temp/gale/metadata"
+		actions   = "/home/runner/_temp/gale/actions"
+		cacheOpts = ContainerWithMountedCacheOpts{Sharing: Shared}
+	)
+
+	ctr = ctr.WithEnvVariable("GHX_METADATA_DIR", metadata)
+	ctr = ctr.WithMountedCache(metadata, dag.CacheVolume("gale-metadata"), cacheOpts)
+
+	ctr = ctr.WithEnvVariable("GHX_ACTIONS_DIR", actions)
+	ctr = ctr.WithMountedCache(actions, dag.CacheVolume("gale-actions"), cacheOpts)
+
 	// add env variable to the container to indicate container is configured
 	ctr = ctr.WithEnvVariable("GALE_RUNNER_ID", id)
 	ctr = ctr.WithEnvVariable("GALE_CONFIGURED", "true")

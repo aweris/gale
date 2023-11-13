@@ -18,6 +18,12 @@ type GhxConfig struct {
 
 	// Home directory for the ghx to use for storing execution related files.
 	HomeDir string `env:"GHX_HOME" envDefault:"/home/runner/_temp/ghx"`
+
+	// ActionsDir is the directory to look for actions.
+	ActionsDir string `env:"GHX_ACTIONS_DIR" envDefault:"/home/runner/_temp/gale/actions"`
+
+	// MetadataDir is the directory to look for metadata.
+	MetadataDir string `env:"GHX_METADATA_DIR" envDefault:"/home/runner/_temp/gale/metadata"`
 }
 
 // DaggerContext is the context holding the dagger client.
