@@ -63,12 +63,9 @@ func New(std context.Context, client *dagger.Client) (*Context, error) {
 	// set the dagger client
 	ctx.Dagger.Client = client
 
-	// set non environment config for github ctx
-	if ctx.Github.EventPath != "" {
-		err := fs.ReadJSONFile(ctx.Github.EventPath, &ctx.Github.Event)
-		if err != nil {
-			return nil, err
-		}
+	// read event file
+	if err := fs.ReadJSONFile(ctx.Github.EventPath, &ctx.Github.Event); err != nil {
+		return nil, err
 	}
 
 	// just to be sure that we have a initialized event map

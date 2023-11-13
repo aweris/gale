@@ -126,17 +126,24 @@ func (wr *WorkflowRun) run() (*Container, error) {
 
 	var (
 		id        = uuid.New().String()
-		path      = filepath.Join("/home/runner/_temp/_gale/runs", id)
+		wrPath    = filepath.Join("/home/runner/_temp/_gale/runs", id)
 		cache     = dag.CacheVolume(fmt.Sprintf("ghx-run-%s", id))
 		cacheOpts = ContainerWithMountedCacheOpts{Sharing: Shared}
 	)
 
 	// mount workflow run cache volume
-	wr.RunCachePath = path
+	wr.RunCachePath = wrPath
 	wr.RunCacheVolume = cache
 
-	container = container.WithMountedCache(path, cache, cacheOpts)
-	container = container.WithEnvVariable("GHX_HOME", path)
+	container = container.WithMountedCache(wrPath, cache, cacheOpts)
+	container = container.WithEnvVariable("GHX_HOME", wrPath)
+
+	// event config
+	eventPath := filepath.Join(wrPath, "run", "event.json")
+
+	container = container.WithEnvVariable("GITHUB_EVENT_NAME", wr.Config.Event)
+	container = container.WithEnvVariable("GITHUB_EVENT_PATH", eventPath)
+	container = container.WithMountedFile(eventPath, wr.Config.EventFile)
 
 	// configure workflow run configuration
 	container = container.With(wr.configure)
@@ -180,12 +187,6 @@ func (wr *WorkflowRun) configure(c *Container) *Container {
 	}
 
 	container = container.WithEnvVariable("GHX_JOB", wr.Config.Job)
-
-	container = container.WithEnvVariable("GITHUB_EVENT_NAME", wr.Config.Event)
-
-	if wr.Config.EventFile != nil {
-		container = container.WithMountedFile("/home/runner/_temp/_github_workflow/event.json", wr.Config.EventFile)
-	}
 
 	if wr.Config.RunnerDebug {
 		container = container.WithEnvVariable("RUNNER_DEBUG", "1")

@@ -114,7 +114,7 @@ func (g *Gale) Run(
 			Workflow:     workflow.GetOr(""),
 			Job:          job.GetOr(""),
 			Event:        event.GetOr("push"),
-			EventFile:    eventFile.GetOr(nil),
+			EventFile:    eventFile.GetOr(dag.Directory().WithNewFile("event.json", "{}").File("event.json")),
 			RunnerDebug:  runnerDebug.GetOr(false),
 			Token:        token.GetOr(nil),
 		},
