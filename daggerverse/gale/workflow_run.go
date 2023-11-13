@@ -5,11 +5,19 @@ import (
 	"fmt"
 	"path/filepath"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type WorkflowRun struct {
 	// Base container to use for the workflow run.
 	Runner *RunnerContainer
+
+	// Workflow run cache path to mount to runner containers.
+	RunCachePath string
+
+	// Workflow run cache volume to share data between jobs in the same workflow run and keep the data after the workflow
+	RunCacheVolume *CacheVolume
 
 	// Configuration of the workflow run.
 	Config WorkflowRunConfig
@@ -79,14 +87,16 @@ func (wr *WorkflowRun) Directory(
 		return nil, err
 	}
 
-	dir := dag.Directory().WithDirectory("run", container.Directory("/home/runner/_temp/ghx/run"))
+	rd := container.WithExec([]string{"cp", "-r", wr.RunCachePath, "/exported_run"}).Directory("/exported_run")
+
+	dir := dag.Directory().WithDirectory("run", rd.Directory("run"))
+
+	if includeSecrets.GetOr(false) {
+		dir = dir.WithDirectory("secrets", rd.Directory("secrets"))
+	}
 
 	if includeRepo.GetOr(false) {
 		dir = dir.WithDirectory("repo", container.Directory("."))
-	}
-
-	if includeSecrets.GetOr(false) {
-		dir = dir.WithDirectory("secrets", container.Directory("/home/runner/_temp/ghx/secrets"))
 	}
 
 	if includeEvent.GetOr(false) && wr.Config.EventFile != nil {
@@ -114,12 +124,22 @@ func (wr *WorkflowRun) Directory(
 func (wr *WorkflowRun) run() (*Container, error) {
 	container := wr.Runner.Ctr
 
+	var (
+		id        = uuid.New().String()
+		path      = filepath.Join("/home/runner/_temp/_gale/runs", id)
+		cache     = dag.CacheVolume(fmt.Sprintf("ghx-run-%s", id))
+		cacheOpts = ContainerWithMountedCacheOpts{Sharing: Shared}
+	)
+
+	// mount workflow run cache volume
+	wr.RunCachePath = path
+	wr.RunCacheVolume = cache
+
+	container = container.WithMountedCache(path, cache, cacheOpts)
+	container = container.WithEnvVariable("GHX_HOME", path)
+
 	// configure workflow run configuration
 	container = container.With(wr.configure)
-
-	// ghx specific directory configuration
-	container = container.WithEnvVariable("GHX_HOME", "/home/runner/_temp/ghx")
-	container = container.WithMountedDirectory("/home/runner/_temp/ghx", dag.Directory())
 
 	// workaround for disabling cache
 	container = container.WithEnvVariable("CACHE_BUSTER", time.Now().Format(time.RFC3339Nano))
