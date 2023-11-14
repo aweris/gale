@@ -4,6 +4,7 @@
   "sdk": "go",
   "dependencies": [
     "../repo",
-    "../source"
+    "../source",
+    "github.com/aweris/daggerverse/docker@969bc30a84b48f76a28afab3986144d2e47469df"
   ]
 }
