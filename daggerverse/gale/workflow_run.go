@@ -5,11 +5,19 @@ import (
 	"fmt"
 	"path/filepath"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type WorkflowRun struct {
 	// Base container to use for the workflow run.
 	Runner *RunnerContainer
+
+	// Workflow run cache path to mount to runner containers.
+	RunCachePath string
+
+	// Workflow run cache volume to share data between jobs in the same workflow run and keep the data after the workflow
+	RunCacheVolume *CacheVolume
 
 	// Configuration of the workflow run.
 	Config WorkflowRunConfig
@@ -17,9 +25,6 @@ type WorkflowRun struct {
 
 // WorkflowRunConfig holds the configuration of a workflow run.
 type WorkflowRunConfig struct {
-	// Path to the workflow directory.
-	WorkflowsDir string
-
 	// WorkflowFile is external workflow file to run.
 	WorkflowFile *File
 
@@ -79,14 +84,16 @@ func (wr *WorkflowRun) Directory(
 		return nil, err
 	}
 
-	dir := dag.Directory().WithDirectory("run", container.Directory("/home/runner/_temp/ghx/run"))
+	rd := container.WithExec([]string{"cp", "-r", wr.RunCachePath, "/exported_run"}).Directory("/exported_run")
+
+	dir := dag.Directory().WithDirectory("run", rd.Directory("run"))
+
+	if includeSecrets.GetOr(false) {
+		dir = dir.WithDirectory("secrets", rd.Directory("secrets"))
+	}
 
 	if includeRepo.GetOr(false) {
 		dir = dir.WithDirectory("repo", container.Directory("."))
-	}
-
-	if includeSecrets.GetOr(false) {
-		dir = dir.WithDirectory("secrets", container.Directory("/home/runner/_temp/ghx/secrets"))
 	}
 
 	if includeEvent.GetOr(false) && wr.Config.EventFile != nil {
@@ -114,16 +121,43 @@ func (wr *WorkflowRun) Directory(
 func (wr *WorkflowRun) run() (*Container, error) {
 	container := wr.Runner.Ctr
 
-	// loading request scoped configs
+	var (
+		id        = uuid.New().String()
+		wrPath    = filepath.Join("/home/runner/_temp/_gale/runs", id)
+		cache     = dag.CacheVolume(fmt.Sprintf("ghx-run-%s", id))
+		cacheOpts = ContainerWithMountedCacheOpts{Sharing: Shared}
+	)
 
-	// configure workflow run configuration
-	container = container.With(wr.configure)
+	// mount workflow run cache volume
+	wr.RunCachePath = wrPath
+	wr.RunCacheVolume = cache
 
-	// ghx specific directory configuration
-	container = container.WithEnvVariable("GHX_HOME", "/home/runner/_temp/ghx")
-	container = container.WithMountedDirectory("/home/runner/_temp/ghx", dag.Directory())
-	container = container.WithMountedCache("/home/runner/_temp/ghx/metadata", dag.CacheVolume("gale-metadata"), ContainerWithMountedCacheOpts{Sharing: Shared})
-	container = container.WithMountedCache("/home/runner/_temp/ghx/actions", dag.CacheVolume("gale-actions"), ContainerWithMountedCacheOpts{Sharing: Shared})
+	container = container.WithMountedCache(wrPath, cache, cacheOpts)
+	container = container.WithEnvVariable("GHX_HOME", wrPath)
+
+	// set github token as secret if provided
+	if wr.Config.Token != nil {
+		container = container.WithSecretVariable("GITHUB_TOKEN", wr.Config.Token)
+	}
+
+	// set runner debug mode if enabled
+	if wr.Config.RunnerDebug {
+		container = container.WithEnvVariable("RUNNER_DEBUG", "1")
+	}
+
+	// set workflow config
+	path := filepath.Join(wrPath, "run", "workflow.yaml")
+
+	container = container.WithMountedFile(path, wr.Config.WorkflowFile)
+	container = container.WithEnvVariable("GHX_WORKFLOW", wr.Config.Workflow)
+	container = container.WithEnvVariable("GHX_JOB", wr.Config.Job)
+
+	// event config
+	eventPath := filepath.Join(wrPath, "run", "event.json")
+
+	container = container.WithEnvVariable("GITHUB_EVENT_NAME", wr.Config.Event)
+	container = container.WithEnvVariable("GITHUB_EVENT_PATH", eventPath)
+	container = container.WithMountedFile(eventPath, wr.Config.EventFile)
 
 	// workaround for disabling cache
 	container = container.WithEnvVariable("CACHE_BUSTER", time.Now().Format(time.RFC3339Nano))
@@ -132,48 +166,8 @@ func (wr *WorkflowRun) run() (*Container, error) {
 	container = container.WithExec([]string{"ghx"}, ContainerWithExecOpts{ExperimentalPrivilegedNesting: true})
 
 	// unloading request scoped configs
-	container = container.WithoutEnvVariable("GHX_WORKFLOW")
 	container = container.WithoutEnvVariable("GHX_JOB")
 	container = container.WithoutEnvVariable("GHX_WORKFLOWS_DIR")
 
 	return container, nil
-}
-
-func (wr *WorkflowRun) configure(c *Container) *Container {
-	container := c
-
-	// set github token as secret if provided
-	if wr.Config.Token != nil {
-		container = container.WithSecretVariable("GITHUB_TOKEN", wr.Config.Token)
-	}
-
-	if wr.Config.WorkflowFile != nil {
-		path := "/home/runner/_temp/_github_workflow/.gale/dagger.yaml"
-
-		container = container.WithMountedFile(path, wr.Config.WorkflowFile)
-		container = container.WithEnvVariable("GHX_WORKFLOWS_DIR", filepath.Dir(path))
-
-		if wr.Config.Workflow != "" {
-			container = container.WithEnvVariable("GHX_WORKFLOW", wr.Config.Workflow)
-		} else {
-			container = container.WithEnvVariable("GHX_WORKFLOW", path)
-		}
-	} else {
-		container = container.WithEnvVariable("GHX_WORKFLOWS_DIR", wr.Config.WorkflowsDir)
-		container = container.WithEnvVariable("GHX_WORKFLOW", wr.Config.Workflow)
-	}
-
-	container = container.WithEnvVariable("GHX_JOB", wr.Config.Job)
-
-	container = container.WithEnvVariable("GITHUB_EVENT_NAME", wr.Config.Event)
-
-	if wr.Config.EventFile != nil {
-		container = container.WithMountedFile("/home/runner/_temp/_github_workflow/event.json", wr.Config.EventFile)
-	}
-
-	if wr.Config.RunnerDebug {
-		container = container.WithEnvVariable("RUNNER_DEBUG", "1")
-	}
-
-	return container
 }

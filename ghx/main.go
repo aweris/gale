@@ -4,10 +4,12 @@ import (
 	stdContext "context"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"dagger.io/dagger"
 
 	"github.com/aweris/gale/common/fs"
+	"github.com/aweris/gale/common/model"
 	"github.com/aweris/gale/ghx/context"
 )
 
@@ -30,15 +32,9 @@ func main() {
 	cfg := ctx.GhxConfig
 
 	// Load workflow
-	workflows, err := LoadWorkflows(cfg.WorkflowsDir)
+	wf, err := LoadWorkflow(cfg, filepath.Join(cfg.HomeDir, "run", "workflow.yaml"))
 	if err != nil {
-		fmt.Printf("failed to load workflows: %v", err)
-		os.Exit(1)
-	}
-
-	wf, ok := workflows[cfg.Workflow]
-	if !ok {
-		fmt.Printf("workflow %s not found", cfg.Workflow)
+		fmt.Printf("could not load workflow: %v", err)
 		os.Exit(1)
 	}
 
@@ -50,11 +46,43 @@ func main() {
 	}
 
 	// Run the workflow
-	result, _ := runner.Run(ctx)
+	runner.Run(ctx)
+}
 
-	err = fs.WriteJSONFile("/home/runner/_temp/ghx/result.json", &result)
-	if err != nil {
-		fmt.Printf("failed to write result: %v", err)
-		os.Exit(1)
+func LoadWorkflow(cfg context.GhxConfig, path string) (model.Workflow, error) {
+	var workflow model.Workflow
+
+	if err := fs.ReadYAMLFile(path, &workflow); err != nil {
+		return workflow, err
 	}
+
+	// set workflow path
+	workflow.Path = cfg.Workflow
+
+	// if the workflow name is not provided, use the relative path to the workflow file.
+	if workflow.Name == "" {
+		workflow.Name = cfg.Workflow
+	}
+
+	// update job ID and names
+	for idj, job := range workflow.Jobs {
+		job.ID = idj
+
+		if job.Name == "" {
+			job.Name = idj
+		}
+
+		// update step IDs if not provided
+		for ids, step := range job.Steps {
+			if step.ID == "" {
+				step.ID = fmt.Sprintf("%d", ids)
+			}
+
+			job.Steps[ids] = step
+		}
+
+		workflow.Jobs[idj] = job
+	}
+
+	return workflow, nil
 }

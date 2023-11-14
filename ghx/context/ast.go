@@ -13,11 +13,14 @@ type GhxConfig struct {
 	// Job name to run. If not specified, the all jobs will be run.
 	Job string `env:"GHX_JOB"`
 
-	// Directory to look for workflows.
-	WorkflowsDir string `env:"GHX_WORKFLOWS_DIR" envDefault:".github/workflows"`
-
 	// Home directory for the ghx to use for storing execution related files.
 	HomeDir string `env:"GHX_HOME" envDefault:"/home/runner/_temp/ghx"`
+
+	// ActionsDir is the directory to look for actions.
+	ActionsDir string `env:"GHX_ACTIONS_DIR" envDefault:"/home/runner/_temp/gale/actions"`
+
+	// MetadataDir is the directory to look for metadata.
+	MetadataDir string `env:"GHX_METADATA_DIR" envDefault:"/home/runner/_temp/gale/metadata"`
 }
 
 // DaggerContext is the context holding the dagger client.

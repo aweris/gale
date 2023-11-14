@@ -11,13 +11,13 @@ import (
 // GetMetadataPath returns the path of the metadata path. If the path does not exist, it creates it. This path assumes
 // zenith module set a cache for metadata, otherwise it will be empty every time it runs.
 func (c *Context) GetMetadataPath() (string, error) {
-	return EnsureDir(c.GhxConfig.HomeDir, "metadata")
+	return EnsureDir(c.GhxConfig.MetadataDir)
 }
 
 // GetActionsPath returns the path of the custom action repositories clones and stores. If the path does not exist, it
 // creates it.
 func (c *Context) GetActionsPath() (string, error) {
-	return EnsureDir(c.GhxConfig.HomeDir, "actions")
+	return EnsureDir(c.GhxConfig.ActionsDir)
 }
 
 // GetSecretsPath returns the path of the secrets.json file containing the secrets. If the path does not exist, it
