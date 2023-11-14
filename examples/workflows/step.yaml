@@ -30,6 +30,9 @@ jobs:
   docker:
     runs-on: ubuntu-latest
     steps:
+      - name: Use Docker Cli directly
+        run: docker info
+
       - name: Git log
         uses: docker://alpine/git:latest
         with:

@@ -70,6 +70,9 @@ func (r *Runner) Container(
 	ctr = ctr.With(dag.Source().ArtifactService().BindAsService)
 	ctr = ctr.With(dag.Source().ArtifactCacheService().BindAsService)
 
+	// extra services
+	ctr = ctr.With(dag.Docker().WithCacheVolume("gale-docker-cache").BindAsService)
+
 	// configure repo
 	ctr = ctr.With(info.Configure)
 
