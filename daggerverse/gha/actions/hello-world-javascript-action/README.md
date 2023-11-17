@@ -30,8 +30,7 @@ Replace `<module-path>` with the local path or a git repo reference to the modul
 | Flag | Required | Description | 
 | ------| ------| ------| 
 | --branch | Conditional | Branch name to check out. Only works with `--repo`. Either `--tag` or `--branch` must be provided; `--tag` takes precedence. |
-| --container | Optional | Container to use for the runner. If `--image` and `--container` are provided together, `--image` takes precedence. |
-| --image | Optional | Image to use for the runner. If `--image` and `--container` are provided together, `--image` takes precedence. |
+| --container | Optional | Container to use for the runner. |
 | --repo | Conditional | The name of the repository (owner/name). Either `--source` or `--repo` must be provided; `--source` takes precedence. |
 | --runner-debug | Optional | Enables debug mode. |
 | --source | Conditional | The directory containing the repository source. Either `--source` or `--repo` must be provided; `--source` takes precedence. |
