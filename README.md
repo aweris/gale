@@ -95,11 +95,10 @@ Available Commands:
 
 Flags:
       --branch string          Branch name to check out. Only one of branch or tag can be used. Precedence is as follows: tag, branch.
-      --container Container    Container to use for the runner. If --image and --container provided together, --image takes precedence.
+      --container Container    Container to use for the runner (default: ghcr.io/catthehacker/ubuntu:act-latest).
       --event string           Name of the event that triggered the workflow. e.g. push
       --event-file File        File with the complete webhook event payload.
   -h, --help                   help for run
-      --image string           Image to use for the runner. If --image and --container provided together, --image takes precedence.
       --job string             Name of the job to run. If empty, all jobs will be run.
       --repo string            The name of the repository. Format: owner/name.
       --runner-debug           Enables debug mode.

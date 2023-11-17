@@ -39,10 +39,7 @@ type ActionRunConfig struct {
 	// File with the complete webhook event payload.
 	EventFile *File
 
-	// Image to use for the runner. If --image and --container provided together, --image takes precedence.
-	Image string
-
-	// Container to use for the runner. If --image and --container provided together, --image takes precedence.
+	// Container to use for the runner.
 	Container *Container
 
 	// Enables debug mode.
@@ -76,7 +73,6 @@ func (ar *ActionRun) Sync() (*Container, error) {
 		WorkflowFile: wf,
 		Event:        ar.Config.Event,
 		EventFile:    ar.Config.EventFile,
-		Image:        ar.Config.Image,
 		Container:    ar.Config.Container,
 		RunnerDebug:  ar.Config.RunnerDebug,
 		Token:        ar.Config.Token,

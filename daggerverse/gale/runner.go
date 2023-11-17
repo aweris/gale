@@ -32,8 +32,6 @@ func (r *Runner) getRunnerContainer(ctx context.Context, container *Container) *
 func (r *Runner) Container(
 	// context to use for the operation
 	ctx context.Context,
-	// Image to use for the runner. If --image and --container provided together, --container takes precedence.
-	image Optional[string],
 	// Container to use for the runner. If --image and --container provided together, --container takes precedence.
 	container Optional[*Container],
 	// The directory containing the repository source. If source is provided, rest of the options are ignored.
@@ -57,12 +55,11 @@ func (r *Runner) Container(
 	}
 
 	var (
-		id       = uuid.New().String()
-		imageVal = image.GetOr("ghcr.io/catthehacker/ubuntu:act-latest")
-		ctr      = container.GetOr(dag.Container().From(imageVal))
-		info     = getRepoInfo(source, repo, branch, tag)
-		path     = getRunnerCacheVolumeMountPath(id)
-		cache    = getRunnerCacheVolume(id)
+		id    = uuid.New().String()
+		ctr   = container.GetOr(dag.Container().From("ghcr.io/catthehacker/ubuntu:act-latest"))
+		info  = getRepoInfo(source, repo, branch, tag)
+		path  = getRunnerCacheVolumeMountPath(id)
+		cache = getRunnerCacheVolume(id)
 	)
 
 	// configure internal components
