@@ -63,9 +63,7 @@ func (m TrivyAction) Run(
 	tag Optional[string],
 	// Branch name to check out. Only works with `--repo`.
 	branch Optional[string],
-	// Image to use for the runner. If --image and --container provided together, --image takes precedence.
-	image Optional[string],
-	// Container to use for the runner. If --image and --container provided together, --image takes precedence.
+	// Container to use for the runner.
 	container Optional[*Container],
 	// Enables debug mode.
 	runnerDebug Optional[bool],
@@ -76,7 +74,6 @@ func (m TrivyAction) Run(
 	opts := ActionsRuntimeRunOpts{
 		Branch:      branch.GetOr(""),
 		Container:   container.GetOr(nil),
-		Image:       image.GetOr(""),
 		Repo:        repo.GetOr(""),
 		RunnerDebug: runnerDebug.GetOr(false),
 		Source:      source.GetOr(nil),

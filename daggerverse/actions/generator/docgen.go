@@ -71,13 +71,9 @@ func generateModuleREADME(ca *action, daggerVersion string) *File {
 			Required: "Conditional",
 			Desc:     "Branch name to check out. Only works with `--repo`. Either `--tag` or `--branch` must be provided; `--tag` takes precedence.",
 		},
-		"--image": {
-			Required: "Optional",
-			Desc:     "Image to use for the runner. If `--image` and `--container` are provided together, `--image` takes precedence.",
-		},
 		"--container": {
 			Required: "Optional",
-			Desc:     "Container to use for the runner. If `--image` and `--container` are provided together, `--image` takes precedence.",
+			Desc:     "Container to use for the runner.",
 		},
 		"--runner-debug": {
 			Required: "Optional",
