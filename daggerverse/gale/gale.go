@@ -97,9 +97,7 @@ func (g *Gale) Run(
 	event Optional[string],
 	// File with the complete webhook event payload.
 	eventFile Optional[*File],
-	// Image to use for the runner. If --image and --container provided together, --image takes precedence.
-	image Optional[string],
-	// Container to use for the runner. If --image and --container provided together, --image takes precedence.
+	// Container to use for the runner(default: ghcr.io/catthehacker/ubuntu:act-latest).
 	container Optional[*Container],
 	// Enables debug mode.
 	runnerDebug Optional[bool],
@@ -148,7 +146,7 @@ func (g *Gale) Run(
 	}
 
 	return &WorkflowRun{
-		Runner: g.Runner().Container(ctx, image, container, source, repo, tag, branch),
+		Runner: g.Runner().Container(ctx, container, source, repo, tag, branch),
 		Config: WorkflowRunConfig{
 			WorkflowFile: wf,
 			Workflow:     wp,
