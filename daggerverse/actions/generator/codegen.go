@@ -16,8 +16,7 @@ var (
 		jen.Line().Comment("Repository name, format: owner/name. Takes precedence over `--source`.").Line().Id("repo").Id("Optional[string]"),
 		jen.Line().Comment("Tag name to check out. Only works with `--repo`. Takes precedence over `--branch`.").Line().Id("tag").Id("Optional[string]"),
 		jen.Line().Comment("Branch name to check out. Only works with `--repo`.").Line().Id("branch").Id("Optional[string]"),
-		jen.Line().Comment("Image to use for the runner. If --image and --container provided together, --image takes precedence.").Line().Id("image").Id("Optional[string]"),
-		jen.Line().Comment("Container to use for the runner. If --image and --container provided together, --image takes precedence.").Line().Id("container").Id("Optional[*Container]"),
+		jen.Line().Comment("Container to use for the runner.").Line().Id("container").Id("Optional[*Container]"),
 		jen.Line().Comment("Enables debug mode.").Line().Id("runnerDebug").Id("Optional[bool]"),
 		jen.Line().Comment("GitHub token. May be required for certain actions.").Line().Id("token").Id("Optional[*Secret]"),
 	}
@@ -29,7 +28,6 @@ var (
 				jen.Id("Repo"):        jen.Id("repo.GetOr(\"\")"),
 				jen.Id("Tag"):         jen.Id("tag.GetOr(\"\")"),
 				jen.Id("Branch"):      jen.Id("branch.GetOr(\"\")"),
-				jen.Id("Image"):       jen.Id("image.GetOr(\"\")"),
 				jen.Id("Container"):   jen.Id("container.GetOr(nil)"),
 				jen.Id("RunnerDebug"): jen.Id("runnerDebug.GetOr(false)"),
 				jen.Id("Token"):       jen.Id("token.GetOr(nil)"),
