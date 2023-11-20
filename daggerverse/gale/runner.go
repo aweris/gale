@@ -63,9 +63,9 @@ func (r *Runner) Container(
 	)
 
 	// configure internal components
-	ctr = ctr.With(dag.Source().Ghx().Binary)
-	ctr = ctr.With(dag.Source().ArtifactService().BindAsService)
-	ctr = ctr.With(dag.Source().ArtifactCacheService().BindAsService)
+	ctr = ctr.With(dag.Ghx().Source().Binary)
+	ctr = ctr.With(dag.ActionsArtifactService().BindAsService)
+	ctr = ctr.With(dag.ActionsArtifactcacheService().BindAsService)
 
 	// extra services
 	ctr = ctr.With(dag.Docker().WithCacheVolume("gale-docker-cache").BindAsService)

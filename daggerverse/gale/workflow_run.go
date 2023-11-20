@@ -108,11 +108,9 @@ func (wr *WorkflowRun) Directory(
 			return nil, err
 		}
 
-		container = dag.Container().From("alpine:latest").
-			WithMountedCache("/artifacts", dag.Source().ArtifactService().CacheVolume()).
-			WithExec([]string{"cp", "-r", fmt.Sprintf("/artifacts/%s", report.RunID), "/exported_artifacts"})
+		artifacts := dag.ActionsArtifactService().Artifacts(ActionsArtifactServiceArtifactsOpts{RunID: report.RunID})
 
-		dir = dir.WithDirectory("artifacts", container.Directory("/exported_artifacts"))
+		dir = dir.WithDirectory("artifacts", artifacts)
 	}
 
 	return dir, nil
