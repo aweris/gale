@@ -7,7 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        workdir: [common, ghx, services/artifact, services/artifactcache]
+        workdir: [common, ghx]
 
     steps:
       - name: Check out code
