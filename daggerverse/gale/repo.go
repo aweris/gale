@@ -6,23 +6,22 @@ import (
 	"strings"
 )
 
-// getRepoInfo returns a RepoInfo object based on the provided options.
-func getRepoInfo(source Optional[*Directory], repo, branch, tag Optional[string]) *RepoInfo {
-	return dag.Repo().Info(RepoInfoOpts{
+// RepoInfoOpts is a set of options for getting repository information.
+func toRepoInfoOpts(source Optional[*Directory], repo, branch, tag Optional[string]) RepoInfoOpts {
+	return RepoInfoOpts{
 		Source: source.GetOr(nil),
 		Repo:   repo.GetOr(""),
 		Branch: branch.GetOr(""),
 		Tag:    tag.GetOr(""),
-	})
+	}
 }
 
 // getWorkflowsDir returns the workflows directory from the given options.
 func getWorkflowsDir(source Optional[*Directory], repo, tag, branch, workflowsDir Optional[string]) *Directory {
-	info := getRepoInfo(source, repo, tag, branch)
-
-	// get the repository source working directory from the options -- default value handled by the repo module, so we
-	// don't need to handle it here.
-	return info.WorkflowsDir(RepoInfoWorkflowsDirOpts{WorkflowsDir: workflowsDir.GetOr("")})
+	return dag.Repo().
+		Info(toRepoInfoOpts(source, repo, branch, tag)).
+		Source().
+		Directory(workflowsDir.GetOr(".github/workflows"))
 }
 
 // WorkflowWalkFunc is the type of the function called for each workflow file visited by walkWorkflowDir.

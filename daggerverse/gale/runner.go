@@ -57,7 +57,7 @@ func (r *Runner) Container(
 	var (
 		id    = uuid.New().String()
 		ctr   = container.GetOr(dag.Container().From("ghcr.io/catthehacker/ubuntu:act-latest"))
-		info  = getRepoInfo(source, repo, branch, tag)
+		info  = dag.Repo().Info(toRepoInfoOpts(source, repo, branch, tag))
 		path  = getRunnerCacheVolumeMountPath(id)
 		cache = getRunnerCacheVolume(id)
 	)

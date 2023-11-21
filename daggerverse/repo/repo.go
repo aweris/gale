@@ -90,24 +90,9 @@ func (_ *Repo) Info(
 	}, nil
 }
 
-// WorkflowsDir returns the workflows directory for the repository. If workflowsDir is provided, it's used as the
-// returns the workflows directory for the repository, otherwise the default workflows directory .github/workflows is
-// returned.
-func (ri *Info) WorkflowsDir(
-	// Path to the workflows' directory. (default: .github/workflows)
-	workflowsDir Optional[string],
-) *Directory {
-	return ri.Source.Directory(workflowsDir.GetOr(".github/workflows"))
-}
-
-// Workdir returns the runner workdir for the repository.
-func (ri *Info) Workdir() string {
-	return fmt.Sprintf("/home/runner/work/%s/%s", ri.Name, ri.Name)
-}
-
 // Configure configures the container with the repository information.
-func (ri *Info) Configure(_ context.Context, c *Container) (*Container, error) {
-	workdir := ri.Workdir()
+func (ri *Info) Configure(c *Container) *Container {
+	workdir := fmt.Sprintf("/home/runner/work/%s/%s", ri.Name, ri.Name)
 	return c.WithMountedDirectory(workdir, ri.Source).
 		WithWorkdir(workdir).
 		WithEnvVariable("GITHUB_WORKSPACE", workdir).
@@ -118,7 +103,7 @@ func (ri *Info) Configure(_ context.Context, c *Container) (*Container, error) {
 		WithEnvVariable("GITHUB_REF", ri.Ref).
 		WithEnvVariable("GITHUB_REF_NAME", ri.RefName).
 		WithEnvVariable("GITHUB_REF_TYPE", ri.RefType).
-		WithEnvVariable("GITHUB_SHA", ri.SHA), nil
+		WithEnvVariable("GITHUB_SHA", ri.SHA)
 }
 
 // getRepoSource returns the repository source based on the options provided.
