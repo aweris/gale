@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"path/filepath"
+	"time"
 )
 
 const (
@@ -79,4 +81,38 @@ func (g *Gha) Generate(ctx context.Context) (*Directory, error) {
 	}
 
 	return gha, nil
+}
+
+// Publish publishes the Github Actions modules from gha catalog to daggerverse.dev
+func (g *Gha) Publish(ctx context.Context) error {
+	var (
+		gha = dag.Host().Directory(root()).Directory(ghaPath)
+		cf  = gha.File(catalogFile)
+	)
+
+	var catalog Catalog
+
+	err := unmarshalContentsToYAML(ctx, cf, &catalog)
+	if err != nil {
+		return err
+	}
+
+	for _, action := range catalog.Actions {
+		daggerVersion := action.DaggerVersion
+		if daggerVersion == "" {
+			daggerVersion = catalog.Global.DaggerVersion
+		}
+
+		_, err = dagger(Opt(daggerVersion)).
+			WithMountedDirectory("/src", dag.Host().Directory(root())).
+			WithWorkdir("/src").
+			WithEnvVariable("CACHE_BUSTER", time.Now().Format(time.RFC3339Nano)).
+			WithExec([]string{"mod", "publish", "-f", "-m", filepath.Join(ghaPath, action.Repo)}, ContainerWithExecOpts{ExperimentalPrivilegedNesting: true}).
+			Sync(ctx)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
