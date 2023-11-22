@@ -24,12 +24,12 @@ func getWorkflowsDir(source Optional[*Directory], repo, tag, branch, workflowsDi
 		Directory(workflowsDir.GetOr(".github/workflows"))
 }
 
-// WorkflowWalkFunc is the type of the function called for each workflow file visited by walkWorkflowDir.
-type WorkflowWalkFunc func(ctx context.Context, path string, file *File) (bool, error)
+// workflowWalkFunc is the type of the function called for each workflow file visited by walkWorkflowDir.
+type workflowWalkFunc func(ctx context.Context, path string, file *File) (bool, error)
 
 // walkWorkflowDir walks the workflows directory and calls the given function for each workflow file. If walk function
 // returns false, the walk stops.
-func walkWorkflowDir(ctx context.Context, path Optional[string], dir *Directory, fn WorkflowWalkFunc) error {
+func walkWorkflowDir(ctx context.Context, path Optional[string], dir *Directory, fn workflowWalkFunc) error {
 	entries, err := dir.Entries(ctx)
 	if err != nil {
 		return err
