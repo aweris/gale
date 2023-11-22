@@ -1,0 +1,5 @@
+{
+  "name": "workflows",
+  "root": "../..",
+  "sdk": "go"
+}

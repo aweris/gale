@@ -3,8 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"path/filepath"
-	"strings"
 )
 
 // Gale is a Dagger module for running Github Actions workflows.
@@ -30,47 +28,14 @@ func (g *Gale) List(
 	// Path to the workflows' directory. (default: .github/workflows)
 	workflowsDir Optional[string],
 ) (string, error) {
-	workflows := getWorkflowsDir(source, repo, tag, branch, workflowsDir)
+	// load repository information
+	info := dag.Repo().Info(toRepoInfoOpts(source, repo, branch, tag))
 
-	sb := strings.Builder{}
+	// load workflows
+	workflows := dag.Workflows().List(info.Source(), WorkflowsListOpts{WorkflowsDir: workflowsDir.GetOr("")})
 
-	err := walkWorkflowDir(ctx, workflowsDir, workflows,
-		func(ctx context.Context, path string, file *File) (bool, error) {
-			// dagger do not support maps yet, so we're defining anonymous struct to unmarshal the yaml file to avoid
-			// hit this limitation.
-			var workflow struct {
-				Name string                 `yaml:"name"`
-				Jobs map[string]interface{} `yaml:"jobs"`
-			}
-
-			if err := unmarshalContentsToYAML(ctx, file, &workflow); err != nil {
-				return false, err
-			}
-
-			sb.WriteString("Workflow: ")
-			if workflow.Name != "" {
-				sb.WriteString(fmt.Sprintf("%s (path: %s)\n", workflow.Name, path))
-			} else {
-				sb.WriteString(fmt.Sprintf("%s\n", path))
-			}
-
-			sb.WriteString("Jobs:\n")
-
-			for job := range workflow.Jobs {
-				sb.WriteString(fmt.Sprintf(" - %s\n", job))
-			}
-
-			sb.WriteString("\n") // extra empty line
-
-			return true, nil
-		},
-	)
-
-	if err != nil {
-		return "", err
-	}
-
-	return sb.String(), nil
+	// return string representation of the workflows
+	return workflows.String(ctx)
 }
 
 // Run runs the workflow with the given options.
@@ -112,37 +77,22 @@ func (g *Gale) Run(
 			return nil, fmt.Errorf("workflow or workflow file must be provided")
 		}
 
-		workflows := getWorkflowsDir(source, repo, tag, branch, workflowsDir)
+		// load repository information
+		info := dag.Repo().Info(toRepoInfoOpts(source, repo, branch, tag))
 
-		err := walkWorkflowDir(ctx, workflowsDir, workflows, func(ctx context.Context, path string, file *File) (bool, error) {
-			// when relative path or file name is matches with the workflow name, we assume that it is the workflow
-			// file.
-			if path == workflow || filepath.Base(path) == workflow {
-				wf = file
-				wp = path
-				return false, nil
-			}
+		// load workflows
+		workflows := dag.Workflows().List(info.Source(), WorkflowsListOpts{WorkflowsDir: workflowsDir.GetOr("")})
 
-			// otherwise, look for matching workflow name in the workflow file.
-			var f struct {
-				Name string `yaml:"name"`
-			}
+		w := workflows.Get(workflow)
 
-			if err := unmarshalContentsToYAML(ctx, file, &f); err != nil {
-				return false, err
-			}
+		var err error
 
-			if f.Name == workflow {
-				wf = file
-				wp = path
-				return false, nil
-			}
-
-			return true, nil
-		})
+		wp, err = w.Path(ctx)
 		if err != nil {
 			return nil, err
 		}
+
+		wf = w.Src()
 	}
 
 	return &WorkflowRun{

@@ -15,5 +15,6 @@ use (
 	daggerverse/gha/trufflesecurity/trufflehog
 	daggerverse/ghx
 	daggerverse/repo
+	daggerverse/workflows
 	ghx
 )
