@@ -32,17 +32,11 @@ func (r *Runner) getRunnerContainer(ctx context.Context, container *Container) *
 func (r *Runner) Container(
 	// context to use for the operation
 	ctx context.Context,
-	// Container to use for the runner. If --image and --container provided together, --container takes precedence.
+	// Container to use for the runner.
 	container Optional[*Container],
-	// The directory containing the repository source. If source is provided, rest of the options are ignored.
-	source Optional[*Directory],
-	// The name of the repository. Format: owner/name.
-	repo Optional[string],
-	// Tag name to check out. Only one of branch or tag can be used. Precedence is as follows: tag, branch.
-	tag Optional[string],
-	// Branch name to check out. Only one of branch or tag can be used. Precedence is as follows: tag, branch.
-	branch Optional[string],
-) *RunnerContainer {
+	// repository information to use for the runner
+	repo *RepoInfo,
+) (*RunnerContainer, error) {
 	// check if container is already initialized
 	if ctr, ok := container.Get(); ok {
 		id := isContainerInitialized(ctx, ctr)
@@ -50,14 +44,13 @@ func (r *Runner) Container(
 			println(fmt.Sprintf("skip container initialization, container already initialized with id: %s", id))
 			println(fmt.Sprintf("WARNING: given source and repo options are ignored, using the initialized container"))
 
-			return &RunnerContainer{RunnerID: id, Ctr: ctr}
+			return &RunnerContainer{RunnerID: id, Ctr: ctr}, nil
 		}
 	}
 
 	var (
 		id    = uuid.New().String()
 		ctr   = container.GetOr(dag.Container().From("ghcr.io/catthehacker/ubuntu:act-latest"))
-		info  = dag.Repo().Info(toRepoInfoOpts(source, repo, branch, tag))
 		path  = getRunnerCacheVolumeMountPath(id)
 		cache = getRunnerCacheVolume(id)
 	)
@@ -70,8 +63,19 @@ func (r *Runner) Container(
 	// extra services
 	ctr = ctr.With(dag.Docker().WithCacheVolume("gale-docker-cache").BindAsService)
 
-	// configure repo
-	ctr = ctr.With(info.Configure)
+	// configure repository
+	workdir := fmt.Sprintf("/home/runner/work/%s/%s", repo.Name, repo.Name)
+
+	ctr = ctr.WithMountedDirectory(workdir, repo.Source).WithWorkdir(workdir)
+	ctr = ctr.WithEnvVariable("GH_REPO", repo.NameWithOwner)
+	ctr = ctr.WithEnvVariable("GITHUB_WORKSPACE", workdir)
+	ctr = ctr.WithEnvVariable("GITHUB_REPOSITORY", repo.NameWithOwner)
+	ctr = ctr.WithEnvVariable("GITHUB_REPOSITORY_OWNER", repo.Owner)
+	ctr = ctr.WithEnvVariable("GITHUB_REPOSITORY_URL", repo.URL)
+	ctr = ctr.WithEnvVariable("GITHUB_REF", repo.Ref)
+	ctr = ctr.WithEnvVariable("GITHUB_REF_NAME", repo.RefName)
+	ctr = ctr.WithEnvVariable("GITHUB_REF_TYPE", repo.RefType)
+	ctr = ctr.WithEnvVariable("GITHUB_SHA", repo.SHA)
 
 	// configure runner cache
 	ctr = ctr.WithEnvVariable("GALE_RUNNER_CACHE", path)
@@ -94,7 +98,7 @@ func (r *Runner) Container(
 	ctr = ctr.WithEnvVariable("GALE_RUNNER_ID", id)
 	ctr = ctr.WithEnvVariable("GALE_CONFIGURED", "true")
 
-	return &RunnerContainer{RunnerID: id, Ctr: ctr}
+	return &RunnerContainer{RunnerID: id, Ctr: ctr}, nil
 }
 
 func (rc *RunnerContainer) Container() *Container {

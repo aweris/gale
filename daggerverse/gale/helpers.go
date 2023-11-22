@@ -20,13 +20,3 @@ func unmarshalContentsToJSON(ctx context.Context, f *File, v interface{}) error 
 
 	return nil
 }
-
-// RepoInfoOpts is a set of options for getting repository information.
-func toRepoInfoOpts(source Optional[*Directory], repo, branch, tag Optional[string]) RepoInfoOpts {
-	return RepoInfoOpts{
-		Source: source.GetOr(nil),
-		Repo:   repo.GetOr(""),
-		Branch: branch.GetOr(""),
-		Tag:    tag.GetOr(""),
-	}
-}

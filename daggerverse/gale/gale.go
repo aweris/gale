@@ -8,9 +8,12 @@ import (
 // Gale is a Dagger module for running Github Actions workflows.
 type Gale struct{}
 
-// Runner represents a runner to run a Github Actions workflow in.
-func (g *Gale) Runner() *Runner {
+func (g *Gale) runner() *Runner {
 	return &Runner{}
+}
+
+func (g *Gale) repo() *Repo {
+	return &Repo{}
 }
 
 // List returns a list of workflows and their jobs with the given options.
@@ -29,10 +32,13 @@ func (g *Gale) List(
 	workflowsDir Optional[string],
 ) (string, error) {
 	// load repository information
-	info := dag.Repo().Info(toRepoInfoOpts(source, repo, branch, tag))
+	info, err := g.repo().Info(ctx, source, repo, branch, tag)
+	if err != nil {
+		return "", err
+	}
 
 	// load workflows
-	workflows := dag.Workflows().List(info.Source(), WorkflowsListOpts{WorkflowsDir: workflowsDir.GetOr("")})
+	workflows := dag.Workflows().List(info.Source, WorkflowsListOpts{WorkflowsDir: workflowsDir.GetOr("")})
 
 	// return string representation of the workflows
 	return workflows.String(ctx)
@@ -69,6 +75,18 @@ func (g *Gale) Run(
 	// GitHub token to use for authentication.
 	token Optional[*Secret],
 ) (*WorkflowRun, error) {
+
+	// load repository information
+	info, err := g.repo().Info(ctx, source, repo, branch, tag)
+	if err != nil {
+		return nil, err
+	}
+
+	runner, err := g.runner().Container(ctx, container, info)
+	if err != nil {
+		return nil, err
+	}
+
 	wp := ""
 	wf, ok := workflowFile.Get()
 	if !ok {
@@ -77,15 +95,10 @@ func (g *Gale) Run(
 			return nil, fmt.Errorf("workflow or workflow file must be provided")
 		}
 
-		// load repository information
-		info := dag.Repo().Info(toRepoInfoOpts(source, repo, branch, tag))
-
 		// load workflows
-		workflows := dag.Workflows().List(info.Source(), WorkflowsListOpts{WorkflowsDir: workflowsDir.GetOr("")})
+		workflows := dag.Workflows().List(info.Source, WorkflowsListOpts{WorkflowsDir: workflowsDir.GetOr("")})
 
 		w := workflows.Get(workflow)
-
-		var err error
 
 		wp, err = w.Path(ctx)
 		if err != nil {
@@ -96,7 +109,7 @@ func (g *Gale) Run(
 	}
 
 	return &WorkflowRun{
-		Runner: g.Runner().Container(ctx, container, source, repo, tag, branch),
+		Runner: runner,
 		Config: WorkflowRunConfig{
 			WorkflowFile: wf,
 			Workflow:     wp,

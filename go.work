@@ -14,7 +14,6 @@ use (
 	daggerverse/gha/aquasecurity/trivy-action
 	daggerverse/gha/trufflesecurity/trufflehog
 	daggerverse/ghx
-	daggerverse/repo
 	daggerverse/workflows
 	ghx
 )

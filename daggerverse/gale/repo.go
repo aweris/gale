@@ -9,8 +9,8 @@ import (
 
 type Repo struct{}
 
-// Info represents a repository information.
-type Info struct {
+// RepoInfo represents a repository information.
+type RepoInfo struct {
 	Owner         string     // Owner of the repository.
 	Name          string     // Name of the repository.
 	NameWithOwner string     // NameWithOwner combined version of owner and name. Format: owner/name.
@@ -25,6 +25,7 @@ type Info struct {
 }
 
 func (_ *Repo) Info(
+	// context to use for the operation
 	ctx context.Context,
 	// The directory containing the repository source. If source is provided, rest of the options are ignored.
 	source Optional[*Directory],
@@ -34,7 +35,7 @@ func (_ *Repo) Info(
 	tag Optional[string],
 	// Branch name to check out. Only one of branch or tag can be used. Precedence is as follows: tag, branch.
 	branch Optional[string],
-) (*Info, error) {
+) (*RepoInfo, error) {
 	// get the repository source from the options
 	dir, err := getRepoSource(source, repo, tag, branch)
 	if err != nil {
@@ -42,7 +43,7 @@ func (_ *Repo) Info(
 	}
 
 	// create a git container with the repository source to execute git commands
-	container := gitContainer(dir)
+	container := dag.Container().From("alpine/git:latest").WithMountedDirectory("/src", dir).WithWorkdir("/src")
 
 	// get the repository url
 	url, err := getTrimmedOutput(ctx, container, "config", "--get", "remote.origin.url")
@@ -75,7 +76,7 @@ func (_ *Repo) Info(
 
 	_, isLocal := source.Get()
 
-	return &Info{
+	return &RepoInfo{
 		Owner:         owner,
 		Name:          repoName,
 		NameWithOwner: fmt.Sprintf("%s/%s", owner, repoName),
@@ -88,22 +89,6 @@ func (_ *Repo) Info(
 		IsRemote:      !isLocal,
 		Source:        dir,
 	}, nil
-}
-
-// Configure configures the container with the repository information.
-func (ri *Info) Configure(c *Container) *Container {
-	workdir := fmt.Sprintf("/home/runner/work/%s/%s", ri.Name, ri.Name)
-	return c.WithMountedDirectory(workdir, ri.Source).
-		WithWorkdir(workdir).
-		WithEnvVariable("GITHUB_WORKSPACE", workdir).
-		WithEnvVariable("GH_REPO", ri.NameWithOwner).
-		WithEnvVariable("GITHUB_REPOSITORY", ri.NameWithOwner).
-		WithEnvVariable("GITHUB_REPOSITORY_OWNER", ri.Owner).
-		WithEnvVariable("GITHUB_REPOSITORY_URL", ri.URL).
-		WithEnvVariable("GITHUB_REF", ri.Ref).
-		WithEnvVariable("GITHUB_REF_NAME", ri.RefName).
-		WithEnvVariable("GITHUB_REF_TYPE", ri.RefType).
-		WithEnvVariable("GITHUB_SHA", ri.SHA)
 }
 
 // getRepoSource returns the repository source based on the options provided.
