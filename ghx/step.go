@@ -11,46 +11,46 @@ import (
 // Step is an internal interface that defines contract for steps.
 type Step interface {
 	// condition returns the function that checks if the main execution condition is met.
-	condition() task.ConditionalFn
+	condition() task.ConditionalFn[context.Context]
 
 	// main returns the function that executes the main execution logic.
-	main() task.RunFn
+	main() task.RunFn[context.Context]
 }
 
 // SetupHook is the interface that defines contract for steps capable of performing a setup task.
 type SetupHook interface {
 	// setup returns the function that sets up the step before execution.
-	setup() task.RunFn
+	setup() task.RunFn[context.Context]
 }
 
 // PreHook is the interface that defines contract for steps capable of performing a pre execution task.
 type PreHook interface {
 	// preCondition returns the function that checks if the pre execution condition is met.
-	preCondition() task.ConditionalFn
+	preCondition() task.ConditionalFn[context.Context]
 
 	// pre returns the function that executes the pre execution logic just before the main execution.
-	pre() task.RunFn
+	pre() task.RunFn[context.Context]
 }
 
 // PostHook is the interface that defines contract for steps capable of performing a post execution task.
 type PostHook interface {
 	// postCondition returns the function that checks if the post execution condition is met.
-	postCondition() task.ConditionalFn
+	postCondition() task.ConditionalFn[context.Context]
 
 	// post returns the function that executes the post execution logic just after the main execution.
-	post() task.RunFn
+	post() task.RunFn[context.Context]
 }
 
 // PreRunHook is the interface that defines contract for steps capable of performing a pre run task. Pre run task is
 // executed before the step is executed for each stage.
 type PreRunHook interface {
-	preRun(stage model.StepStage) task.PreRunFn
+	preRun(stage model.StepStage) task.PreRunFn[context.Context]
 }
 
 // PostRunHook is the interface that defines contract for steps capable of performing a post run task. Post run task is
 // executed after the step is executed for each stage.
 type PostRunHook interface {
-	postRun() task.PostRunFn
+	postRun() task.PostRunFn[context.Context]
 }
 
 // TODO: separate files for each step type
@@ -75,7 +75,7 @@ func NewStep(s model.Step) (Step, error) {
 	return step, nil
 }
 
-func newTaskPreRunFnForStep(stage model.StepStage, step model.Step) task.PreRunFn {
+func newTaskPreRunFnForStep(stage model.StepStage, step model.Step) task.PreRunFn[context.Context] {
 	return func(ctx *context.Context) error {
 		return ctx.SetStep(
 			&model.StepRun{
@@ -88,7 +88,7 @@ func newTaskPreRunFnForStep(stage model.StepStage, step model.Step) task.PreRunF
 	}
 }
 
-func newTaskPostRunFnForStep() task.PostRunFn {
+func newTaskPostRunFnForStep() task.PostRunFn[context.Context] {
 	return func(ctx *context.Context, result task.Result) {
 		ctx.UnsetStep(context.RunResult(result))
 	}

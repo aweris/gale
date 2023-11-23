@@ -12,7 +12,7 @@ import (
 )
 
 // planWorkflow plans the workflow and returns the workflow runner.
-func planWorkflow(workflow model.Workflow, job string) (*task.Runner, error) {
+func planWorkflow(workflow model.Workflow, job string) (*task.Runner[context.Context], error) {
 	var (
 		order   []string                // order keeps track of job execution order
 		visited map[string]bool         // visited keeps track of visited jobs
@@ -99,18 +99,18 @@ func planWorkflow(workflow model.Workflow, job string) (*task.Runner, error) {
 	}
 
 	// workflow task options
-	opt := task.Opts{
+	opt := task.Opts[context.Context]{
 		PreRunFn:  newTaskPreRunFnForWorkflow(workflow),
 		PostRunFn: newTaskPostRunFnForWorkflow(),
 	}
 
 	// create the workflow task runner from the runFn and options
-	runner := task.New(fmt.Sprintf("Workflow: %s", workflow.Name), runFn, opt)
+	runner := task.New[context.Context](fmt.Sprintf("Workflow: %s", workflow.Name), runFn, opt)
 
 	return &runner, nil
 }
 
-func newTaskPreRunFnForWorkflow(wf model.Workflow) task.PreRunFn {
+func newTaskPreRunFnForWorkflow(wf model.Workflow) task.PreRunFn[context.Context] {
 	return func(ctx *context.Context) error {
 		runID, err := idgen.GenerateWorkflowRunID(ctx)
 		if err != nil {
@@ -130,7 +130,7 @@ func newTaskPreRunFnForWorkflow(wf model.Workflow) task.PreRunFn {
 	}
 }
 
-func newTaskPostRunFnForWorkflow() task.PostRunFn {
+func newTaskPostRunFnForWorkflow() task.PostRunFn[context.Context] {
 	return func(ctx *context.Context, result task.Result) {
 		log.Infof("Complete", "workflow", ctx.Execution.WorkflowRun.Workflow.Name, "conclusion", result.Conclusion)
 

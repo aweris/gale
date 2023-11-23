@@ -6,7 +6,6 @@ import (
 
 	"github.com/aweris/gale/common/log"
 	"github.com/aweris/gale/common/model"
-	"github.com/aweris/gale/ghx/context"
 )
 
 // Status is the phase of the lifecycle that object currently in
@@ -23,7 +22,7 @@ const (
 // The return values are:
 //   - conclusion: conclusion of the execution
 //   - err: error if any
-type RunFn func(ctx *context.Context) (conclusion model.Conclusion, err error)
+type RunFn[T any] func(ctx *T) (conclusion model.Conclusion, err error)
 
 // ConditionalFn is the function that determines if the task should be executed. If the task should not be
 // executed, the conclusion is returned as well.
@@ -40,48 +39,51 @@ type RunFn func(ctx *context.Context) (conclusion model.Conclusion, err error)
 //   - If run is false, conclusion is empty and err is nil, invalid task. Ignore it completely. The reason this
 //     scenario exist is that the task is not invalid by itself. It is just not applicable to the current context, and
 //     we can't determine if it is invalid or not in planning phase.
-type ConditionalFn func(ctx *context.Context) (run bool, conclusion model.Conclusion, err error)
+type ConditionalFn[T any] func(ctx *T) (run bool, conclusion model.Conclusion, err error)
 
 // PreRunFn is the function that will be executed before the task is executed. If the function returns an error,
 // the task will not be executed. PreRunFn is useful for tasks that need to perform some actions before the execution
 // starts.
-type PreRunFn func(ctx *context.Context) (err error)
+type PreRunFn[T any] func(ctx *T) (err error)
 
 // PostRunFn is the function that will be executed after the task is executed  PostRunFn is useful for tasks that
 // need to perform some actions after the execution ends.
-type PostRunFn func(ctx *context.Context, result Result)
+type PostRunFn[T any] func(ctx *T, result Result)
 
 // Runner is a task runner that runs a task and keeps status, conclusion and timing information about
 // the execution.
-type Runner struct {
-	Name        string        // Name of the execution
-	Status      Status        // Status of the execution
-	runFn       RunFn         // runFn is the function to be executed
-	conditionFn ConditionalFn // conditionFn is the function that determines if the task should be executed
-	preFn       PreRunFn      // preFn is the function that will be executed before the task is executed
-	postFn      PostRunFn     // postFn is the function that will be executed after the task is executed
+type Runner[T any] struct {
+	Name        string           // Name of the execution
+	Status      Status           // Status of the execution
+	runFn       RunFn[T]         // runFn is the function to be executed
+	conditionFn ConditionalFn[T] // conditionFn is the function that determines if the task should be executed
+	preFn       PreRunFn[T]      // preFn is the function that will be executed before the task is executed
+	postFn      PostRunFn[T]     // postFn is the function that will be executed after the task is executed
 }
 
-// Result is the result of the task execution. It is using context.RunResult to avoid circular dependency while keeping
-// a result type in the task package as well.
-type Result context.RunResult
+// Result is the result of the task execution
+type Result struct {
+	Ran        bool             `json:"ran"`        // Ran indicates if the execution ran
+	Conclusion model.Conclusion `json:"conclusion"` // Conclusion of the execution
+	Duration   time.Duration    `json:"duration"`   // Duration of the execution
+}
 
 // Opts is the options that can be used to configure a task.
-type Opts struct {
-	PreRunFn      PreRunFn
-	PostRunFn     PostRunFn
-	ConditionalFn ConditionalFn
+type Opts[T any] struct {
+	PreRunFn      PreRunFn[T]
+	PostRunFn     PostRunFn[T]
+	ConditionalFn ConditionalFn[T]
 }
 
 // New creates a new task taskRunner. Optionally, it can be configured with the given options. Only first
 // option is used if multiple options are provided.
-func New(name string, fn RunFn, opts ...Opts) Runner {
-	var opt Opts
+func New[T any](name string, fn RunFn[T], opts ...Opts[T]) Runner[T] {
+	var opt Opts[T]
 	if len(opts) > 0 {
 		opt = opts[0]
 	}
 
-	return Runner{
+	return Runner[T]{
 		Name:        name,
 		Status:      StatusQueued,
 		runFn:       fn,
@@ -92,7 +94,7 @@ func New(name string, fn RunFn, opts ...Opts) Runner {
 }
 
 // Run runs the task and updates the status, conclusion and timing information.
-func (t *Runner) Run(ctx *context.Context) (Result, error) {
+func (t *Runner[T]) Run(ctx *T) (Result, error) {
 	var (
 		result    = Result{Ran: true}
 		startedAt = time.Now()

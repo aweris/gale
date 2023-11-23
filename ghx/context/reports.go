@@ -6,7 +6,8 @@ import (
 	"github.com/aweris/gale/common/model"
 )
 
-// RunResult is the result of the task execution
+// RunResult is the result of the task execution. The signature of the RunResult is identical to task.Result to avoid
+// circular dependency. // FIXME: decouple this from task.Result completely
 type RunResult struct {
 	Ran        bool             `json:"ran"`        // Ran indicates if the execution ran
 	Conclusion model.Conclusion `json:"conclusion"` // Conclusion of the execution

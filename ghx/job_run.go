@@ -13,13 +13,13 @@ import (
 )
 
 // planJob plans the job and returns the job runner.
-func planJob(job model.Job) ([]*task.Runner, error) {
+func planJob(job model.Job) ([]*task.Runner[context.Context], error) {
 	// step task executors that execute the steps
 	var (
-		setupFns = make([]task.RunFn, 0)
-		pre      = make([]task.Runner, 0)
-		main     = make([]task.Runner, 0)
-		post     = make([]task.Runner, 0)
+		setupFns = make([]task.RunFn[context.Context], 0)
+		pre      = make([]task.Runner[context.Context], 0)
+		main     = make([]task.Runner[context.Context], 0)
+		post     = make([]task.Runner[context.Context], 0)
 	)
 
 	for idx, step := range job.Steps {
@@ -49,7 +49,7 @@ func planJob(job model.Job) ([]*task.Runner, error) {
 			if post, ok := sr.(PostRunHook); ok {
 				postRunFn = post.postRun()
 			}
-			opt := task.Opts{
+			opt := task.Opts[context.Context]{
 				ConditionalFn: hook.preCondition(),
 				PreRunFn:      preRunFn,
 				PostRunFn:     postRunFn,
@@ -68,7 +68,7 @@ func planJob(job model.Job) ([]*task.Runner, error) {
 		}
 
 		// main task options
-		opt := task.Opts{
+		opt := task.Opts[context.Context]{
 			ConditionalFn: sr.condition(),
 			PreRunFn:      preRunFn,
 			PostRunFn:     postRunFn,
@@ -92,7 +92,7 @@ func planJob(job model.Job) ([]*task.Runner, error) {
 				postRunFn = post.postRun()
 			}
 
-			opt := task.Opts{
+			opt := task.Opts[context.Context]{
 				ConditionalFn: hook.postCondition(),
 				PreRunFn:      preRunFn,
 				PostRunFn:     postRunFn,
@@ -101,13 +101,13 @@ func planJob(job model.Job) ([]*task.Runner, error) {
 		}
 	}
 
-	var tasks = make([]task.Runner, 0)
+	var tasks = make([]task.Runner[context.Context], 0)
 
-	tasks = append(tasks, task.New("Set up job", setup(setupFns...)))
+	tasks = append(tasks, task.New[context.Context]("Set up job", setup(setupFns...)))
 	tasks = append(tasks, pre...)
 	tasks = append(tasks, main...)
 	tasks = append(tasks, post...)
-	tasks = append(tasks, task.New("Complete job", complete()))
+	tasks = append(tasks, task.New[context.Context]("Complete job", complete()))
 
 	runFn := func(ctx *context.Context) (model.Conclusion, error) {
 		for _, te := range tasks {
@@ -164,7 +164,7 @@ func planJob(job model.Job) ([]*task.Runner, error) {
 		return ctx.Job.Status, nil
 	}
 
-	runners := make([]*task.Runner, 0)
+	runners := make([]*task.Runner[context.Context], 0)
 	matrices := job.Strategy.Matrix.GenerateCombinations()
 
 	if len(matrices) > 0 {
@@ -183,7 +183,7 @@ func planJob(job model.Job) ([]*task.Runner, error) {
 			sb.WriteString(strings.Join(values, ","))
 			sb.WriteRune(')')
 
-			runner := task.New(sb.String(), runFn, task.Opts{
+			runner := task.New(sb.String(), runFn, task.Opts[context.Context]{
 				ConditionalFn: newTaskConditionalFnForJob(job),
 				PreRunFn:      newTaskPreRunFnForJob(job, matrix),
 				PostRunFn:     newTaskPostRunFnForJob(),
@@ -193,7 +193,7 @@ func planJob(job model.Job) ([]*task.Runner, error) {
 		}
 	} else {
 		// task runner options for the job
-		opt := task.Opts{
+		opt := task.Opts[context.Context]{
 			ConditionalFn: newTaskConditionalFnForJob(job),
 			PreRunFn:      newTaskPreRunFnForJob(job),
 			PostRunFn:     newTaskPostRunFnForJob(),
@@ -208,7 +208,7 @@ func planJob(job model.Job) ([]*task.Runner, error) {
 }
 
 // setup returns a task taskRunner function that will be executed by the task taskRunner for the setup step.
-func setup(setupFns ...task.RunFn) task.RunFn {
+func setup(setupFns ...task.RunFn[context.Context]) task.RunFn[context.Context] {
 	return func(ctx *context.Context) (model.Conclusion, error) {
 		// To accurately evaluate conditions like always() or failure(), context inherits the workflow status.
 		// This inheritance allow us to evaluate the conditions like always() or failure() correctly. However,
@@ -236,7 +236,7 @@ func setup(setupFns ...task.RunFn) task.RunFn {
 const MB = 1024 * 1024
 
 // complete returns a task taskRunner function that will be executed by the task taskRunner for the complete step.
-func complete() task.RunFn {
+func complete() task.RunFn[context.Context] {
 	return func(ctx *context.Context) (model.Conclusion, error) {
 		log.Infof("Complete", "job", ctx.Execution.JobRun.Job.Name, "conclusion", ctx.Job.Status)
 
@@ -244,7 +244,7 @@ func complete() task.RunFn {
 	}
 }
 
-func newTaskConditionalFnForJob(job model.Job) task.ConditionalFn {
+func newTaskConditionalFnForJob(job model.Job) task.ConditionalFn[context.Context] {
 	return func(ctx *context.Context) (bool, model.Conclusion, error) {
 		return evalCondition(job.If, ctx)
 	}
@@ -252,7 +252,7 @@ func newTaskConditionalFnForJob(job model.Job) task.ConditionalFn {
 
 // newTaskPreRunFnForJob returns a task pre run function that will be executed by the task taskRunner for the job. The
 // matrix parameter is optional. If it's provided, first matrix combination will be set to the job run.
-func newTaskPreRunFnForJob(job model.Job, matrix ...model.MatrixCombination) task.PreRunFn {
+func newTaskPreRunFnForJob(job model.Job, matrix ...model.MatrixCombination) task.PreRunFn[context.Context] {
 	return func(ctx *context.Context) error {
 		runID, err := idgen.GenerateJobRunID(ctx)
 		if err != nil {
@@ -269,7 +269,7 @@ func newTaskPreRunFnForJob(job model.Job, matrix ...model.MatrixCombination) tas
 	}
 }
 
-func newTaskPostRunFnForJob() task.PostRunFn {
+func newTaskPostRunFnForJob() task.PostRunFn[context.Context] {
 	return func(ctx *context.Context, result task.Result) {
 		ctx.UnsetJob(context.RunResult(result))
 	}

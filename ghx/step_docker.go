@@ -22,7 +22,7 @@ type StepDocker struct {
 	Step      model.Step
 }
 
-func (s *StepDocker) setup() task.RunFn {
+func (s *StepDocker) setup() task.RunFn[context.Context] {
 	return func(ctx *context.Context) (model.Conclusion, error) {
 		var (
 			image        = strings.TrimPrefix(s.Step.Uses, "docker://")
@@ -44,13 +44,13 @@ func (s *StepDocker) setup() task.RunFn {
 	}
 }
 
-func (s *StepDocker) condition() task.ConditionalFn {
+func (s *StepDocker) condition() task.ConditionalFn[context.Context] {
 	return func(ctx *context.Context) (bool, model.Conclusion, error) {
 		return evalCondition(s.Step.If, ctx)
 	}
 }
 
-func (s *StepDocker) main() task.RunFn {
+func (s *StepDocker) main() task.RunFn[context.Context] {
 	return func(ctx *context.Context) (model.Conclusion, error) {
 		executor := NewContainerExecutorFromStepDocker(s)
 

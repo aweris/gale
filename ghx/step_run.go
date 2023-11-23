@@ -23,7 +23,7 @@ type StepRun struct {
 
 }
 
-func (s *StepRun) condition() task.ConditionalFn {
+func (s *StepRun) condition() task.ConditionalFn[context.Context] {
 	return func(ctx *context.Context) (bool, model.Conclusion, error) {
 		return evalCondition(s.Step.If, ctx)
 	}
@@ -35,7 +35,7 @@ const (
 	extPWSH = ".ps1"
 )
 
-func (s *StepRun) main() task.RunFn {
+func (s *StepRun) main() task.RunFn[context.Context] {
 	return func(ctx *context.Context) (model.Conclusion, error) {
 		var (
 			pre   string

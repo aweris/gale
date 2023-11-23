@@ -28,7 +28,7 @@ type StepAction struct {
 	Action    model.CustomAction
 }
 
-func (s *StepAction) setup() task.RunFn {
+func (s *StepAction) setup() task.RunFn[context.Context] {
 	return func(ctx *context.Context) (model.Conclusion, error) {
 		path, err := ctx.GetActionsPath()
 		if err != nil {
@@ -70,7 +70,7 @@ func (s *StepAction) setup() task.RunFn {
 	}
 }
 
-func (s *StepAction) preRun(stage model.StepStage) task.PreRunFn {
+func (s *StepAction) preRun(stage model.StepStage) task.PreRunFn[context.Context] {
 	return func(ctx *context.Context) error {
 		ctx.SetAction(&s.Action)
 
@@ -85,14 +85,14 @@ func (s *StepAction) preRun(stage model.StepStage) task.PreRunFn {
 	}
 }
 
-func (s *StepAction) postRun() task.PostRunFn {
+func (s *StepAction) postRun() task.PostRunFn[context.Context] {
 	return func(ctx *context.Context, result task.Result) {
 		ctx.UnsetStep(context.RunResult(result))
 		ctx.UnsetAction()
 	}
 }
 
-func (s *StepAction) preCondition() task.ConditionalFn {
+func (s *StepAction) preCondition() task.ConditionalFn[context.Context] {
 	return func(ctx *context.Context) (bool, model.Conclusion, error) {
 		run, condition := s.Action.Meta.Runs.PreCondition()
 		if !run {
@@ -103,7 +103,7 @@ func (s *StepAction) preCondition() task.ConditionalFn {
 	}
 }
 
-func (s *StepAction) pre() task.RunFn {
+func (s *StepAction) pre() task.RunFn[context.Context] {
 	return func(ctx *context.Context) (model.Conclusion, error) {
 		var executor Executor
 
@@ -121,13 +121,13 @@ func (s *StepAction) pre() task.RunFn {
 	}
 }
 
-func (s *StepAction) condition() task.ConditionalFn {
+func (s *StepAction) condition() task.ConditionalFn[context.Context] {
 	return func(ctx *context.Context) (bool, model.Conclusion, error) {
 		return evalCondition(s.Step.If, ctx)
 	}
 }
 
-func (s *StepAction) main() task.RunFn {
+func (s *StepAction) main() task.RunFn[context.Context] {
 	return func(ctx *context.Context) (model.Conclusion, error) {
 		var executor Executor
 
@@ -145,7 +145,7 @@ func (s *StepAction) main() task.RunFn {
 	}
 }
 
-func (s *StepAction) postCondition() task.ConditionalFn {
+func (s *StepAction) postCondition() task.ConditionalFn[context.Context] {
 	return func(ctx *context.Context) (bool, model.Conclusion, error) {
 		run, condition := s.Action.Meta.Runs.PostCondition()
 		if !run {
@@ -156,7 +156,7 @@ func (s *StepAction) postCondition() task.ConditionalFn {
 	}
 }
 
-func (s *StepAction) post() task.RunFn {
+func (s *StepAction) post() task.RunFn[context.Context] {
 	return func(ctx *context.Context) (model.Conclusion, error) {
 		var executor Executor
 
