@@ -118,7 +118,7 @@ func (g *Gale) Run(
 		return nil, err
 	}
 
-	runner, err := g.runner().Container(ctx, container, info)
+	runner, err := g.runner().Container(ctx, info, container)
 	if err != nil {
 		return nil, err
 	}
