@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/aweris/gale/common/model"
+	"github.com/aweris/gale/common/task"
 	"github.com/aweris/gale/ghx/context"
-	"github.com/aweris/gale/ghx/task"
 )
 
 // Step is an internal interface that defines contract for steps.

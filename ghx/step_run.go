@@ -6,9 +6,9 @@ import (
 
 	"github.com/aweris/gale/common/fs"
 	"github.com/aweris/gale/common/model"
+	"github.com/aweris/gale/common/task"
 	"github.com/aweris/gale/ghx/context"
 	"github.com/aweris/gale/ghx/expression"
-	"github.com/aweris/gale/ghx/task"
 )
 
 // Step is

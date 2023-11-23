@@ -6,9 +6,9 @@ import (
 
 	"github.com/aweris/gale/common/log"
 	"github.com/aweris/gale/common/model"
+	"github.com/aweris/gale/common/task"
 	"github.com/aweris/gale/ghx/context"
 	"github.com/aweris/gale/ghx/idgen"
-	"github.com/aweris/gale/ghx/task"
 )
 
 // planWorkflow plans the workflow and returns the workflow runner.

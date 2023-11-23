@@ -6,10 +6,10 @@ import (
 
 	"github.com/aweris/gale/common/log"
 	"github.com/aweris/gale/common/model"
+	"github.com/aweris/gale/common/task"
 	"github.com/aweris/gale/ghx/context"
 	"github.com/aweris/gale/ghx/expression"
 	"github.com/aweris/gale/ghx/idgen"
-	"github.com/aweris/gale/ghx/task"
 )
 
 // planJob plans the job and returns the job runner.
