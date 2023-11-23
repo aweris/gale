@@ -25,11 +25,8 @@ type WorkflowRun struct {
 
 // WorkflowRunConfig holds the configuration of a workflow run.
 type WorkflowRunConfig struct {
-	// WorkflowFile is external workflow file to run.
-	WorkflowFile *File
-
 	// Workflow to run.
-	Workflow string
+	Workflow *Workflow
 
 	// Job name to run. If empty, all jobs will be run.
 	Job string
@@ -146,8 +143,8 @@ func (wr *WorkflowRun) run() (*Container, error) {
 	// set workflow config
 	path := filepath.Join(wrPath, "run", "workflow.yaml")
 
-	container = container.WithMountedFile(path, wr.Config.WorkflowFile)
-	container = container.WithEnvVariable("GHX_WORKFLOW", wr.Config.Workflow)
+	container = container.WithMountedFile(path, wr.Config.Workflow.Src)
+	container = container.WithEnvVariable("GHX_WORKFLOW", wr.Config.Workflow.Name)
 	container = container.WithEnvVariable("GHX_JOB", wr.Config.Job)
 
 	// event config

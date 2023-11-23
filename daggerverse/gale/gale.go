@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"strings"
 )
 
 // Gale is a Dagger module for running Github Actions workflows.
@@ -14,6 +15,10 @@ func (g *Gale) runner() *Runner {
 
 func (g *Gale) repo() *Repo {
 	return &Repo{}
+}
+
+func (g *Gale) workflows() *Workflows {
+	return &Workflows{}
 }
 
 // List returns a list of workflows and their jobs with the given options.
@@ -37,11 +42,42 @@ func (g *Gale) List(
 		return "", err
 	}
 
-	// load workflows
-	workflows := dag.Workflows().List(info.Source, WorkflowsListOpts{WorkflowsDir: workflowsDir.GetOr("")})
+	workflows, err := g.workflows().List(ctx, info.Source, workflowsDir)
+	if err != nil {
+		return "", err
+	}
 
-	// return string representation of the workflows
-	return workflows.String(ctx)
+	sb := &strings.Builder{}
+
+	var (
+		indentation = "  "
+		newline     = "\n"
+	)
+
+	for _, workflow := range workflows {
+
+		sb.WriteString("- Workflow: ")
+		if workflow.Name != "" {
+			sb.WriteString(fmt.Sprintf("%s (path: %s)", workflow.Name, workflow.Path))
+		} else {
+			sb.WriteString(fmt.Sprintf("%s", workflow.Path))
+		}
+		sb.WriteString(newline)
+
+		sb.WriteString(indentation)
+		sb.WriteString("Jobs:")
+		sb.WriteString(newline)
+
+		for _, job := range workflow.Jobs {
+			sb.WriteString(indentation)
+			sb.WriteString(fmt.Sprintf("  - %s", job.JobID))
+			sb.WriteString(newline)
+		}
+
+		sb.WriteString("\n") // extra empty line
+	}
+
+	return sb.String(), nil
 }
 
 // Run runs the workflow with the given options.
@@ -87,37 +123,35 @@ func (g *Gale) Run(
 		return nil, err
 	}
 
-	wp := ""
+	var w *Workflow
+
 	wf, ok := workflowFile.Get()
 	if !ok {
-		workflow, ok := workflow.Get()
+		workflowVal, ok := workflow.Get()
 		if !ok {
 			return nil, fmt.Errorf("workflow or workflow file must be provided")
 		}
 
-		// load workflows
-		workflows := dag.Workflows().List(info.Source, WorkflowsListOpts{WorkflowsDir: workflowsDir.GetOr("")})
-
-		w := workflows.Get(workflow)
-
-		wp, err = w.Path(ctx)
+		w, err = g.workflows().Get(ctx, info.Source, workflowVal, workflowsDir)
 		if err != nil {
 			return nil, err
 		}
-
-		wf = w.Src()
+	} else {
+		w, err = g.workflows().loadWorkflow(ctx, "", wf)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &WorkflowRun{
 		Runner: runner,
 		Config: WorkflowRunConfig{
-			WorkflowFile: wf,
-			Workflow:     wp,
-			Job:          job.GetOr(""),
-			Event:        event.GetOr("push"),
-			EventFile:    eventFile.GetOr(dag.Directory().WithNewFile("event.json", "{}").File("event.json")),
-			RunnerDebug:  runnerDebug.GetOr(false),
-			Token:        token.GetOr(nil),
+			Workflow:    w,
+			Job:         job.GetOr(""),
+			Event:       event.GetOr("push"),
+			EventFile:   eventFile.GetOr(dag.Directory().WithNewFile("event.json", "{}").File("event.json")),
+			RunnerDebug: runnerDebug.GetOr(false),
+			Token:       token.GetOr(nil),
 		},
 	}, nil
 }
