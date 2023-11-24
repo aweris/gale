@@ -118,29 +118,14 @@ func (g *Gale) Run(
 		return nil, err
 	}
 
-	runner, err := g.runner().Container(ctx, info, container)
+	w, err := g.getWorkflow(ctx, info.Source, workflowFile, workflow, workflowsDir)
 	if err != nil {
 		return nil, err
 	}
 
-	var w *Workflow
-
-	wf, ok := workflowFile.Get()
-	if !ok {
-		workflowVal, ok := workflow.Get()
-		if !ok {
-			return nil, fmt.Errorf("workflow or workflow file must be provided")
-		}
-
-		w, err = g.workflows().Get(ctx, info.Source, workflowVal, workflowsDir)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		w, err = g.workflows().loadWorkflow(ctx, "", wf)
-		if err != nil {
-			return nil, err
-		}
+	runner, err := g.runner().Container(ctx, info, container)
+	if err != nil {
+		return nil, err
 	}
 
 	return &WorkflowRun{
@@ -154,4 +139,29 @@ func (g *Gale) Run(
 			Token:       token.GetOr(nil),
 		},
 	}, nil
+}
+
+// getWorkflow returns the workflow with the given options. IF workflowFile is provided, it will be used. Otherwise,
+// workflow will be loaded from the repository source with the given options.
+func (g *Gale) getWorkflow(
+	ctx context.Context,
+	source *Directory,
+	workflowFile Optional[*File],
+	workflow Optional[string],
+	workflowsDir Optional[string],
+) (*Workflow, error) {
+	// FIXME: when dagger supports accepting common input/output types like Custom structs or interfaces from different
+	//  modules, we can refactor this to accept a common Workflow type instead of two different options.
+
+	wf, ok := workflowFile.Get()
+	if ok {
+		return g.workflows().loadWorkflow(ctx, "", wf)
+	}
+
+	workflowVal, ok := workflow.Get()
+	if !ok {
+		return nil, fmt.Errorf("workflow or workflow file must be provided")
+	}
+
+	return g.workflows().Get(ctx, source, workflowVal, workflowsDir)
 }
