@@ -9,18 +9,6 @@ import (
 // Gale is a Dagger module for running Github Actions workflows.
 type Gale struct{}
 
-func (g *Gale) runner() *Runner {
-	return &Runner{}
-}
-
-func (g *Gale) repo() *Repo {
-	return &Repo{}
-}
-
-func (g *Gale) workflows() *Workflows {
-	return &Workflows{}
-}
-
 // List returns a list of workflows and their jobs with the given options.
 func (g *Gale) List(
 	// context to use for the operation
@@ -37,12 +25,12 @@ func (g *Gale) List(
 	workflowsDir Optional[string],
 ) (string, error) {
 	// load repository information
-	info, err := g.repo().Info(ctx, source, repo, branch, tag)
+	info, err := internal.repo().Info(ctx, source, repo, branch, tag)
 	if err != nil {
 		return "", err
 	}
 
-	workflows, err := g.workflows().List(ctx, info.Source, workflowsDir)
+	workflows, err := internal.workflows().List(ctx, info.Source, workflowsDir)
 	if err != nil {
 		return "", err
 	}
@@ -113,7 +101,7 @@ func (g *Gale) Run(
 ) (*WorkflowRun, error) {
 
 	// load repository information
-	info, err := g.repo().Info(ctx, source, repo, branch, tag)
+	info, err := internal.repo().Info(ctx, source, repo, branch, tag)
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +111,7 @@ func (g *Gale) Run(
 		return nil, err
 	}
 
-	runner, err := g.runner().Container(ctx, info, container)
+	runner, err := internal.runner().Container(ctx, info, container)
 	if err != nil {
 		return nil, err
 	}
@@ -155,7 +143,7 @@ func (g *Gale) getWorkflow(
 
 	wf, ok := workflowFile.Get()
 	if ok {
-		return g.workflows().loadWorkflow(ctx, "", wf)
+		return internal.workflows().loadWorkflow(ctx, "", wf)
 	}
 
 	workflowVal, ok := workflow.Get()
@@ -163,5 +151,5 @@ func (g *Gale) getWorkflow(
 		return nil, fmt.Errorf("workflow or workflow file must be provided")
 	}
 
-	return g.workflows().Get(ctx, source, workflowVal, workflowsDir)
+	return internal.workflows().Get(ctx, source, workflowVal, workflowsDir)
 }
