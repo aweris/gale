@@ -10,9 +10,6 @@ import (
 )
 
 type WorkflowRun struct {
-	// Base container to use for the workflow run.
-	Runner *RunnerContainer
-
 	// Workflow run cache path to mount to runner containers.
 	RunCachePath string
 
@@ -25,6 +22,12 @@ type WorkflowRun struct {
 
 // WorkflowRunConfig holds the configuration of a workflow run.
 type WorkflowRunConfig struct {
+	// Base container to use for running the workflow.
+	BaseContainer *Container
+
+	// Repository information to use for the workflow run.
+	Repo *RepoInfo
+
 	// Workflow to run.
 	Workflow *Workflow
 
@@ -60,8 +63,8 @@ type WorkflowRunReport struct {
 }
 
 // Sync runs the workflow and returns the container that ran the workflow.
-func (wr *WorkflowRun) Sync() (*Container, error) {
-	return wr.run()
+func (wr *WorkflowRun) Sync(ctx context.Context) (*Container, error) {
+	return wr.run(ctx)
 }
 
 // Directory returns the directory of the workflow run information.
@@ -76,7 +79,7 @@ func (wr *WorkflowRun) Directory(
 	// Adds the uploaded artifacts to the exported directory. (default: false)
 	includeArtifacts Optional[bool],
 ) (*Directory, error) {
-	container, err := wr.run()
+	container, err := wr.run(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -113,10 +116,14 @@ func (wr *WorkflowRun) Directory(
 	return dir, nil
 }
 
-func (wr *WorkflowRun) run() (*Container, error) {
-	container := wr.Runner.Ctr
+func (wr *WorkflowRun) run(ctx context.Context) (*Container, error) {
+	rc, err := internal.runner().Container(ctx, wr.Config.Repo, wr.Config.BaseContainer)
+	if err != nil {
+		return nil, err
+	}
 
 	var (
+		ctr       = rc.Ctr
 		id        = uuid.New().String()
 		wrPath    = filepath.Join("/home/runner/_temp/_gale/runs", id)
 		cache     = dag.CacheVolume(fmt.Sprintf("ghx-run-%s", id))
@@ -127,42 +134,42 @@ func (wr *WorkflowRun) run() (*Container, error) {
 	wr.RunCachePath = wrPath
 	wr.RunCacheVolume = cache
 
-	container = container.WithMountedCache(wrPath, cache, cacheOpts)
-	container = container.WithEnvVariable("GHX_HOME", wrPath)
+	ctr = ctr.WithMountedCache(wrPath, cache, cacheOpts)
+	ctr = ctr.WithEnvVariable("GHX_HOME", wrPath)
 
 	// set github token as secret if provided
 	if wr.Config.Token != nil {
-		container = container.WithSecretVariable("GITHUB_TOKEN", wr.Config.Token)
+		ctr = ctr.WithSecretVariable("GITHUB_TOKEN", wr.Config.Token)
 	}
 
 	// set runner debug mode if enabled
 	if wr.Config.RunnerDebug {
-		container = container.WithEnvVariable("RUNNER_DEBUG", "1")
+		ctr = ctr.WithEnvVariable("RUNNER_DEBUG", "1")
 	}
 
 	// set workflow config
 	path := filepath.Join(wrPath, "run", "workflow.yaml")
 
-	container = container.WithMountedFile(path, wr.Config.Workflow.Src)
-	container = container.WithEnvVariable("GHX_WORKFLOW", wr.Config.Workflow.Name)
-	container = container.WithEnvVariable("GHX_JOB", wr.Config.Job)
+	ctr = ctr.WithMountedFile(path, wr.Config.Workflow.Src)
+	ctr = ctr.WithEnvVariable("GHX_WORKFLOW", wr.Config.Workflow.Name)
+	ctr = ctr.WithEnvVariable("GHX_JOB", wr.Config.Job)
 
 	// event config
 	eventPath := filepath.Join(wrPath, "run", "event.json")
 
-	container = container.WithEnvVariable("GITHUB_EVENT_NAME", wr.Config.Event)
-	container = container.WithEnvVariable("GITHUB_EVENT_PATH", eventPath)
-	container = container.WithMountedFile(eventPath, wr.Config.EventFile)
+	ctr = ctr.WithEnvVariable("GITHUB_EVENT_NAME", wr.Config.Event)
+	ctr = ctr.WithEnvVariable("GITHUB_EVENT_PATH", eventPath)
+	ctr = ctr.WithMountedFile(eventPath, wr.Config.EventFile)
 
 	// workaround for disabling cache
-	container = container.WithEnvVariable("CACHE_BUSTER", time.Now().Format(time.RFC3339Nano))
+	ctr = ctr.WithEnvVariable("CACHE_BUSTER", time.Now().Format(time.RFC3339Nano))
 
 	// execute the workflow
-	container = container.WithExec([]string{"ghx"}, ContainerWithExecOpts{ExperimentalPrivilegedNesting: true})
+	ctr = ctr.WithExec([]string{"ghx"}, ContainerWithExecOpts{ExperimentalPrivilegedNesting: true})
 
 	// unloading request scoped configs
-	container = container.WithoutEnvVariable("GHX_JOB")
-	container = container.WithoutEnvVariable("GHX_WORKFLOWS_DIR")
+	ctr = ctr.WithoutEnvVariable("GHX_JOB")
+	ctr = ctr.WithoutEnvVariable("GHX_WORKFLOWS_DIR")
 
-	return container, nil
+	return ctr, nil
 }

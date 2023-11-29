@@ -111,20 +111,16 @@ func (g *Gale) Run(
 		return nil, err
 	}
 
-	runner, err := internal.runner().Container(ctx, info, container)
-	if err != nil {
-		return nil, err
-	}
-
 	return &WorkflowRun{
-		Runner: runner,
 		Config: WorkflowRunConfig{
-			Workflow:    w,
-			Job:         job.GetOr(""),
-			Event:       event.GetOr("push"),
-			EventFile:   eventFile.GetOr(dag.Directory().WithNewFile("event.json", "{}").File("event.json")),
-			RunnerDebug: runnerDebug.GetOr(false),
-			Token:       token.GetOr(nil),
+			BaseContainer: withEmptyValue(container),
+			Repo:          info,
+			Workflow:      w,
+			Job:           withEmptyValue(job),
+			Event:         event.GetOr("push"),
+			EventFile:     eventFile.GetOr(dag.Directory().WithNewFile("event.json", "{}").File("event.json")),
+			RunnerDebug:   withEmptyValue(runnerDebug),
+			Token:         withEmptyValue(token),
 		},
 	}, nil
 }

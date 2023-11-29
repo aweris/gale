@@ -20,10 +20,10 @@ func (r *Runner) Container(
 	// repository information to use for the runner
 	repo *RepoInfo,
 	// Container to use for the runner.
-	container Optional[*Container],
+	ctr *Container,
 ) (*RunnerContainer, error) {
 	// check if container is already initialized
-	if ctr, ok := container.Get(); ok {
+	if ctr != nil {
 		if isContainerInitialized(ctx, ctr) {
 			fmt.Println("skipping container initialization, container already initialized")
 			fmt.Println("WARNING: given source and repo options are ignored, using the initialized container")
@@ -32,7 +32,9 @@ func (r *Runner) Container(
 		}
 	}
 
-	ctr := container.GetOr(dag.Container().From("ghcr.io/catthehacker/ubuntu:act-latest"))
+	if ctr == nil {
+		ctr = dag.Container().From("ghcr.io/catthehacker/ubuntu:act-latest")
+	}
 
 	// configure internal components
 	ctr = ctr.With(dag.Ghx().Source().Binary)
