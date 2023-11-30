@@ -89,6 +89,12 @@ func (_ *Repo) Info(
 	}, nil
 }
 
+func (info *RepoInfo) workflows() *Workflows {
+	return &Workflows{
+		Repo: info,
+	}
+}
+
 // getRepoSource returns the repository source based on the options provided.
 func getRepoSource(source *Directory, repo, tag, branch string) (*Directory, error) {
 	if source != nil {

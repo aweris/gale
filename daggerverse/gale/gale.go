@@ -32,7 +32,7 @@ func (g *Gale) List(
 		return "", err
 	}
 
-	workflows, err := internal.workflows().List(ctx, info.Source, opts.WorkflowsDir)
+	workflows, err := info.workflows().List(ctx, opts.WorkflowsDir)
 	if err != nil {
 		return "", err
 	}

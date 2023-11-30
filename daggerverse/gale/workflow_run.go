@@ -98,7 +98,7 @@ func (wr *WorkflowRun) run(ctx context.Context) (*Container, error) {
 	ctr := rc.Ctr.With(wr.Context.ContainerFunc)
 
 	// set workflow config
-	w, err := internal.getWorkflow(ctx, info.Source, opts.WorkflowFile, opts.Workflow, opts.WorkflowsDir)
+	w, err := internal.getWorkflow(ctx, info, opts.WorkflowFile, opts.Workflow, opts.WorkflowsDir)
 	if err != nil {
 		return nil, err
 	}

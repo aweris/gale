@@ -3,42 +3,48 @@ package main
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"strconv"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 
 	"github.com/aweris/gale/common/model"
 )
 
-type Workflows struct{}
+type Workflows struct {
+	Repo *RepoInfo
+}
 
 // List returns a list of workflows and their jobs with the given options.
-func (w *Workflows) List(ctx context.Context, source *Directory, workflowsDir string) ([]Workflow, error) {
+func (w *Workflows) List(ctx context.Context, workflowsDir string) ([]Workflow, error) {
 	var workflows []Workflow
 
-	walkFn := func(ctx context.Context, path string, file *File) (bool, error) {
-		workflow, err := w.loadWorkflow(ctx, path, file)
-		if err != nil {
-			return false, err
-		}
+	wd := w.Repo.Source.Directory(workflowsDir)
 
-		workflows = append(workflows, *workflow)
-
-		return true, nil
-	}
-
-	err := walkWorkflowDir(ctx, source, workflowsDir, walkFn)
+	entries, err := wd.Entries(ctx)
 	if err != nil {
 		return nil, err
+	}
+
+	for _, entry := range entries {
+		// Process only .yaml and .yml files
+		if strings.HasSuffix(entry, ".yaml") || strings.HasSuffix(entry, ".yml") {
+			workflow, err := w.loadWorkflow(ctx, filepath.Join(workflowsDir, entry), wd.File(entry))
+			if err != nil {
+				return nil, err
+			}
+
+			workflows = append(workflows, *workflow)
+		}
 	}
 
 	return workflows, nil
 }
 
 // Get returns a workflow.
-func (w *Workflows) Get(ctx context.Context, source *Directory, workflow string, workflowsDir string) (*Workflow,
-	error) {
-	workflows, err := w.List(ctx, source, workflowsDir)
+func (w *Workflows) Get(ctx context.Context, workflow string, workflowsDir string) (*Workflow, error) {
+	workflows, err := w.List(ctx, workflowsDir)
 	if err != nil {
 		return nil, err
 	}
@@ -58,6 +64,12 @@ type Workflow struct {
 
 	// Workflow file source.
 	Src *File
+
+	// Path to the workflow. For example, octocat/hello-world/.github/workflows/my-workflow.yml@refs/heads/my_branch.
+	Ref string
+
+	// WorkflowSHA is the commit SHA for the workflow file.
+	SHA string
 
 	// Workflow name. Defaults to the file path.
 	Name string
@@ -88,9 +100,19 @@ func (w *Workflows) loadWorkflow(ctx context.Context, path string, workflow *Fil
 		jobs = append(jobs, loadJob(id, job))
 	}
 
+	ref := ""
+
+	// if path is empty, it means we're loading external workflow file which is not in the repository source.
+	// In this case, we don't need to set the ref.
+	if path != "" {
+		ref = fmt.Sprintf("%s/%s@%s", w.Repo.NameWithOwner, path, w.Repo.Ref)
+	}
+
 	return &Workflow{
 		Path: path,
 		Src:  workflow,
+		Ref:  ref,
+		SHA:  w.Repo.SHA,
 		Name: wm.Name,
 		Env:  mapToKV(wm.Env),
 		Jobs: jobs,
