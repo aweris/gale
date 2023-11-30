@@ -134,7 +134,6 @@ func (wr *WorkflowRun) run(ctx context.Context) (*Container, error) {
 
 	// unloading request scoped configs
 	ctr = ctr.WithoutEnvVariable("GHX_JOB")
-	ctr = ctr.WithoutEnvVariable("GHX_WORKFLOWS_DIR")
 
 	return ctr, nil
 }
