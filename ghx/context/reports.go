@@ -28,17 +28,17 @@ type WorkflowRunReport struct {
 }
 
 // NewWorkflowRunReport creates a new workflow run report from the given workflow run.
-func NewWorkflowRunReport(result *RunResult, wr *model.WorkflowRun) *WorkflowRunReport {
+func NewWorkflowRunReport(result *RunResult, github GithubContext, wr *model.WorkflowRun) *WorkflowRunReport {
 	report := &WorkflowRunReport{
 		Ran:           result.Ran,
 		Duration:      result.Duration.String(),
 		Conclusion:    result.Conclusion,
 		Name:          wr.Workflow.Name,
 		Path:          wr.Workflow.Path,
-		RunID:         wr.RunID,
-		RunNumber:     wr.RunNumber,
-		RunAttempt:    wr.RunAttempt,
-		RetentionDays: wr.RetentionDays,
+		RunID:         github.RunID,
+		RunNumber:     github.RunNumber,
+		RunAttempt:    github.RunAttempt,
+		RetentionDays: github.RetentionDays,
 		Jobs:          make(map[string]model.Conclusion),
 	}
 

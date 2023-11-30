@@ -2,7 +2,6 @@ package context
 
 import (
 	"errors"
-	"fmt"
 	"path/filepath"
 
 	"github.com/aweris/gale/common/fs"
@@ -15,20 +14,8 @@ func (c *Context) SetWorkflow(wr *model.WorkflowRun) error {
 	// set the workflow run to the execution context
 	c.Execution = ExecutionContext{WorkflowRun: wr}
 
-	// set the workflow run info to the github context
-	c.Github.RunID = wr.RunID
-	c.Github.RunNumber = wr.RunNumber
-	c.Github.RunAttempt = wr.RunAttempt
-	c.Github.RetentionDays = wr.RetentionDays
-	c.Github.Workflow = wr.Workflow.Name
-	c.Github.WorkflowRef = fmt.Sprintf("%s/%s@%s", c.Github.Repository, wr.Workflow.Path, c.Github.Ref)
-	c.Github.WorkflowSHA = c.Github.SHA
-
 	// set workflow conclusion to success explicitly
 	c.Execution.WorkflowRun.Conclusion = model.ConclusionSuccess
-
-	// sync github context with env values
-	syncWithEnvValues(&c.Github)
 
 	// set env context
 	c.Env = wr.Workflow.Env
@@ -40,7 +27,7 @@ func (c *Context) UnsetWorkflow(result RunResult) {
 	// ignoring error since directory must exist at this point of execution
 	dir, _ := c.GetWorkflowRunPath()
 
-	report := NewWorkflowRunReport(&result, c.Execution.WorkflowRun)
+	report := NewWorkflowRunReport(&result, c.Github, c.Execution.WorkflowRun)
 
 	if err := fs.WriteJSONFile(filepath.Join(dir, "workflow_run.json"), report); err != nil {
 		log.Errorf("failed to write workflow run", "error", err, "workflow", c.Execution.WorkflowRun.Workflow.Name)

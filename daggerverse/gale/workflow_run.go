@@ -109,6 +109,14 @@ func (wr *WorkflowRun) run(ctx context.Context) (*Container, error) {
 	ctr = ctr.WithEnvVariable("GHX_WORKFLOW", w.Name)
 	ctr = ctr.WithEnvVariable("GHX_JOB", opts.Job)
 
+	ctr = ctr.WithEnvVariable("GITHUB_RUN_ID", wr.Context.RunID)
+	ctr = ctr.WithEnvVariable("GITHUB_RUN_NUMBER", "1")
+	ctr = ctr.WithEnvVariable("GITHUB_RUN_ATTEMPT", "1")
+	ctr = ctr.WithEnvVariable("GITHUB_RETENTION_DAYS", "90")
+	ctr = ctr.WithEnvVariable("GITHUB_WORKFLOW", w.Name)
+	ctr = ctr.WithEnvVariable("GITHUB_WORKFLOW_REF", w.Ref)
+	ctr = ctr.WithEnvVariable("GITHUB_WORKFLOW_SHA", w.SHA)
+
 	// workaround for disabling cache
 	ctr = ctr.WithEnvVariable("CACHE_BUSTER", time.Now().Format(time.RFC3339Nano))
 

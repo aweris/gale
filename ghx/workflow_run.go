@@ -8,7 +8,6 @@ import (
 	"github.com/aweris/gale/common/model"
 	"github.com/aweris/gale/common/task"
 	"github.com/aweris/gale/ghx/context"
-	"github.com/aweris/gale/ghx/idgen"
 )
 
 // planWorkflow plans the workflow and returns the workflow runner.
@@ -112,19 +111,10 @@ func planWorkflow(workflow model.Workflow, job string) (*task.Runner[context.Con
 
 func newTaskPreRunFnForWorkflow(wf model.Workflow) task.PreRunFn[context.Context] {
 	return func(ctx *context.Context) error {
-		runID, err := idgen.GenerateWorkflowRunID(ctx)
-		if err != nil {
-			return fmt.Errorf("failed to generate workflow run id: %w", err)
-		}
-
 		return ctx.SetWorkflow(
 			&model.WorkflowRun{
-				RunID:         runID,
-				RunNumber:     "1",
-				RunAttempt:    "1",
-				RetentionDays: "0",
-				Workflow:      wf,
-				Jobs:          make(map[string]model.JobRun),
+				Workflow: wf,
+				Jobs:     make(map[string]model.JobRun),
 			},
 		)
 	}
