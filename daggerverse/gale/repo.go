@@ -28,13 +28,13 @@ func (_ *Repo) Info(
 	// context to use for the operation
 	ctx context.Context,
 	// The directory containing the repository source. If source is provided, rest of the options are ignored.
-	source Optional[*Directory],
+	source *Directory,
 	// The name of the repository. Format: owner/name.
-	repo Optional[string],
+	repo string,
 	// Tag name to check out. Only one of branch or tag can be used. Precedence is as follows: tag, branch.
-	tag Optional[string],
+	tag string,
 	// Branch name to check out. Only one of branch or tag can be used. Precedence is as follows: tag, branch.
-	branch Optional[string],
+	branch string,
 ) (*RepoInfo, error) {
 	// get the repository source from the options
 	dir, err := getRepoSource(source, repo, tag, branch)
@@ -74,8 +74,6 @@ func (_ *Repo) Info(
 		return nil, err
 	}
 
-	_, isLocal := source.Get()
-
 	return &RepoInfo{
 		Owner:         owner,
 		Name:          repoName,
@@ -86,19 +84,18 @@ func (_ *Repo) Info(
 		RefType:       refType,
 		SHA:           sha,
 		ShortSHA:      shortSHA,
-		IsRemote:      !isLocal,
+		IsRemote:      source == nil,
 		Source:        dir,
 	}, nil
 }
 
 // getRepoSource returns the repository source based on the options provided.
-func getRepoSource(sourceOpt Optional[*Directory], repoOpt, tagOpt, branchOpt Optional[string]) (*Directory, error) {
-	if source, ok := sourceOpt.Get(); ok {
+func getRepoSource(source *Directory, repo, tag, branch string) (*Directory, error) {
+	if source != nil {
 		return source, nil
 	}
 
-	repo, ok := repoOpt.Get()
-	if !ok {
+	if repo == "" {
 		return nil, fmt.Errorf("either a repo or a source directory must be provided")
 	}
 
@@ -107,11 +104,11 @@ func getRepoSource(sourceOpt Optional[*Directory], repoOpt, tagOpt, branchOpt Op
 		gitRepo = dag.Git(gitURL, GitOpts{KeepGitDir: true})
 	)
 
-	if tag, ok := tagOpt.Get(); ok {
+	if tag != "" {
 		return gitRepo.Tag(tag).Tree(), nil
 	}
 
-	if branch, ok := branchOpt.Get(); ok {
+	if branch != "" {
 		return gitRepo.Branch(branch).Tree(), nil
 	}
 
@@ -121,8 +118,8 @@ func getRepoSource(sourceOpt Optional[*Directory], repoOpt, tagOpt, branchOpt Op
 // getRefAndRefType returns the ref and ref type for given options.
 func getRefAndRefType(
 	ctx context.Context,
-	tagOpt Optional[string],
-	branchOpt Optional[string],
+	tag string,
+	branch string,
 	container *Container,
 	sha string,
 ) (string, string, error) {
@@ -136,13 +133,13 @@ func getRefAndRefType(
 	// around the issue, we're using given options to get the ref. If no branch or tag is provided, then we're using
 	// the ref from the source code of the repository.
 
-	if tag, ok := tagOpt.Get(); ok {
+	if tag != "" {
 		ref = fmt.Sprintf("refs/tags/%s", tag)
 		refType = "tag"
 		return ref, refType, nil
 	}
 
-	if branch, ok := branchOpt.Get(); ok {
+	if branch != "" {
 		ref = fmt.Sprintf("refs/heads/%s", branch)
 		refType = "branch"
 		return ref, refType, nil

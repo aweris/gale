@@ -13,7 +13,7 @@ import (
 type Workflows struct{}
 
 // List returns a list of workflows and their jobs with the given options.
-func (w *Workflows) List(ctx context.Context, source *Directory, workflowsDir Optional[string]) ([]Workflow, error) {
+func (w *Workflows) List(ctx context.Context, source *Directory, workflowsDir string) ([]Workflow, error) {
 	var workflows []Workflow
 
 	walkFn := func(ctx context.Context, path string, file *File) (bool, error) {
@@ -27,7 +27,7 @@ func (w *Workflows) List(ctx context.Context, source *Directory, workflowsDir Op
 		return true, nil
 	}
 
-	err := walkWorkflowDir(ctx, source, workflowsDir.GetOr(".github/workflows"), walkFn)
+	err := walkWorkflowDir(ctx, source, workflowsDir, walkFn)
 	if err != nil {
 		return nil, err
 	}
@@ -36,7 +36,8 @@ func (w *Workflows) List(ctx context.Context, source *Directory, workflowsDir Op
 }
 
 // Get returns a workflow.
-func (w *Workflows) Get(ctx context.Context, source *Directory, workflow string, workflowsDir Optional[string]) (*Workflow, error) {
+func (w *Workflows) Get(ctx context.Context, source *Directory, workflow string, workflowsDir string) (*Workflow,
+	error) {
 	workflows, err := w.List(ctx, source, workflowsDir)
 	if err != nil {
 		return nil, err

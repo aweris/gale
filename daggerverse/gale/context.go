@@ -7,6 +7,9 @@ type RunContext struct {
 	// Unique ID of the run.
 	RunID string
 
+	// Options to configure the workflow run.
+	Opts *WorkflowRunOpts
+
 	// Cache volume to share data between jobs in the same run and keep the data after the run.
 	SharedData *CacheVolume
 }

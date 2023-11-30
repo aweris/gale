@@ -9,36 +9,6 @@ import (
 type WorkflowRun struct {
 	// Context of the workflow run.
 	Context *RunContext
-
-	// Configuration of the workflow run.
-	Config WorkflowRunConfig
-}
-
-// WorkflowRunConfig holds the configuration of a workflow run.
-type WorkflowRunConfig struct {
-	// Base container to use for running the workflow.
-	BaseContainer *Container
-
-	// Repository information to use for the workflow run.
-	Repo *RepoInfo
-
-	// Workflow to run.
-	Workflow *Workflow
-
-	// Job name to run. If empty, all jobs will be run.
-	Job string
-
-	// Name of the event that triggered the workflow. e.g. push
-	Event string
-
-	// File with the complete webhook event payload.
-	EventFile *File
-
-	// Enables debug mode.
-	RunnerDebug bool
-
-	// GitHub token to use for authentication.
-	Token *Secret
 }
 
 // FIXME: add jobs to WorkflowRunReport when dagger supports map type
@@ -90,7 +60,7 @@ func (wr *WorkflowRun) Directory(
 		dir = dir.WithDirectory("repo", container.Directory("."))
 	}
 
-	if includeEvent.GetOr(false) && wr.Config.EventFile != nil {
+	if includeEvent.GetOr(false) && wr.Context.Opts.EventFile != nil {
 		dir = dir.WithFile("event.json", container.File("/home/runner/_temp/_github_workflow/event.json"))
 	}
 
@@ -111,7 +81,15 @@ func (wr *WorkflowRun) Directory(
 }
 
 func (wr *WorkflowRun) run(ctx context.Context) (*Container, error) {
-	rc, err := internal.runner().Container(ctx, wr.Config.Repo, wr.Config.BaseContainer)
+	var opts = wr.Context.Opts
+
+	// load repository information
+	info, err := internal.repo().Info(ctx, opts.Source, opts.Repo, opts.Branch, opts.Tag)
+	if err != nil {
+		return nil, err
+	}
+
+	rc, err := internal.runner().Container(ctx, info, opts.Container)
 	if err != nil {
 		return nil, err
 	}
@@ -120,28 +98,33 @@ func (wr *WorkflowRun) run(ctx context.Context) (*Container, error) {
 	ctr := rc.Ctr.With(wr.Context.ContainerFunc)
 
 	// set github token as secret if provided
-	if wr.Config.Token != nil {
-		ctr = ctr.WithSecretVariable("GITHUB_TOKEN", wr.Config.Token)
+	if opts.Token != nil {
+		ctr = ctr.WithSecretVariable("GITHUB_TOKEN", opts.Token)
 	}
 
 	// set runner debug mode if enabled
-	if wr.Config.RunnerDebug {
+	if opts.RunnerDebug {
 		ctr = ctr.WithEnvVariable("RUNNER_DEBUG", "1")
 	}
 
 	// set workflow config
+	w, err := internal.getWorkflow(ctx, info.Source, opts.WorkflowFile, opts.Workflow, opts.WorkflowsDir)
+	if err != nil {
+		return nil, err
+	}
+
 	path := filepath.Join(wr.Context.getSharedDataMountPath(), "run", "workflow.yaml")
 
-	ctr = ctr.WithMountedFile(path, wr.Config.Workflow.Src)
-	ctr = ctr.WithEnvVariable("GHX_WORKFLOW", wr.Config.Workflow.Name)
-	ctr = ctr.WithEnvVariable("GHX_JOB", wr.Config.Job)
+	ctr = ctr.WithMountedFile(path, w.Src)
+	ctr = ctr.WithEnvVariable("GHX_WORKFLOW", w.Name)
+	ctr = ctr.WithEnvVariable("GHX_JOB", opts.Job)
 
 	// event config
 	eventPath := filepath.Join(wr.Context.getSharedDataMountPath(), "run", "event.json")
 
-	ctr = ctr.WithEnvVariable("GITHUB_EVENT_NAME", wr.Config.Event)
+	ctr = ctr.WithEnvVariable("GITHUB_EVENT_NAME", opts.Event)
 	ctr = ctr.WithEnvVariable("GITHUB_EVENT_PATH", eventPath)
-	ctr = ctr.WithMountedFile(eventPath, wr.Config.EventFile)
+	ctr = ctr.WithMountedFile(eventPath, opts.EventFile)
 
 	// workaround for disabling cache
 	ctr = ctr.WithEnvVariable("CACHE_BUSTER", time.Now().Format(time.RFC3339Nano))
