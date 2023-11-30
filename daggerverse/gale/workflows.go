@@ -94,6 +94,11 @@ func (w *Workflows) loadWorkflow(ctx context.Context, path string, workflow *Fil
 		return nil, err
 	}
 
+	// update workflow name with path if not provided
+	if wm.Name == "" {
+		wm.Name = path
+	}
+
 	jobs := make([]Job, 0, len(wm.Jobs))
 
 	for id, job := range wm.Jobs {
