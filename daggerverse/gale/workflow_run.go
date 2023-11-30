@@ -2,19 +2,13 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"path/filepath"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 type WorkflowRun struct {
-	// Workflow run cache path to mount to runner containers.
-	RunCachePath string
-
-	// Workflow run cache volume to share data between jobs in the same workflow run and keep the data after the workflow
-	RunCacheVolume *CacheVolume
+	// Context of the workflow run.
+	Context *RunContext
 
 	// Configuration of the workflow run.
 	Config WorkflowRunConfig
@@ -84,7 +78,7 @@ func (wr *WorkflowRun) Directory(
 		return nil, err
 	}
 
-	rd := container.WithExec([]string{"cp", "-r", wr.RunCachePath, "/exported_run"}).Directory("/exported_run")
+	rd := container.WithExec([]string{"cp", "-r", wr.Context.getSharedDataMountPath(), "/exported_run"}).Directory("/exported_run")
 
 	dir := dag.Directory().WithDirectory("run", rd.Directory("run"))
 
@@ -122,20 +116,8 @@ func (wr *WorkflowRun) run(ctx context.Context) (*Container, error) {
 		return nil, err
 	}
 
-	var (
-		ctr       = rc.Ctr
-		id        = uuid.New().String()
-		wrPath    = filepath.Join("/home/runner/_temp/_gale/runs", id)
-		cache     = dag.CacheVolume(fmt.Sprintf("ghx-run-%s", id))
-		cacheOpts = ContainerWithMountedCacheOpts{Sharing: Shared}
-	)
-
-	// mount workflow run cache volume
-	wr.RunCachePath = wrPath
-	wr.RunCacheVolume = cache
-
-	ctr = ctr.WithMountedCache(wrPath, cache, cacheOpts)
-	ctr = ctr.WithEnvVariable("GHX_HOME", wrPath)
+	// get runner container and apply run context
+	ctr := rc.Ctr.With(wr.Context.ContainerFunc)
 
 	// set github token as secret if provided
 	if wr.Config.Token != nil {
@@ -148,14 +130,14 @@ func (wr *WorkflowRun) run(ctx context.Context) (*Container, error) {
 	}
 
 	// set workflow config
-	path := filepath.Join(wrPath, "run", "workflow.yaml")
+	path := filepath.Join(wr.Context.getSharedDataMountPath(), "run", "workflow.yaml")
 
 	ctr = ctr.WithMountedFile(path, wr.Config.Workflow.Src)
 	ctr = ctr.WithEnvVariable("GHX_WORKFLOW", wr.Config.Workflow.Name)
 	ctr = ctr.WithEnvVariable("GHX_JOB", wr.Config.Job)
 
 	// event config
-	eventPath := filepath.Join(wrPath, "run", "event.json")
+	eventPath := filepath.Join(wr.Context.getSharedDataMountPath(), "run", "event.json")
 
 	ctr = ctr.WithEnvVariable("GITHUB_EVENT_NAME", wr.Config.Event)
 	ctr = ctr.WithEnvVariable("GITHUB_EVENT_PATH", eventPath)

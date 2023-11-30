@@ -112,6 +112,7 @@ func (g *Gale) Run(
 	}
 
 	return &WorkflowRun{
+		Context: internal.context(),
 		Config: WorkflowRunConfig{
 			BaseContainer: withEmptyValue(container),
 			Repo:          info,
