@@ -26,5 +26,24 @@ func (rc *RunContext) ContainerFunc(ctr *Container) *Container {
 		opts  = ContainerWithMountedCacheOpts{Sharing: Shared}
 	)
 
-	return ctr.WithMountedCache(path, cache, opts).WithEnvVariable("GHX_HOME", path)
+	ctr = ctr.WithMountedCache(path, cache, opts).WithEnvVariable("GHX_HOME", path)
+
+	// set github token as secret if provided
+	if rc.Opts.Token != nil {
+		ctr = ctr.WithSecretVariable("GITHUB_TOKEN", rc.Opts.Token)
+	}
+
+	// set runner debug mode if enabled
+	if rc.Opts.RunnerDebug {
+		ctr = ctr.WithEnvVariable("RUNNER_DEBUG", "1")
+	}
+
+	// event config
+	eventPath := filepath.Join(path, "run", "event.json")
+
+	ctr = ctr.WithEnvVariable("GITHUB_EVENT_NAME", rc.Opts.Event)
+	ctr = ctr.WithEnvVariable("GITHUB_EVENT_PATH", eventPath)
+	ctr = ctr.WithMountedFile(eventPath, rc.Opts.EventFile)
+
+	return ctr
 }

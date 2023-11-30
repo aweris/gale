@@ -97,16 +97,6 @@ func (wr *WorkflowRun) run(ctx context.Context) (*Container, error) {
 	// get runner container and apply run context
 	ctr := rc.Ctr.With(wr.Context.ContainerFunc)
 
-	// set github token as secret if provided
-	if opts.Token != nil {
-		ctr = ctr.WithSecretVariable("GITHUB_TOKEN", opts.Token)
-	}
-
-	// set runner debug mode if enabled
-	if opts.RunnerDebug {
-		ctr = ctr.WithEnvVariable("RUNNER_DEBUG", "1")
-	}
-
 	// set workflow config
 	w, err := internal.getWorkflow(ctx, info.Source, opts.WorkflowFile, opts.Workflow, opts.WorkflowsDir)
 	if err != nil {
@@ -118,13 +108,6 @@ func (wr *WorkflowRun) run(ctx context.Context) (*Container, error) {
 	ctr = ctr.WithMountedFile(path, w.Src)
 	ctr = ctr.WithEnvVariable("GHX_WORKFLOW", w.Name)
 	ctr = ctr.WithEnvVariable("GHX_JOB", opts.Job)
-
-	// event config
-	eventPath := filepath.Join(wr.Context.getSharedDataMountPath(), "run", "event.json")
-
-	ctr = ctr.WithEnvVariable("GITHUB_EVENT_NAME", opts.Event)
-	ctr = ctr.WithEnvVariable("GITHUB_EVENT_PATH", eventPath)
-	ctr = ctr.WithMountedFile(eventPath, opts.EventFile)
 
 	// workaround for disabling cache
 	ctr = ctr.WithEnvVariable("CACHE_BUSTER", time.Now().Format(time.RFC3339Nano))
