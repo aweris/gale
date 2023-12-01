@@ -45,5 +45,11 @@ func (rc *RunContext) ContainerFunc(ctr *Container) *Container {
 	ctr = ctr.WithEnvVariable("GITHUB_EVENT_PATH", eventPath)
 	ctr = ctr.WithMountedFile(eventPath, rc.Opts.EventFile)
 
+	// workflow run config
+	ctr = ctr.WithEnvVariable("GITHUB_RUN_ID", rc.RunID)
+	ctr = ctr.WithEnvVariable("GITHUB_RUN_NUMBER", "1")
+	ctr = ctr.WithEnvVariable("GITHUB_RUN_ATTEMPT", "1")
+	ctr = ctr.WithEnvVariable("GITHUB_RETENTION_DAYS", "90")
+
 	return ctr
 }
