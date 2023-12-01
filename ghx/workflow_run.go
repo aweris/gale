@@ -114,7 +114,7 @@ func newTaskPreRunFnForWorkflow(wf model.Workflow) task.PreRunFn[context.Context
 		return ctx.SetWorkflow(
 			&model.WorkflowRun{
 				Workflow: wf,
-				Jobs:     make(map[string]model.JobRun),
+				//	Jobs:     make(map[string]model.JobRun),
 			},
 		)
 	}

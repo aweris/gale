@@ -42,7 +42,6 @@ func (c *Context) SetJob(jr *model.JobRun) error {
 
 	// set the job run to the execution context
 	c.Execution.JobRun = jr
-	c.Execution.WorkflowRun.Jobs[jr.Job.ID] = *jr
 
 	// set the job run to the github context
 	c.Github.Job = jr.Job.ID
@@ -65,11 +64,18 @@ func (c *Context) SetJob(jr *model.JobRun) error {
 
 	c.Needs = make(NeedsContext)
 
+	// ignoring error since directory must exist at this point of execution
+	dir, _ := c.GetWorkflowRunPath()
+
 	if len(jr.Job.Needs) > 0 {
 		for _, need := range jr.Job.Needs {
-			need := c.Execution.WorkflowRun.Jobs[need]
+			path := filepath.Join(dir, "jobs", need, "job_run.json")
 
-			c.Needs[need.Job.ID] = NeedContext{Result: need.Conclusion, Outputs: need.Outputs}
+			var jr model.JobRun
+
+			fs.ReadJSONFile(path, &jr)
+
+			c.Needs[need] = NeedContext{Result: jr.Conclusion, Outputs: jr.Outputs}
 		}
 	}
 
@@ -79,9 +85,6 @@ func (c *Context) SetJob(jr *model.JobRun) error {
 // UnsetJob unsets the job from the execution context.
 func (c *Context) UnsetJob(result RunResult) {
 	jr := c.Execution.JobRun
-
-	// update the job run in the workflow run
-	c.Execution.WorkflowRun.Jobs[jr.Job.ID] = *jr
 
 	// update workflow conclusion
 	if c.Execution.WorkflowRun.Conclusion == model.ConclusionSuccess && jr.Conclusion != model.ConclusionSuccess {

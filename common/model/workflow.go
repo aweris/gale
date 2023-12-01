@@ -13,7 +13,7 @@ type Workflow struct {
 }
 
 type WorkflowRun struct {
-	Workflow   Workflow          `json:"workflow"`   // Workflow is the workflow to run
-	Conclusion Conclusion        `json:"conclusion"` // Conclusion is the result of a completed workflow run after continue-on-error is applied
-	Jobs       map[string]JobRun `json:"jobs"`       // Jobs is map of the job run id to its result
+	Workflow   Workflow   `json:"workflow"`   // Workflow is the workflow to run
+	Conclusion Conclusion `json:"conclusion"` // Conclusion is the result of a completed workflow run after continue-on-error is applied
+	//	Jobs       map[string]JobRun `json:"jobs"`       // Jobs is map of the job run id to its result
 }
