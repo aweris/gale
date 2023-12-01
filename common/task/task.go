@@ -53,12 +53,13 @@ type PostRunFn[T any] func(ctx *T, result Result)
 // Runner is a task runner that runs a task and keeps status, conclusion and timing information about
 // the execution.
 type Runner[T any] struct {
-	Name        string           // Name of the execution
-	Status      Status           // Status of the execution
-	runFn       RunFn[T]         // runFn is the function to be executed
-	conditionFn ConditionalFn[T] // conditionFn is the function that determines if the task should be executed
-	preFn       PreRunFn[T]      // preFn is the function that will be executed before the task is executed
-	postFn      PostRunFn[T]     // postFn is the function that will be executed after the task is executed
+	Name         string           // Name of the execution
+	Status       Status           // Status of the execution
+	runFn        RunFn[T]         // runFn is the function to be executed
+	conditionFn  ConditionalFn[T] // conditionFn is the function that determines if the task should be executed
+	preFn        PreRunFn[T]      // preFn is the function that will be executed before the task is executed
+	postFn       PostRunFn[T]     // postFn is the function that will be executed after the task is executed
+	skipLogGroup bool             // skipLogGroup indicates if the task should not be logged as a group
 }
 
 // Result is the result of the task execution
@@ -70,9 +71,10 @@ type Result struct {
 
 // Opts is the options that can be used to configure a task.
 type Opts[T any] struct {
-	PreRunFn      PreRunFn[T]
-	PostRunFn     PostRunFn[T]
-	ConditionalFn ConditionalFn[T]
+	PreRunFn      PreRunFn[T]      // PreRunFn is the function that will be executed before the task is executed.
+	PostRunFn     PostRunFn[T]     // PostRunFn is the function that will be executed after the task is executed.
+	ConditionalFn ConditionalFn[T] // ConditionalFn is the function that determines if the task should be executed.
+	SkipLogGroup  bool             // SkipLogGroup indicates if the task should not be logged as a group.
 }
 
 // New creates a new task taskRunner. Optionally, it can be configured with the given options. Only first
@@ -84,12 +86,13 @@ func New[T any](name string, fn RunFn[T], opts ...Opts[T]) Runner[T] {
 	}
 
 	return Runner[T]{
-		Name:        name,
-		Status:      StatusQueued,
-		runFn:       fn,
-		conditionFn: opt.ConditionalFn,
-		preFn:       opt.PreRunFn,
-		postFn:      opt.PostRunFn,
+		Name:         name,
+		Status:       StatusQueued,
+		runFn:        fn,
+		conditionFn:  opt.ConditionalFn,
+		preFn:        opt.PreRunFn,
+		postFn:       opt.PostRunFn,
+		skipLogGroup: opt.SkipLogGroup,
 	}
 }
 
@@ -134,10 +137,12 @@ func (t *Runner[T]) Run(ctx *T) (Result, error) {
 	}
 
 	if result.Ran {
-		// create ger group for step
-		log.Info(t.Name)
-		log.StartGroup()
-		defer log.EndGroup()
+		if !t.skipLogGroup {
+			// create ger group for step
+			log.Info(t.Name)
+			log.StartGroup()
+			defer log.EndGroup()
+		}
 
 		var err error
 

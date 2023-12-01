@@ -99,8 +99,9 @@ func planWorkflow(workflow model.Workflow, job string) (*task.Runner[context.Con
 
 	// workflow task options
 	opt := task.Opts[context.Context]{
-		PreRunFn:  newTaskPreRunFnForWorkflow(workflow),
-		PostRunFn: newTaskPostRunFnForWorkflow(),
+		PreRunFn:     newTaskPreRunFnForWorkflow(workflow),
+		PostRunFn:    newTaskPostRunFnForWorkflow(),
+		SkipLogGroup: true,
 	}
 
 	// create the workflow task runner from the runFn and options
