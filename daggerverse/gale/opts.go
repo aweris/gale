@@ -98,7 +98,7 @@ func toWorkflowRunOpts(
 		WorkflowFile: withEmptyValue(workflowFile),
 		Workflow:     withEmptyValue(workflow),
 		Job:          withEmptyValue(job),
-		Container:    container.GetOr(dag.Container().From("ghcr.io/catthehacker/ubuntu:act-latest")),
+		Container:    withEmptyValue(container),
 		Event:        event.GetOr("push"),
 		EventFile:    eventFile.GetOr(dag.Directory().WithNewFile("event.json", "{}").File("event.json")),
 		RunnerDebug:  withEmptyValue(runnerDebug),

@@ -5,33 +5,32 @@ import (
 	"fmt"
 )
 
-type Runner struct{}
+type Runner struct {
+	// Base container to use for the runner.
+	BaseContainer *Container
 
-// RunnerContainer represents a container to run a Github Actions workflow in.
-type RunnerContainer struct {
-	// Initialized container to run the workflow in.
-	Ctr *Container
+	// Repository information to use for the runner.
+	Repo *RepoInfo
 }
 
 // Container initializes a new runner container with the given options.
-func (r *Runner) Container(
-	// context to use for the operation
-	ctx context.Context,
-	// repository information to use for the runner
-	repo *RepoInfo,
-	// Container to use for the runner.
-	ctr *Container,
-) (*RunnerContainer, error) {
+func (r *Runner) Container(ctx context.Context) (*Container, error) {
+	var (
+		ctr  = r.BaseContainer
+		repo = r.Repo
+	)
+
 	// check if container is already initialized
 	if ctr != nil {
 		if isContainerInitialized(ctx, ctr) {
 			fmt.Println("skipping container initialization, container already initialized")
 			fmt.Println("WARNING: given source and repo options are ignored, using the initialized container")
 
-			return &RunnerContainer{Ctr: ctr}, nil
+			return ctr, nil
 		}
 	}
 
+	// use default container if not provided
 	if ctr == nil {
 		ctr = dag.Container().From("ghcr.io/catthehacker/ubuntu:act-latest")
 	}
@@ -74,7 +73,7 @@ func (r *Runner) Container(
 	// add env variable to the container to indicate container is configured
 	ctr = ctr.WithEnvVariable("GALE_CONFIGURED", "true")
 
-	return &RunnerContainer{Ctr: ctr}, nil
+	return ctr, nil
 }
 
 // isContainerInitialized checks if the given container is initialized and returns the runner id if it is.

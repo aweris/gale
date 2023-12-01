@@ -13,8 +13,8 @@ var internal Internal
 
 type Internal struct{}
 
-func (_ *Internal) runner() *Runner {
-	return &Runner{}
+func (_ *Internal) runner(base *Container, info *RepoInfo) *Runner {
+	return &Runner{BaseContainer: base, Repo: info}
 }
 
 func (_ *Internal) repo() *Repo {

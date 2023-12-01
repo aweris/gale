@@ -89,13 +89,13 @@ func (wr *WorkflowRun) run(ctx context.Context) (*Container, error) {
 		return nil, err
 	}
 
-	rc, err := internal.runner().Container(ctx, info, opts.Container)
+	ctr, err := internal.runner(opts.Container, info).Container(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// get runner container and apply run context
-	ctr := rc.Ctr.With(wr.Context.ContainerFunc)
+	// apply context scoped configs
+	ctr = ctr.With(wr.Context.ContainerFunc)
 
 	// set workflow config
 	w, err := internal.getWorkflow(ctx, info, opts.WorkflowFile, opts.Workflow, opts.WorkflowsDir)
