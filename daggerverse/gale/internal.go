@@ -3,31 +3,54 @@ package main
 import (
 	"context"
 	"fmt"
-
-	"github.com/google/uuid"
 )
 
-// default entry point for internal submodules. The intention of this entry point is keep the module clean and
-// consistent. This entrypoint is not intended to be used by external modules.
+// The 'internal' struct acts as the central hub for this module's internal operations. It organizes and streamlines
+// internal functionalities, ensuring cohesive and efficient interaction among various components. This design aids
+// in maintaining a clean code structure and simplifies the management of internal dependencies.
+
 var internal Internal
 
 type Internal struct{}
 
-func (_ *Internal) runner(base *Container, info *RepoInfo) *Runner {
-	return &Runner{BaseContainer: base, Repo: info}
-}
-
-func (_ *Internal) repo() *Repo {
-	return &Repo{}
-}
-
-func (_ *Internal) context(opts *WorkflowRunOpts) *RunContext {
-	var (
-		rid  = uuid.New().String()
-		data = dag.CacheVolume(fmt.Sprintf("ghx-run-%s", rid))
+func (_ *Internal) WorkflowExecutionPlan(
+	ctx context.Context,
+	source *Directory,
+	repo string,
+	tag string,
+	branch string,
+	workflowsDir string,
+	workflowFile Optional[*File],
+	workflow Optional[string],
+	job Optional[string],
+	container Optional[*Container],
+	event Optional[string],
+	eventFile Optional[*File],
+	runnerDebug Optional[bool],
+	token Optional[*Secret],
+) (*WorkflowExecutionPlan, error) {
+	return NewWorkflowExecutionPlan(
+		ctx,
+		toWorkflowRunOpts(
+			source,
+			repo,
+			tag,
+			branch,
+			workflowsDir,
+			workflowFile,
+			workflow,
+			job,
+			container,
+			event,
+			eventFile,
+			runnerDebug,
+			token,
+		),
 	)
+}
 
-	return &RunContext{RunID: rid, Opts: opts, SharedData: data}
+func (_ *Internal) RepoInfo(ctx context.Context, source *Directory, repo, tag, branch string) (*RepoInfo, error) {
+	return NewRepoInfo(ctx, source, repo, tag, branch)
 }
 
 // getWorkflow returns the workflow with the given options. IF workflowFile is provided, it will be used. Otherwise,

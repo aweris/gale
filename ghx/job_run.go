@@ -265,7 +265,7 @@ func newTaskPreRunFnForJob(job model.Job, matrix ...model.MatrixCombination) tas
 			jr.Matrix = matrix[0]
 		}
 
-		return ctx.SetJob(jr)
+		return ctx.SetJob(jr, model.ConclusionSuccess)
 	}
 }
 

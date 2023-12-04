@@ -9,37 +9,8 @@ import (
 	"github.com/aweris/gale/common/model"
 )
 
-// SetWorkflow creates a new execution context with the given workflow and sets it to the context.
-func (c *Context) SetWorkflow(wr *model.WorkflowRun) error {
-	// set the workflow run to the execution context
-	c.Execution = ExecutionContext{WorkflowRun: wr}
-
-	// set workflow conclusion to success explicitly
-	c.Execution.WorkflowRun.Conclusion = model.ConclusionSuccess
-
-	// set env context
-	c.Env = wr.Workflow.Env
-
-	return nil
-}
-
-func (c *Context) UnsetWorkflow(result RunResult) {
-	// ignoring error since directory must exist at this point of execution
-	dir, _ := c.GetWorkflowRunPath()
-
-	report := NewWorkflowRunReport(&result, c.Github, c.Execution.WorkflowRun)
-
-	if err := fs.WriteJSONFile(filepath.Join(dir, "workflow_run.json"), report); err != nil {
-		log.Errorf("failed to write workflow run", "error", err, "workflow", c.Execution.WorkflowRun.Workflow.Name)
-	}
-}
-
 // SetJob sets the given job to the execution context.
-func (c *Context) SetJob(jr *model.JobRun) error {
-	if c.Execution.WorkflowRun == nil {
-		return errors.New("no workflow is set")
-	}
-
+func (c *Context) SetJob(jr *model.JobRun, conclusion model.Conclusion) error {
 	// set the job run to the execution context
 	c.Execution.JobRun = jr
 
@@ -57,7 +28,7 @@ func (c *Context) SetJob(jr *model.JobRun) error {
 	}
 
 	// load the job context
-	c.Job = JobContext{Status: c.Execution.WorkflowRun.Conclusion}
+	c.Job = JobContext{Status: conclusion}
 
 	// load the steps context
 	c.Steps = make(StepsContext)
@@ -84,17 +55,8 @@ func (c *Context) SetJob(jr *model.JobRun) error {
 
 // UnsetJob unsets the job from the execution context.
 func (c *Context) UnsetJob(result RunResult) {
-	jr := c.Execution.JobRun
-
-	// update workflow conclusion
-	if c.Execution.WorkflowRun.Conclusion == model.ConclusionSuccess && jr.Conclusion != model.ConclusionSuccess {
-		c.Execution.WorkflowRun.Conclusion = jr.Conclusion
-	}
 	// unset the job run from the github context
 	c.Github.Job = ""
-
-	// unset the job from env context -- just set it to the workflow env would be enough
-	c.Env = c.Execution.WorkflowRun.Workflow.Env
 
 	// reset matrix context
 	c.Matrix = make(MatrixContext)
@@ -106,7 +68,7 @@ func (c *Context) UnsetJob(result RunResult) {
 	report := NewJobRunReport(&result, c.Execution.JobRun)
 
 	if err := fs.WriteJSONFile(filepath.Join(dir, "job_run.json"), report); err != nil {
-		log.Errorf("failed to write job run", "error", err, "workflow", c.Execution.WorkflowRun.Workflow.Name)
+		log.Errorf("failed to write job run", "error", err)
 	}
 
 	// unset the job run from the execution context
@@ -156,7 +118,7 @@ func (c *Context) UnsetStep(result RunResult) {
 
 	// unset the step run from the execution context
 
-	c.Env = c.Execution.WorkflowRun.Workflow.Env
+	c.Env = c.Execution.Workflow.Env
 
 	for k, v := range c.Execution.JobRun.Job.Env {
 		c.Env[k] = v
@@ -190,12 +152,12 @@ func (c *Context) UnsetStep(result RunResult) {
 		report := NewStepRunReport(&result, c.Execution.StepRun)
 
 		if err := fs.WriteJSONFile(filepath.Join(dir, "step_run.json"), &report); err != nil {
-			log.Errorf("failed to write step run", "error", err, "workflow", c.Execution.WorkflowRun.Workflow.Name)
+			log.Errorf("failed to write step run", "error", err)
 		}
 
 		if c.Execution.StepRun.Summary != "" {
 			if err := fs.WriteFile(filepath.Join(dir, "summary.md"), []byte(c.Execution.StepRun.Summary), 0600); err != nil {
-				log.Errorf("failed to write step run summary", "error", err, "workflow", c.Execution.WorkflowRun.Workflow.Name)
+				log.Errorf("failed to write step run summary", "error", err)
 			}
 		}
 	}

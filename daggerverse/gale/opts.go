@@ -4,34 +4,6 @@ package main
 //  refactor this code when dagger supports Opt struct types as type parameters.
 //  issue: https://github.com/dagger/dagger/issues/6162
 
-type WorkflowListOpts struct {
-	// The directory containing the repository source. If source is provided, rest of the options are ignored.
-	Source *Directory
-
-	// The name of the repository. Format: owner/name.
-	Repo string
-
-	// Tag name to check out. Only one of branch or tag can be used. Precedence is as follows: tag, branch.
-	Tag string
-
-	// Branch name to check out. Only one of branch or tag can be used. Precedence is as follows: tag, branch.
-	Branch string
-
-	// The directory containing the repository source. If source is provided, rest of the options are ignored.
-	WorkflowsDir string
-}
-
-// toWorkflowListOpts converts the given options to WorkflowListOpts.
-func toWorkflowListOpts(source Optional[*Directory], repo, tag, branch, workflowsDir Optional[string]) *WorkflowListOpts {
-	return &WorkflowListOpts{
-		Source:       withEmptyValue(source),
-		Repo:         withEmptyValue(repo),
-		Tag:          withEmptyValue(tag),
-		Branch:       withEmptyValue(branch),
-		WorkflowsDir: workflowsDir.GetOr(".github/workflows"),
-	}
-}
-
 type WorkflowRunOpts struct {
 	// The directory containing the repository source. If source is provided, rest of the options are ignored.
 	Source *Directory
@@ -75,11 +47,11 @@ type WorkflowRunOpts struct {
 
 // toWorkflowRunOpts converts the given options to WorkflowRunOpts.
 func toWorkflowRunOpts(
-	source Optional[*Directory],
-	repo Optional[string],
-	tag Optional[string],
-	branch Optional[string],
-	workflowsDir Optional[string],
+	source *Directory,
+	repo string,
+	tag string,
+	branch string,
+	workflowsDir string,
 	workflowFile Optional[*File],
 	workflow Optional[string],
 	job Optional[string],
@@ -90,15 +62,15 @@ func toWorkflowRunOpts(
 	token Optional[*Secret],
 ) *WorkflowRunOpts {
 	return &WorkflowRunOpts{
-		Source:       withEmptyValue(source),
-		Repo:         withEmptyValue(repo),
-		Tag:          withEmptyValue(tag),
-		Branch:       withEmptyValue(branch),
-		WorkflowsDir: workflowsDir.GetOr(".github/workflows"),
+		Source:       source,
+		Repo:         repo,
+		Tag:          tag,
+		Branch:       branch,
+		WorkflowsDir: workflowsDir,
 		WorkflowFile: withEmptyValue(workflowFile),
 		Workflow:     withEmptyValue(workflow),
 		Job:          withEmptyValue(job),
-		Container:    withEmptyValue(container),
+		Container:    container.GetOr(dag.Container().From("ghcr.io/catthehacker/ubuntu:act-latest")),
 		Event:        event.GetOr("push"),
 		EventFile:    eventFile.GetOr(dag.Directory().WithNewFile("event.json", "{}").File("event.json")),
 		RunnerDebug:  withEmptyValue(runnerDebug),

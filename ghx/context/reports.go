@@ -15,38 +15,16 @@ type RunResult struct {
 }
 
 type WorkflowRunReport struct {
-	Ran           bool             `json:"ran"`            // Ran indicates if the execution ran
-	Duration      string           `json:"duration"`       // Duration of the execution
-	Name          string           `json:"name"`           // Name is the name of the workflow
-	Path          string           `json:"path"`           // Path is the path of the workflow
-	RunID         string           `json:"run_id"`         // RunID is the ID of the run
-	RunNumber     string           `json:"run_number"`     // RunNumber is the number of the run
-	RunAttempt    string           `json:"run_attempt"`    // RunAttempt is the attempt number of the run
-	RetentionDays string           `json:"retention_days"` // RetentionDays is the number of days to keep the run logs
-	Conclusion    model.Conclusion `json:"conclusion"`     // Conclusion is the result of a completed workflow run after continue-on-error is applied
-	//	Jobs          map[string]model.Conclusion `json:"jobs"`           // Jobs is map of the job run id to its result
-}
-
-// NewWorkflowRunReport creates a new workflow run report from the given workflow run.
-func NewWorkflowRunReport(result *RunResult, github GithubContext, wr *model.WorkflowRun) *WorkflowRunReport {
-	report := &WorkflowRunReport{
-		Ran:           result.Ran,
-		Duration:      result.Duration.String(),
-		Conclusion:    result.Conclusion,
-		Name:          wr.Workflow.Name,
-		Path:          wr.Workflow.Path,
-		RunID:         github.RunID,
-		RunNumber:     github.RunNumber,
-		RunAttempt:    github.RunAttempt,
-		RetentionDays: github.RetentionDays,
-		// Jobs:          make(map[string]model.Conclusion),
-	}
-
-	//	for id, job := range wr.Jobs {
-	//		report.Jobs[id] = job.Conclusion
-	//	}
-
-	return report
+	Ran           bool                        `json:"ran"`            // Ran indicates if the execution ran
+	Duration      string                      `json:"duration"`       // Duration of the execution
+	Name          string                      `json:"name"`           // Name is the name of the workflow
+	Path          string                      `json:"path"`           // Path is the path of the workflow
+	RunID         string                      `json:"run_id"`         // RunID is the ID of the run
+	RunNumber     string                      `json:"run_number"`     // RunNumber is the number of the run
+	RunAttempt    string                      `json:"run_attempt"`    // RunAttempt is the attempt number of the run
+	RetentionDays string                      `json:"retention_days"` // RetentionDays is the number of days to keep the run logs
+	Conclusion    model.Conclusion            `json:"conclusion"`     // Conclusion is the result of a completed workflow run after continue-on-error is applied
+	Jobs          map[string]model.Conclusion `json:"jobs"`           // Jobs is map of the job run id to its result
 }
 
 type JobRunReport struct {

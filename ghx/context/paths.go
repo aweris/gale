@@ -46,10 +46,6 @@ func (c *Context) GetSecretsPath() (string, error) {
 // GetWorkflowRunPath returns the path of the current workflow run path. If the path does not exist, it creates it. If
 // the workflow run is not set, it returns an error.
 func (c *Context) GetWorkflowRunPath() (string, error) {
-	if c.Execution.WorkflowRun == nil {
-		return "", errors.New("no workflow run is set")
-	}
-
 	return EnsureDir(c.GhxConfig.HomeDir, "run")
 }
 

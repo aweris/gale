@@ -30,8 +30,7 @@ type DaggerContext struct {
 }
 
 type ExecutionContext struct {
-	// Workflow is the current workflow that is being executed.
-	WorkflowRun *model.WorkflowRun
+	Workflow *model.Workflow
 
 	// Job is the current job that is being executed.
 	JobRun *model.JobRun

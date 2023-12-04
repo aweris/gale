@@ -7,8 +7,6 @@ import (
 	"strings"
 )
 
-type Repo struct{}
-
 // RepoInfo represents a repository information.
 type RepoInfo struct {
 	Owner         string     // Owner of the repository.
@@ -24,18 +22,7 @@ type RepoInfo struct {
 	Source        *Directory // Source is the directory containing the repository source.
 }
 
-func (_ *Repo) Info(
-	// context to use for the operation
-	ctx context.Context,
-	// The directory containing the repository source. If source is provided, rest of the options are ignored.
-	source *Directory,
-	// The name of the repository. Format: owner/name.
-	repo string,
-	// Tag name to check out. Only one of branch or tag can be used. Precedence is as follows: tag, branch.
-	tag string,
-	// Branch name to check out. Only one of branch or tag can be used. Precedence is as follows: tag, branch.
-	branch string,
-) (*RepoInfo, error) {
+func NewRepoInfo(ctx context.Context, source *Directory, repo, tag, branch string) (*RepoInfo, error) {
 	// get the repository source from the options
 	dir, err := getRepoSource(source, repo, tag, branch)
 	if err != nil {
