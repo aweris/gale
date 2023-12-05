@@ -30,8 +30,8 @@ type JobRun struct {
 	// the directory containing the job run data.
 	Data *Directory
 
-	// the json report containing details about the job run.
-	ReportFile *File
+	// the report file for this job run.
+	Report *JobRunReport
 
 	// the log file for this job run.
 	LogFile *File

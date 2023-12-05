@@ -18,4 +18,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 )
 
-replace github.com/aweris/gale/common => ../../common
+replace (
+	github.com/aweris/gale/common => ../../common
+ 	github.com/aweris/gale/ghx => ../../ghx
+ )

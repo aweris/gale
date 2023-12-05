@@ -156,12 +156,17 @@ func (rc *RunnerContainer) RunJob(ctx context.Context, job Job, needs ...*JobRun
 		return nil, err
 	}
 
+	report, err := toJobRunReport(ctx, ctr.Directory(current).File("job_run.json"))
+	if err != nil {
+		return nil, err
+	}
+
 	jr = &JobRun{
-		Job:        job,
-		Ctr:        ctr,
-		Data:       ctr.Directory(current),
-		ReportFile: ctr.Directory(current).File("job_run.json"),
-		LogFile:    ctr.Directory(current).File("job_run.log"),
+		Job:     job,
+		Ctr:     ctr,
+		Data:    ctr.Directory(current),
+		Report:  report,
+		LogFile: ctr.Directory(current).File("job_run.log"),
 	}
 
 	return jr, nil

@@ -75,7 +75,7 @@ type Workflow struct {
 	Name string
 
 	// Environment variables used in the workflow. Format: KEY=VALUE.
-	Env []string
+	Env []KV
 
 	// Jobs in the workflow.
 	Jobs []Job
@@ -143,7 +143,7 @@ type Job struct {
 	Needs []string
 
 	// Environment variables used in the job. Format: KEY=VALUE.
-	Env []string
+	Env []KV
 
 	// List of outputs of the job.
 	Outputs []string
@@ -192,10 +192,10 @@ type Step struct {
 	Uses string
 
 	// Environment variables used in the step. Format: KEY=VALUE.
-	Env []string
+	Env []KV
 
 	// Inputs used in the step. Format: KEY=VALUE.
-	With []string
+	With []KV
 
 	// Command to run for the step.
 	Run string

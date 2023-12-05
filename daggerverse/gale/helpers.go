@@ -8,12 +8,19 @@ func withEmptyValue[T any](o Optional[T]) T {
 	return o.GetOr(empty)
 }
 
+// KV is representing a key=value pair to be used in a list of key=value strings. This is a temporary workaround pending
+// a map support in Dagger.
+type KV struct {
+	Key   string
+	Value string
+}
+
 // mapToKV converts a map to a list of key=value strings. This is a temporary workaround pending a map support in
 // Dagger.
-func mapToKV(m map[string]string) []string {
-	var kv []string
+func mapToKV(m map[string]string) []KV {
+	var kv []KV
 	for k, v := range m {
-		kv = append(kv, k+"="+v)
+		kv = append(kv, KV{Key: k, Value: v})
 	}
 	return kv
 }
