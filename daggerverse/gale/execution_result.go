@@ -31,10 +31,10 @@ type JobRun struct {
 	Data *Directory
 
 	// the json report containing details about the job run.
-	Report *File
+	ReportFile *File
 
 	// the log file for this job run.
-	Log *File
+	LogFile *File
 }
 
 // FIXME: implement sync and directory methods properly. These are just quick hacks to develop the rest of the code.
@@ -48,7 +48,7 @@ func (wr *WorkflowRun) Log(ctx context.Context) (*File, error) {
 	var logs string
 
 	for _, jr := range wr.JobRuns {
-		contents, err := jr.Log.Contents(ctx)
+		contents, err := jr.LogFile.Contents(ctx)
 		if err != nil {
 			return nil, err
 		}

@@ -53,6 +53,10 @@ func (_ *Internal) RepoInfo(ctx context.Context, source *Directory, repo, tag, b
 	return NewRepoInfo(ctx, source, repo, tag, branch)
 }
 
+func (_ *Internal) Runner(plan *WorkflowExecutionPlan) *Runner {
+	return NewRunner(plan)
+}
+
 // getWorkflow returns the workflow with the given options. IF workflowFile is provided, it will be used. Otherwise,
 // workflow will be loaded from the repository source with the given options.
 func (_ *Internal) getWorkflow(ctx context.Context, info *RepoInfo, file *File, workflow string, dir string) (*Workflow, error) {
