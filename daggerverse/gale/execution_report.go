@@ -15,6 +15,14 @@ import (
 // TODO: Removed 'Matrix     model.MatrixCombination` from report since it's not possible use map and don't know
 //  how to handle interface{} in dagger. Find way to handle this.
 
+type WorkflowRunReport struct {
+	Ran        bool             // Ran indicates if the execution ran
+	Duration   string           // Duration of the execution
+	Name       string           // Name is the name of the workflow
+	Conclusion model.Conclusion // Conclusion is the result of a completed workflow run after continue-on-error is applied
+	File       *File            // File is the report file contains  json report of the workflow
+}
+
 type JobRunReport struct {
 	Ran        bool             // Ran indicates if the execution ran
 	Duration   string           // Duration of the execution

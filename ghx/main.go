@@ -2,7 +2,6 @@ package main
 
 import (
 	stdContext "context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -41,34 +40,6 @@ func main() {
 
 	ctx.Execution.Workflow = &wf
 
-	report := &context.WorkflowRunReport{
-		Ran:           false,
-		Name:          wf.Name,
-		Path:          wf.Path,
-		RunID:         ctx.Github.RunID,
-		RunNumber:     ctx.Github.RunNumber,
-		RunAttempt:    ctx.Github.RunAttempt,
-		RetentionDays: ctx.Github.RetentionDays,
-		Conclusion:    model.ConclusionSuccess,
-		Jobs:          make(map[string]model.Conclusion),
-	}
-
-	// Check if the report file exists
-	if _, err := os.Stat(filepath.Join(cfg.HomeDir, "run", "workflow_run.json")); err == nil {
-		// The file exists, read it
-		data, err := os.ReadFile(filepath.Join(cfg.HomeDir, "run", "workflow_run.json"))
-		if err != nil {
-			fmt.Printf("failed to read workflow run report: %v", err)
-			os.Exit(1)
-		}
-
-		// Unmarshal the data into the report structure
-		if err := json.Unmarshal(data, report); err != nil {
-			fmt.Printf("failed to unmarshal workflow run report: %v", err)
-			os.Exit(1)
-		}
-	}
-
 	jm, ok := wf.Jobs[ctx.GhxConfig.Job]
 	if !ok {
 		fmt.Printf("job %s not found", ctx.GhxConfig.Job)
@@ -85,30 +56,12 @@ func main() {
 	// FIXME: run all runners sequentially for now. Ignoring parallelism. Fix this later.
 
 	for _, runner := range runners {
-		result, err := runner.Run(ctx)
+		_, err := runner.Run(ctx)
 		if err != nil {
 			fmt.Printf("failed to run job: %v", err)
 			os.Exit(1)
 		}
 
-		if report.Conclusion == model.ConclusionSuccess && result.Conclusion != report.Conclusion {
-			report.Conclusion = result.Conclusion
-		}
-	}
-
-	report.Ran = true
-	report.Duration = "n/a"
-
-	data, err := json.Marshal(report)
-	if err != nil {
-		fmt.Printf("failed to marshal workflow run report: %v", err)
-		os.Exit(1)
-	}
-
-	err = os.WriteFile(filepath.Join(cfg.HomeDir, "run", "workflow_run.json"), data, 0644)
-	if err != nil {
-		fmt.Printf("failed to write workflow run report: %v", err)
-		os.Exit(1)
 	}
 }
 

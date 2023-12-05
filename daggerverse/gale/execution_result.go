@@ -16,6 +16,9 @@ type WorkflowRun struct {
 	// the workflow to run.
 	Workflow *Workflow
 
+	// the workflow run report.
+	Report *WorkflowRunReport
+
 	// job runs for this workflow run.
 	JobRuns []*JobRun
 }
@@ -57,6 +60,8 @@ func (wr *WorkflowRun) Log(ctx context.Context) (*File, error) {
 		logs += "\n"
 	}
 
+	logs += fmt.Sprintf("Complete workflow=\"%s\" conclusion=\"%s\" duration=\"%s\"\n", wr.Workflow.Name, wr.Report.Conclusion, wr.Report.Duration)
+
 	return dag.Directory().WithNewFile("logs", logs).File("logs"), nil
 }
 
@@ -97,6 +102,9 @@ func (wr *WorkflowRun) Data() *Directory {
 
 	// add event file
 	data = data.WithFile("run/event.json", wr.Opts.EventFile)
+
+	// add workflow run report file
+	data = data.WithFile("run/workflow_run.json", wr.Report.File)
 
 	// add job data
 	for _, jr := range wr.JobRuns {

@@ -2,9 +2,14 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
+
+	"github.com/aweris/gale/common/model"
+	ghxcontext "github.com/aweris/gale/ghx/context"
 )
 
 type WorkflowExecutionPlan struct {
@@ -51,6 +56,11 @@ func NewWorkflowExecutionPlan(ctx context.Context, opts *WorkflowRunOpts) (*Work
 }
 
 func (wep *WorkflowExecutionPlan) Execute(ctx context.Context) (*WorkflowRun, error) {
+	var (
+		report    = &WorkflowRunReport{Ran: true, Name: wep.workflow.Name, Conclusion: model.ConclusionSuccess}
+		startedAt = time.Now()
+	)
+
 	jobs, err := wep.jobs()
 	if err != nil {
 		return nil, err
@@ -75,6 +85,18 @@ func (wep *WorkflowExecutionPlan) Execute(ctx context.Context) (*WorkflowRun, er
 			return nil, err
 		}
 
+		// only update the workflow run conclusion if the job run conclusion is not success and the workflow run
+		// conclusion is success
+		//
+		// initial conclusion   job conclusion   final conclusion
+		// -------------------------------------------------------
+		// success              success          success
+		// success              failure          failure
+		// failure              success          failure
+		if report.Conclusion == model.ConclusionSuccess && jr.Report.Conclusion != model.ConclusionSuccess {
+			report.Conclusion = jr.Report.Conclusion
+		}
+
 		// to keep track of the job runs for able to access them later for dependent jobs
 		wep.jrs[job.JobID] = jr
 
@@ -82,7 +104,16 @@ func (wep *WorkflowExecutionPlan) Execute(ctx context.Context) (*WorkflowRun, er
 		runs = append(runs, jr)
 	}
 
-	return &WorkflowRun{Opts: wep.opts, RunID: wep.runID, Workflow: wep.workflow, JobRuns: runs}, nil
+	report.Duration = time.Since(startedAt).String()
+
+	file, err := toWorkflowRunReportJSON(wep.runID, wep.workflow, report, runs)
+	if err != nil {
+		return nil, err
+	}
+
+	report.File = file
+
+	return &WorkflowRun{Opts: wep.opts, RunID: wep.runID, Workflow: wep.workflow, Report: report, JobRuns: runs}, nil
 }
 
 func (wep *WorkflowExecutionPlan) jobs() ([]Job, error) {
@@ -140,4 +171,29 @@ func (wep *WorkflowExecutionPlan) jobs() ([]Job, error) {
 	}
 
 	return order, nil
+}
+
+func toWorkflowRunReportJSON(runID string, workflow *Workflow, report *WorkflowRunReport, jrs []*JobRun) (*File, error) {
+	var jobs = make(map[string]model.Conclusion)
+
+	for _, jr := range jrs {
+		jobs[jr.Job.JobID] = jr.Report.Conclusion
+	}
+
+	wm := &ghxcontext.WorkflowRunReport{
+		Ran:        report.Ran,
+		Duration:   report.Duration,
+		Name:       report.Name,
+		Path:       workflow.Path,
+		RunID:      runID,
+		Conclusion: report.Conclusion,
+		Jobs:       jobs,
+	}
+
+	data, err := json.Marshal(wm)
+	if err != nil {
+		return nil, err
+	}
+
+	return dag.Directory().WithNewFile("workflow_run.json", string(data)).File("workflow_run.json"), nil
 }
