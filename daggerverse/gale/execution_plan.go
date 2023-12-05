@@ -58,27 +58,31 @@ func (wep *WorkflowExecutionPlan) Execute(ctx context.Context) (*WorkflowRun, er
 
 	runs := make([]*JobRun, 0, len(jobs))
 
+	rc, err := internal.Runner(wep).Container()
+	if err != nil {
+		return nil, err
+	}
+
 	for _, job := range jobs {
-		jp := &JobExecutionPlan{
-			runID:  job.JobID,
-			job:    job,
-			parent: wep,
+		needs := make([]*JobRun, 0, len(job.Needs))
+
+		for _, need := range job.Needs {
+			needs = append(needs, wep.jrs[need])
 		}
-		jr, err := jp.Execute(ctx)
+
+		jr, err := rc.RunJob(ctx, job, needs...)
 		if err != nil {
 			return nil, err
 		}
 
-		wep.jrs[jp.job.JobID] = jr
+		// to keep track of the job runs for able to access them later for dependent jobs
+		wep.jrs[job.JobID] = jr
+
+		// add job run to the list of job runs since WorkflowRun is a public type and dagger doesn't support maps yet
 		runs = append(runs, jr)
 	}
 
-	return &WorkflowRun{
-		Opts:     wep.opts,
-		RunID:    wep.runID,
-		Workflow: wep.workflow,
-		JobRuns:  runs,
-	}, nil
+	return &WorkflowRun{Opts: wep.opts, RunID: wep.runID, Workflow: wep.workflow, JobRuns: runs}, nil
 }
 
 func (wep *WorkflowExecutionPlan) jobs() ([]Job, error) {
@@ -136,33 +140,4 @@ func (wep *WorkflowExecutionPlan) jobs() ([]Job, error) {
 	}
 
 	return order, nil
-}
-
-type JobExecutionPlan struct {
-	// run id of the workflow run.
-	runID string
-
-	// the job to run.
-	job Job
-
-	// the container for this job run.
-	ctr *Container
-
-	// the workflow execution plan for this job run.
-	parent *WorkflowExecutionPlan
-}
-
-func (jep *JobExecutionPlan) Execute(ctx context.Context) (*JobRun, error) {
-	rc, err := internal.Runner(jep.parent).Container()
-	if err != nil {
-		return nil, err
-	}
-
-	needs := make([]*JobRun, 0, len(jep.job.Needs))
-
-	for _, need := range jep.job.Needs {
-		needs = append(needs, jep.parent.jrs[need])
-	}
-
-	return rc.RunJob(ctx, jep.job, needs...)
 }
