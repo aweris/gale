@@ -51,3 +51,5 @@ linters-settings:
           - github.com/caarlos0/env/v9
           - github.com/go-git/go-git/v5
           - github.com/dave/jennifer/jen
+          - github.com/Khan/genqlient/graphql
+          - github.com/99designs/gqlgen/graphql

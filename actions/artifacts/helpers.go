@@ -14,7 +14,7 @@ func root() string {
 	// get location of current file
 	_, current, _, _ := runtime.Caller(0)
 
-	return filepath.Join(filepath.Dir(current), "..")
+	return filepath.Join(filepath.Dir(current), "../..")
 }
 
 func GoVersion(ctx context.Context, gomod *File) (string, error) {

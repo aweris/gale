@@ -1,0 +1,61 @@
+name: step
+
+on: push
+
+jobs:
+  action:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hello World
+        uses: actions/hello-world-javascript-action@v1
+
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Default Shell
+        run: echo "Hello World"
+
+      - name: Bash Shell
+        shell: bash
+        run: echo "Hello World"
+
+      - name: Python Shell
+        shell: python
+        run: print("Hello World")
+
+      - name: SH Shell
+        shell: sh
+        run: echo "Hello World"
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Use Docker Cli directly
+        run: docker info
+
+      - name: Git log
+        uses: docker://alpine/git:latest
+        with:
+          args: log --pretty=oneline
+
+      - name: Print go.work
+        uses: docker://alpine:latest
+        with:
+          entrypoint: /bin/cat
+          args: go.work
+
+      - name: Use env and expression
+        uses: docker://alpine:latest
+        with:
+          entrypoint: /bin/echo
+          args: ${{ github.repository }}
+
+      - name: SVU version bump custom docker action
+        uses: jsok/svu-version-bump-action@v2
+        id: bump
+        with:
+          bump: 'patch'
+
+      - name: Print the version
+        run: echo "The version is ${{ steps.bump.outputs.version }}"
+

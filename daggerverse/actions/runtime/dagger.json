@@ -1,8 +1,0 @@
-{
-  "name": "actions-runtime",
-  "root": "../../..",
-  "sdk": "go",
-  "dependencies": [
-    "../../gale"
-  ]
-}
