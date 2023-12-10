@@ -6,6 +6,7 @@ import "strings"
 //
 // See: https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idsteps
 type Step struct {
+	Index            string            `yaml:"-"`                           // Index is the index of the step in the job context.
 	ID               string            `yaml:"id,omitempty"`                // ID is the unique identifier of the step.
 	If               string            `yaml:"if,omitempty"`                // If is the conditional expression to run the step.
 	Name             string            `yaml:"name,omitempty"`              // Name is the name of the step.

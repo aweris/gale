@@ -66,7 +66,7 @@ func (c *Context) GetStepRunPath() (string, error) {
 		return "", errors.New("no step is set")
 	}
 
-	return EnsureDir(c.GhxConfig.HomeDir, "run", "jobs", c.Execution.JobRun.Job.ID, "steps", c.Execution.StepRun.Step.ID)
+	return EnsureDir(c.GhxConfig.HomeDir, "run", "jobs", c.Execution.JobRun.Job.ID, "steps", c.Execution.StepRun.Step.Index+"."+c.Execution.StepRun.Step.ID)
 }
 
 // EnsureDir return the joined path and ensures that the directory exists. and returns the joined path.

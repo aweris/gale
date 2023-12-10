@@ -91,8 +91,10 @@ func LoadWorkflow(cfg context.GhxConfig, path string) (model.Workflow, error) {
 
 		// update step IDs if not provided
 		for ids, step := range job.Steps {
+			step.Index = fmt.Sprintf("%d", ids)
+
 			if step.ID == "" {
-				step.ID = fmt.Sprintf("%d", ids)
+				step.ID = step.Index
 			}
 
 			job.Steps[ids] = step
