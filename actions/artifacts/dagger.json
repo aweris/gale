@@ -1,0 +1,5 @@
+{
+  "name": "actions-artifact-service",
+  "root": "../..",
+  "sdk": "go"
+}

@@ -1,50 +1,47 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"strings"
+	"path/filepath"
+	"runtime"
 
-	"github.com/aweris/gale/common/model"
-	"github.com/aweris/gale/ghx/context"
-	"github.com/aweris/gale/ghx/expression"
+	"golang.org/x/mod/modfile"
 )
 
-// getStepName returns the step name. If step name is not set, it will be generated from the step type.
-func getStepName(prefix string, s model.Step) string {
-	if s.Name != "" {
-		return strings.TrimSpace(strings.Join([]string{prefix, s.Name}, " "))
-	}
+// root returns the root directory of the project.
+func root() string {
+	// get location of current file
+	_, current, _, _ := runtime.Caller(0)
 
-	switch s.Type() {
-	case model.StepTypeAction:
-		return strings.TrimSpace(strings.Join([]string{prefix, s.Uses}, " "))
-	case model.StepTypeRun:
-		return strings.TrimSpace(strings.Join([]string{prefix, strings.Split(s.Run, "\n")[0]}, " "))
-	default:
-		return fmt.Sprintf("%s %s", prefix, s.ID)
-	}
+	return filepath.Join(filepath.Dir(current), "..")
 }
 
-// evalCondition evaluates the given condition and returns the result. If the condition is empty, then it uses
-// success() as default.
-func evalCondition(condition string, ac *context.Context) (bool, model.Conclusion, error) {
-	// if condition is empty, then use success() as default
-	if condition == "" {
-		condition = "success()"
-	}
-
-	// evaluate the condition as boolean expression
-	run, err := expression.NewBoolExpr(condition).Eval(ac)
+func GoVersion(ctx context.Context, gomod *File) (string, error) {
+	mod, err := gomod.Contents(ctx)
 	if err != nil {
-		return false, "", err
+		return "", err
 	}
 
-	var conclusion model.Conclusion
-
-	// if the condition is false, then set the conclusion as skipped
-	if !run {
-		conclusion = model.ConclusionSkipped
+	f, err := modfile.Parse("go.mod", []byte(mod), nil)
+	if err != nil {
+		return "", err
 	}
 
-	return run, conclusion, nil
+	return f.Go.Version, nil
+}
+
+func modCache(container *Container) *Container {
+	return container.WithMountedCache("/go/pkg/mod", dag.CacheVolume("go-mod-cache"))
+}
+
+func buildCache(container *Container) *Container {
+	return container.WithMountedCache("/root/.cache/go-build", dag.CacheVolume("go-build-cache"))
+}
+
+func goBase(version string) *Container {
+	return dag.Container().
+		From(fmt.Sprintf("golang:%s", version)).
+		With(modCache).
+		With(buildCache)
 }

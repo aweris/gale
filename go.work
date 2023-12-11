@@ -1,19 +1,12 @@
 go 1.21.3
 
 use (
-	ci
+	.
+	actions/artifactcache
+	actions/artifactcache/src
+	actions/artifacts
+	actions/artifacts/src
 	common
-	daggerverse/actions/artifactcache
-	daggerverse/actions/artifactcache/src
-	daggerverse/actions/artifacts
-	daggerverse/actions/artifacts/src
-	daggerverse/actions/generator
-	daggerverse/actions/runtime
-	daggerverse/gale
-	daggerverse/gha/actions/hello-world-javascript-action
-	daggerverse/gha/aquasecurity/trivy-action
-	daggerverse/gha/trufflesecurity/trufflehog
-	daggerverse/ghx
-	daggerverse/repo
 	ghx
+	ghx/src
 )

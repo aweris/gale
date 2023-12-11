@@ -1,7 +1,0 @@
-{
-  "name": "hello-world-javascript-action",
-  "sdk": "go",
-  "dependencies": [
-    "github.com/aweris/gale/daggerverse/actions/runtime@051b8aec2704cd8a4e2a6633be658f8d4e16a893"
-  ]
-}
