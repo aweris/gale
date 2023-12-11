@@ -9,15 +9,15 @@ import (
 )
 
 func New(
-	// The context of the operation.
+	// Context of the operation.
 	ctx context.Context,
-	// The directory containing the repository source. If source is provided, rest of the options are ignored.
+	// Directory containing the repository source. If source is provided, rest of the options are ignored.
 	// +optional=true
 	source *Directory,
-	// The name of the repository. Format: owner/name.
+	// Name of the repository. Format: owner/name.
 	// +optional=true
 	repo string,
-	// Tag name to check out. Only one of branch or tag can be used. Precedence is as follows: tag, branch.
+	// Name to check out. Only one of branch or tag can be used. Precedence is as follows: tag, branch.
 	// +optional=true
 	tag string,
 	// Branch name to check out. Only one of branch or tag can be used. Precedence is as follows: tag, branch.
@@ -33,21 +33,18 @@ func New(
 		return nil, err
 	}
 
-	return &Gale{
-		Repo:      info,
-		Workflows: info.workflows(workflowsDir),
-	}, nil
+	return &Gale{Repo: info, Workflows: info.workflows(workflowsDir)}, nil
 }
 
 type Gale struct {
-	// The repository information
+	// Repository information
 	Repo *RepoInfo
 
-	// The workflows in the repository
+	// Workflows in the repository
 	Workflows *Workflows
 }
 
-// List returns a list of workflows and their jobs with the given options.
+// List returns a list of workflows and their jobs.
 func (g *Gale) List(ctx context.Context) (string, error) {
 	workflows, err := g.Workflows.List(ctx)
 	if err != nil {
@@ -87,7 +84,7 @@ func (g *Gale) List(ctx context.Context) (string, error) {
 }
 
 func (g *Gale) Run(
-	// context to use for the operation
+	// Context to use for the operation
 	ctx context.Context,
 	// External workflow file to run.
 	// +optional=true
@@ -160,8 +157,13 @@ func (g *Gale) Run(
 			DockerHost:      dockerHost,
 			UseDind:         useDind,
 		},
-		&EventOpts{Name: event, File: eventFile},
-		&SecretOpts{Token: token},
+		&EventOpts{
+			Name: event,
+			File: eventFile,
+		},
+		&SecretOpts{
+			Token: token,
+		},
 	)
 
 	executor, err := planner.Plan(ctx)

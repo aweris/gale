@@ -9,17 +9,38 @@ import (
 
 // RepoInfo represents a repository information.
 type RepoInfo struct {
-	Owner         string     // Owner of the repository.
-	Name          string     // Name of the repository.
-	NameWithOwner string     // NameWithOwner combined version of owner and name. Format: owner/name.
-	URL           string     // URL of the repository.
-	Ref           string     // Ref is the branch or tag ref that triggered the workflow
-	RefName       string     // RefName is the short name (without refs/heads/ prefix) of the branch or tag ref that triggered the workflow.
-	RefType       string     // RefType is the type of ref that triggered the workflow. Possible values are branch, tag, or empty, if neither
-	SHA           string     // SHA is the commit SHA that triggered the workflow. The value of this commit SHA depends on the event that
-	ShortSHA      string     // ShortSHA is the short commit SHA that triggered the workflow. The value of this commit SHA depends on the event that
-	IsRemote      bool       // IsRemote is true if the ref is a remote ref.
-	Source        *Directory // Source is the directory containing the repository source.
+	// Owner of the repository.
+	Owner string
+
+	// Name of the repository.
+	Name string
+
+	// NameWithOwner combined version of owner and name. Format: owner/name.
+	NameWithOwner string
+
+	// URL of the repository.
+	URL string
+
+	// Ref is the branch or tag ref that triggered the workflow
+	Ref string
+
+	// RefName is the short name (without refs/heads/ prefix) of the branch or tag ref that triggered the workflow.
+	RefName string
+
+	// RefType is the type of ref that triggered the workflow. Possible values are branch, tag, or empty, if neither
+	RefType string
+
+	// SHA is the commit SHA that triggered the workflow. The value of this commit SHA depends on the event that
+	SHA string
+
+	// ShortSHA is the short commit SHA that triggered the workflow. The value of this commit SHA depends on the event that
+	ShortSHA string
+
+	// IsRemote is true if the ref is a remote ref.
+	IsRemote bool
+
+	// Source is the directory containing the repository source.
+	Source *Directory
 }
 
 func NewRepoInfo(ctx context.Context, source *Directory, repo, tag, branch string) (*RepoInfo, error) {
@@ -76,6 +97,7 @@ func NewRepoInfo(ctx context.Context, source *Directory, repo, tag, branch strin
 	}, nil
 }
 
+// workflows returns the workflows endpoint for the repository.
 func (info *RepoInfo) workflows(dir string) *Workflows {
 	return &Workflows{
 		Repo:         info,
