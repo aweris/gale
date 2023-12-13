@@ -1,0 +1,8 @@
+{
+  "name": "gale-ci",
+  "root": "..",
+  "sdk": "go",
+  "dependencies": [
+    "../actions/generator"
+  ]
+}
