@@ -1,0 +1,13 @@
+# global values to be used by all actions
+global:
+  galeVersion: "f68252f64186ad05c1c8b3d72a25e7c2933c169d"
+  daggerVersion: "v0.9.4"
+
+# generated actions. global values can be overridden per action item if needed
+actions:
+  - repo: "actions/hello-world-javascript-action"
+    version: "main"
+  - repo: "aquasecurity/trivy-action"
+    version: "master"
+  - repo: "trufflesecurity/trufflehog"
+    version: "main"
