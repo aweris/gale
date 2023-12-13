@@ -6,7 +6,12 @@ use (
 	actions/artifactcache/src
 	actions/artifacts
 	actions/artifacts/src
+	actions/generator
 	common
+	ci
+	gha/actions/hello-world-javascript-action
+	gha/aquasecurity/trivy-action
+	gha/trufflesecurity/trufflehog
 	ghx
 	ghx/src
 )
