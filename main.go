@@ -138,6 +138,10 @@ func (g *Gale) Run(
 		log.Warnf("Both enableDocker and useDind are enabled. Using DinD to run docker commands.")
 	}
 
+	if useNativeDocker {
+		log.Warnf("Using native docker support. Please ensure that DOCKER_HOST is set correctly.", "DOCKER_HOST", dockerHost)
+	}
+
 	if useDind {
 		log.Warnf("Enabling DinD may lead to longer execution times.")
 	}
