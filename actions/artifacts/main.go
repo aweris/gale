@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"time"
 )
 
 func New() *ActionsArtifactService {
@@ -74,14 +74,27 @@ func (m *ActionsArtifactService) Artifacts(
 	// run id of the workflow run to get artifacts for. If not provided, all artifacts saved in the cache will be returned.
 	runID string,
 ) *Directory {
-	var (
-		cache  = m.Data
-		opts   = ContainerWithMountedCacheOpts{Sharing: Shared}
-		copySH = fmt.Sprintf("if [ -d /artifacts/%s ]; then cp -r /artifacts/%s /exported_artifacts; else mkdir /exported_artifacts; fi", runID, runID)
-	)
+	copySH := `#!/bin/sh
+	
+echo "Copying artifacts for runID: $1"
+
+if [ -d /artifacts/$1/ ]; then
+    echo "Copying artifacts for runID: $1"
+    cp -av /artifacts/$1/ /exported_artifacts/
+else
+    echo "Artifacts for runID: $1 not found"
+	
+	# list of run ids currently in the cache to help with debugging
+	echo "List of run ids in the cache:"
+	ls -la /artifacts/
+	
+    mkdir -p /exported_artifacts
+fi
+`
 
 	return dag.Container().From("alpine:latest").
-		WithMountedCache("/artifacts", cache, opts).
-		WithExec([]string{"sh", "-c", copySH}).
+		WithMountedCache("/artifacts", m.Data, ContainerWithMountedCacheOpts{Sharing: Shared}).
+		WithNewFile("/usr/local/bin/copy-artifacts.sh", ContainerWithNewFileOpts{Contents: copySH, Permissions: 0700}).
+		WithExec([]string{"copy-artifacts.sh", runID, time.Now().Format(time.RFC3339Nano)}). // current time just to ensure exec is not cached.
 		Directory("/exported_artifacts")
 }
