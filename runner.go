@@ -58,6 +58,8 @@ func (r *Runner) Container(runID string) (*RunnerContainer, error) {
 			ctr = ctr.WithEnvVariable("DOCKER_HOST", "unix:///var/run/docker.sock")
 		case strings.HasPrefix(r.RunnerOpts.DockerHost, "tcp://"):
 			ctr = ctr.WithEnvVariable("DOCKER_HOST", r.RunnerOpts.DockerHost)
+		default:
+			return nil, fmt.Errorf("unsupported docker host: %s", r.RunnerOpts.DockerHost)
 		}
 	}
 
