@@ -2,6 +2,6 @@
   "name": "hello-world-javascript-action",
   "sdk": "go",
   "dependencies": [
-    "github.com/aweris/gale@f68252f64186ad05c1c8b3d72a25e7c2933c169d"
+    "github.com/aweris/gale@d6f1073fc783be41753dae427996072f453f49f8"
   ]
 }

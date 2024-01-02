@@ -41,6 +41,8 @@ func (_ *Trufflehog) Run(
 	// +optional=true
 	head string,
 	// Repository path
+	// +optional=true
+	// +default=./
 	path string,
 ) *Container {
 	return dag.Gale(toGaleOpts(source, repo, tag, branch)).

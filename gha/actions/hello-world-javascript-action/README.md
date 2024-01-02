@@ -1,6 +1,6 @@
 # Module: Hello, World!
 
-![dagger-min-version](https://img.shields.io/badge/dagger%20version-v0.9.4-green)
+![dagger-min-version](https://img.shields.io/badge/dagger%20version-v0.9.5-green)
 
 Greet someone and record the time
 

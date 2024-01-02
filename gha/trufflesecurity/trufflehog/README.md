@@ -1,8 +1,8 @@
 # Module: TruffleHog OSS
 
-![dagger-min-version](https://img.shields.io/badge/dagger%20version-v0.9.4-green)
+![dagger-min-version](https://img.shields.io/badge/dagger%20version-v0.9.5-green)
 
-Scan Github Actions with TruffleHog
+Scan Github Actions with TruffleHog.
 
 This module is automatically generated using [actions-generator](https://github.com/aweris/gale/tree/main/daggerverse/actions/generator). It is a Dagger-compatible adaptation of the original [trufflesecurity/trufflehog](https://github.com/trufflesecurity/trufflehog) action.
 
@@ -23,7 +23,7 @@ dagger call -m github.com/aweris/gale/gha/trufflesecurity/trufflehog run [flags]
 | base | false | Start scanning from here (usually main branch). |  |
 | extra_args | false | Extra args to be passed to the trufflehog cli. |  |
 | head | false | Scan commits until here (usually dev branch). |  |
-| path | true | Repository path |  |
+| path | false | Repository path | ./ |
 
 
 ### Action Runtime Inputs
