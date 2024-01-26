@@ -183,11 +183,6 @@ func (rc *RunnerContainer) RunJob(ctx context.Context, job *Job, conclusion stri
 	// disable focus mode after the job is executed
 	ctr = ctr.WithoutFocus()
 
-	ctr, err = ctr.Sync(ctx)
-	if err != nil {
-		return nil, err
-	}
-
 	report, err := parseJobRunReport(ctx, ctr.Directory(current).File("job_run.json"))
 	if err != nil {
 		return nil, err
