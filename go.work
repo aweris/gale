@@ -1,14 +1,11 @@
 go 1.22.2
 
 use (
-	./dagger/actions/artifactcache
-	./dagger/actions/artifacts
 	./dagger/actions/generator
 	./dagger/gale
 	./dagger/gha/actions/hello-world-javascript-action
 	./dagger/gha/aquasecurity/trivy-action
 	./dagger/gha/trufflesecurity/trufflehog
-	./dagger/ghx
 	./libs/common
 	./services/artifactcache
 	./services/artifacts

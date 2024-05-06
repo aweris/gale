@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+
+	"dagger/gale/services"
 )
 
 type Runner struct {
@@ -35,17 +37,30 @@ type RunnerContainer struct {
 	Ctr   *Container
 }
 
-func (r *Runner) Container(runID string) (*RunnerContainer, error) {
+func (r *Runner) Container(ctx context.Context, runID string) (*RunnerContainer, error) {
 	var (
+		err      error
 		repo     = r.Repo
 		workflow = r.Workflow
 		ctr      = r.RunnerOpts.Ctr
 	)
 
-	// configure internal components
-	ctr = ctr.With(dag.Ghx().Binary)
-	ctr = ctr.With(dag.ActionsArtifactService().BindAsService)
-	ctr = ctr.With(dag.ActionsArtifactcacheService().BindAsService)
+	svc := services.NewServices(dag)
+
+	ctr, err = svc.WithGHX(ctx, ctr)
+	if err != nil {
+		return nil, err
+	}
+
+	ctr, err = svc.WithArtifactcacheService(ctx, ctr)
+	if err != nil {
+		return nil, err
+	}
+
+	ctr, err = svc.WithArtifactsService(ctx, ctr)
+	if err != nil {
+		return nil, err
+	}
 
 	// configure docker using docker host when docker is enabled and dind is not enabled
 	/*

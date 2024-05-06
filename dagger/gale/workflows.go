@@ -7,8 +7,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/aweris/gale/common/model"
 	"gopkg.in/yaml.v3"
+
+	"dagger/gale/common/model"
 )
 
 type Workflows struct {

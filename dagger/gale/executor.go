@@ -39,7 +39,7 @@ func (we *WorkflowExecutor) Execute(ctx context.Context) (*WorkflowRun, error) {
 	)
 
 	// get the container instance to run the jobs
-	rc, err := we.runner.Container(we.runID)
+	rc, err := we.runner.Container(ctx, we.runID)
 	if err != nil {
 		return nil, err
 	}

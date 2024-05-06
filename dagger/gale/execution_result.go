@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+
+	"dagger/gale/services"
 )
 
 type WorkflowRun struct {
@@ -123,7 +125,7 @@ func (wr *WorkflowRun) Data() *Directory {
 	}
 
 	// add artifacts if any
-	data = data.WithDirectory("artifacts", dag.ActionsArtifactService().Artifacts(wr.RunID))
+	data = data.WithDirectory("artifacts", services.NewServices(dag).Artifacts(wr.RunID))
 
 	return data
 }
