@@ -1,0 +1,6 @@
+{
+  "name": "actions-artifact-service",
+  "sdk": "go",
+  "source": ".",
+  "engineVersion": "v0.11.2"
+}

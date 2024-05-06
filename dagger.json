@@ -2,9 +2,23 @@
   "name": "gale",
   "sdk": "go",
   "dependencies": [
-    "actions/artifactcache",
-    "actions/artifacts",
-    "ghx",
-    "github.com/aweris/daggerverse/docker@969bc30a84b48f76a28afab3986144d2e47469df"
-  ]
+    {
+      "name": "actions-artifact-service",
+      "source": "dagger/actions/artifacts"
+    },
+    {
+      "name": "actions-artifactcache-service",
+      "source": "dagger/actions/artifactcache"
+    },
+    {
+      "name": "docker",
+      "source": "github.com/aweris/daggerverse/docker@83c5efe92af2afacff2a1d3475480ac7f3710ed9"
+    },
+    {
+      "name": "ghx",
+      "source": "dagger/ghx"
+    }
+  ],
+  "source": "dagger/gale",
+  "engineVersion": "v0.11.2"
 }
