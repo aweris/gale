@@ -1,4 +1,4 @@
-module github.com/aweris/gale/ghx
+module dagger/gale/ghx
 
 go 1.22.2
 

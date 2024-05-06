@@ -1,4 +1,4 @@
-module actions-generator
+module dagger/gale/actions/generator
 
 go 1.22.2
 

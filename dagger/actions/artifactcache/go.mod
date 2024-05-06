@@ -1,4 +1,4 @@
-module dagger/actions/artifactcache
+module dagger/gale/actions/artifactcache
 
 go 1.22.2
 

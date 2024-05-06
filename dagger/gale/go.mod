@@ -1,4 +1,4 @@
-module github.com/aweris/gale
+module dagger/gale
 
 go 1.22.2
 

@@ -1,4 +1,4 @@
-module actions-artifacts
+module dagger/gale/actions/artifacts
 
 go 1.22.2
 
