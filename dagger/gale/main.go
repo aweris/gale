@@ -7,21 +7,30 @@ import (
 )
 
 func New(
-	// Context of the operation.
 	ctx context.Context,
+
 	// Directory containing the repository source. If source is provided, rest of the options are ignored.
+	//
 	// +optional
 	source *Directory,
+
 	// Name of the repository. Format: owner/name.
+	//
 	// +optional
 	repo string,
+
 	// Name to check out. Only one of branch or tag can be used. Precedence is as follows: tag, branch.
+	//
 	// +optional
 	tag string,
+
 	// Branch name to check out. Only one of branch or tag can be used. Precedence is as follows: tag, branch.
+	//
 	// +optional
 	branch string,
+
 	// Path to the workflows' directory.
+	//
 	// +optional
 	// +default=".github/workflows"
 	workflowsDir string,
@@ -82,44 +91,65 @@ func (g *Gale) List(ctx context.Context) (string, error) {
 }
 
 func (g *Gale) Run(
-	// Context to use for the operation
 	ctx context.Context,
+
 	// External workflow file to run.
+	//
 	// +optional
 	workflowFile *File,
+
 	// Name of the workflow to run.
+	//
 	// +optional
 	workflow string,
+
 	// Name of the job to run. If empty, all jobs will be run.
+	//
 	// +optional
 	job string,
+
 	// Name of the event that triggered the workflow. e.g. push
+	//
 	// +optional
 	// +default="push"
 	event string,
+
 	// File with the complete webhook event payload.
+	//
 	// +optional
 	eventFile *File,
+
 	// Container to use for the runner(default: ghcr.io/catthehacker/ubuntu:act-latest).
+	//
 	// +optional
 	container *Container,
+
 	// Enables debug mode.
+	//
 	// +optional
 	// +default=false
 	runnerDebug bool,
+
 	// Enables native Docker support, allowing direct execution of Docker commands in the workflow.
+	//
 	// +optional
 	// +default=true
 	useNativeDocker bool,
+
 	// Sets DOCKER_HOST to use for the native docker support.
+	//
 	// +optional
 	// +default="unix:///var/run/docker.sock"
 	dockerHost string,
+
 	// Enables docker-in-dagger support to be able to run docker commands isolated from the host. Enabling DinD may lead to longer execution times.
+	//
 	// +optional
 	// +default=false
 	useDind bool,
+
 	// GitHub token to use for authentication.
+	//
 	// +optional
 	token *Secret,
 ) (*WorkflowRun, error) {
@@ -181,15 +211,22 @@ func (g *Gale) Run(
 
 func (g *Gale) Action(
 	// ID of the step. Defaults to the step index in the job.
+	//
 	// +optional
 	stepID string,
+
 	// External workflow file to run.
-	// +optional=false
+	//
+	// +optional
 	uses string,
+
 	// Environment variables for the action. Format: name=value.
+	//
 	// +optional
 	env []string,
+
 	// Input parameters for the action. Format: name=value.
+	//
 	// +optional
 	with []string,
 ) (*Actions, error) {
