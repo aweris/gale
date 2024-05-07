@@ -13,8 +13,11 @@ type WorkflowRun struct {
 	// unique ID of the run.
 	RunID string
 
-	// event options for the workflow run.
-	Event *EventOpts
+	// the event name for this workflow run.
+	EventName string
+
+	// the event file for this workflow run.
+	EventFile *File
 
 	// the workflow to run.
 	Workflow *Workflow
@@ -114,7 +117,7 @@ func (wr *WorkflowRun) Data() *Directory {
 	data = data.WithFile("run/workflow.yaml", wr.Workflow.Src)
 
 	// add event file
-	data = data.WithFile("run/event.json", wr.Event.File)
+	data = data.WithFile("run/event.json", wr.EventFile)
 
 	// add workflow run report file
 	data = data.WithFile("run/workflow_run.json", wr.Report.File)

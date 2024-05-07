@@ -40,10 +40,23 @@ func New(
 		return nil, err
 	}
 
-	return &Gale{Repo: info, Workflows: info.workflows(workflowsDir)}, nil
+	return &Gale{
+		Config: &Config{
+			Source:       source,
+			Repo:         repo,
+			Tag:          tag,
+			Branch:       branch,
+			WorkflowsDir: workflowsDir,
+		},
+		Repo:      info,
+		Workflows: info.workflows(workflowsDir),
+	}, nil
 }
 
 type Gale struct {
+	// +private
+	Config *Config
+
 	// Repository information
 	Repo *RepoInfo
 
@@ -177,29 +190,17 @@ func (g *Gale) Run(
 		}
 	*/
 
-	planner := NewWorkflowExecutionPlanner(
-		g.Repo,
-		g.Workflows,
-		&WorkflowRunOpts{
-			WorkflowFile: workflowFile,
-			Workflow:     workflow,
-			Job:          job,
-		},
-		&RunnerOpts{
-			Ctr:             container,
-			Debug:           runnerDebug,
-			UseNativeDocker: useNativeDocker,
-			DockerHost:      dockerHost,
-			UseDind:         useDind,
-		},
-		&EventOpts{
-			Name: event,
-			File: eventFile,
-		},
-		&SecretsOpts{
-			Token: token,
-		},
-	)
+	g.Config.Event = event
+	g.Config.EventFile = eventFile
+	g.Config.UseDinD = useDind
+	g.Config.Token = token
+	g.Config.Ctr = container
+	g.Config.Workflow = workflow
+	g.Config.WorkflowFile = workflowFile
+	g.Config.Job = job
+	g.Config.Debug = runnerDebug
+
+	planner := NewWorkflowExecutionPlanner(g)
 
 	executor, err := planner.Plan(ctx)
 	if err != nil {
@@ -230,10 +231,7 @@ func (g *Gale) Action(
 	// +optional
 	with []string,
 ) (*Actions, error) {
-	actions := &Actions{
-		Repo:      g.Repo,
-		Workflows: g.Workflows,
-	}
+	actions := &Actions{Gale: g}
 
 	return actions.Action(stepID, uses, env, with)
 }

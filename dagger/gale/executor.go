@@ -84,10 +84,11 @@ func (we *WorkflowExecutor) Execute(ctx context.Context) (*WorkflowRun, error) {
 	}
 
 	return &WorkflowRun{
-		RunID:    we.runID,
-		Workflow: we.workflow,
-		Event:    we.plan.EventOpts,
-		Report:   report,
-		JobRuns:  runs,
+		RunID:     we.runID,
+		Workflow:  we.workflow,
+		EventName: we.runner.Gale.Config.Event,
+		EventFile: we.runner.Gale.Config.EventFile,
+		Report:    report,
+		JobRuns:   runs,
 	}, nil
 }

@@ -9,11 +9,8 @@ import (
 )
 
 type Actions struct {
-	// The repository information
-	Repo *RepoInfo
-
-	// The workflows in the repository
-	Workflows *Workflows
+	// +private
+	Gale *Gale
 
 	// The steps in the action
 	Steps []Step
@@ -112,14 +109,7 @@ func (a *Actions) Run(
 		container = dag.Container().From("ghcr.io/catthehacker/ubuntu:act-latest")
 	}
 
-	planner := NewWorkflowExecutionPlanner(
-		a.Repo,
-		a.Workflows,
-		&WorkflowRunOpts{WorkflowFile: dag.Directory().WithNewFile("workflow.yml", string(data)).File("workflow.yml")},
-		&RunnerOpts{Ctr: container, Debug: runnerDebug},
-		&EventOpts{Name: event, File: eventFile},
-		&SecretsOpts{Token: token},
-	)
+	planner := NewWorkflowExecutionPlanner(a.Gale)
 
 	executor, err := planner.Plan(ctx)
 	if err != nil {

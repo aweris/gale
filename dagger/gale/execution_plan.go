@@ -8,47 +8,18 @@ import (
 )
 
 type WorkflowExecutionPlanner struct {
-	// information about the repository.
-	Repo *RepoInfo
-
-	// workflows in the repository.
-	Workflows *Workflows
-
-	// options specific to the workflow run.
-	RunOpts *WorkflowRunOpts
-
-	// options specific to the runner.
-	RunnerOpts *RunnerOpts
-
-	// options specific to the event.
-	EventOpts *EventOpts
-
-	// options specific to the workflow secrets.
-	SecretOpts *SecretsOpts
+	// +private
+	Gale *Gale
 }
 
-func NewWorkflowExecutionPlanner(
-	repo *RepoInfo,
-	workflows *Workflows,
-	runOpts *WorkflowRunOpts,
-	runnerOpts *RunnerOpts,
-	eventOpts *EventOpts,
-	secretOpts *SecretsOpts,
-) *WorkflowExecutionPlanner {
-	return &WorkflowExecutionPlanner{
-		Repo:       repo,
-		Workflows:  workflows,
-		RunOpts:    runOpts,
-		RunnerOpts: runnerOpts,
-		EventOpts:  eventOpts,
-		SecretOpts: secretOpts,
-	}
+func NewWorkflowExecutionPlanner(module *Gale) *WorkflowExecutionPlanner {
+	return &WorkflowExecutionPlanner{Gale: module}
 }
 
 func (wep *WorkflowExecutionPlanner) Plan(ctx context.Context) (*WorkflowExecutor, error) {
 	var workflow *Workflow
 
-	workflow, err := getWorkflow(ctx, wep.Workflows, wep.RunOpts.WorkflowFile, wep.RunOpts.Workflow)
+	workflow, err := getWorkflow(ctx, wep.Gale.Workflows, wep.Gale.Config.WorkflowFile, wep.Gale.Config.Workflow)
 	if err != nil {
 		return nil, err
 	}
@@ -61,9 +32,9 @@ func (wep *WorkflowExecutionPlanner) Plan(ctx context.Context) (*WorkflowExecuto
 	return &WorkflowExecutor{
 		plan:     wep,
 		runID:    uuid.New().String(),
-		repo:     wep.Repo,
+		repo:     wep.Gale.Repo,
 		workflow: workflow,
-		runner:   NewRunner(wep.Repo, workflow, wep.RunnerOpts, wep.EventOpts, wep.SecretOpts),
+		runner:   NewRunner(wep.Gale, workflow),
 		jobs:     jobs,
 		jrs:      make(map[string]*JobRun),
 	}, nil
@@ -72,7 +43,6 @@ func (wep *WorkflowExecutionPlanner) Plan(ctx context.Context) (*WorkflowExecuto
 // jobs returns a filtered list of jobs required for execution in a workflow run, sorted by dependency order.
 func (wep *WorkflowExecutionPlanner) jobs(workflow *Workflow) ([]*Job, error) {
 	var (
-		opts    = wep.RunOpts
 		jobs    = make(map[string]Job)
 		order   = make([]*Job, 0, len(workflow.Jobs))
 		visited = make(map[string]bool)
@@ -109,8 +79,8 @@ func (wep *WorkflowExecutionPlanner) jobs(workflow *Workflow) ([]*Job, error) {
 		return nil
 	}
 
-	if opts.Job != "" {
-		if err := visitFn(opts.Job); err != nil {
+	if wep.Gale.Config.Job != "" {
+		if err := visitFn(wep.Gale.Config.Job); err != nil {
 			return nil, err
 		}
 	} else {
@@ -122,7 +92,7 @@ func (wep *WorkflowExecutionPlanner) jobs(workflow *Workflow) ([]*Job, error) {
 	}
 
 	if len(order) == 0 {
-		return nil, fmt.Errorf("failed to find %s job in the workflow", opts.Job)
+		return nil, fmt.Errorf("failed to find %s job in the workflow", wep.Gale.Config.Job)
 	}
 
 	return order, nil

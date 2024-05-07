@@ -9,27 +9,12 @@ import (
 )
 
 type Runner struct {
-	RunnerOpts *RunnerOpts
-	EventOpts  *EventOpts
-	SecretOpts *SecretsOpts
-	Repo       *RepoInfo
-	Workflow   *Workflow
+	Gale     *Gale
+	Workflow *Workflow
 }
 
-func NewRunner(
-	repo *RepoInfo,
-	workflow *Workflow,
-	runnerOpts *RunnerOpts,
-	eventOpts *EventOpts,
-	secretOpts *SecretsOpts,
-) *Runner {
-	return &Runner{
-		RunnerOpts: runnerOpts,
-		EventOpts:  eventOpts,
-		SecretOpts: secretOpts,
-		Repo:       repo,
-		Workflow:   workflow,
-	}
+func NewRunner(gale *Gale, workflow *Workflow) *Runner {
+	return &Runner{Gale: gale, Workflow: workflow}
 }
 
 type RunnerContainer struct {
@@ -40,9 +25,9 @@ type RunnerContainer struct {
 func (r *Runner) Container(ctx context.Context, runID string) (*RunnerContainer, error) {
 	var (
 		err      error
-		repo     = r.Repo
+		repo     = r.Gale.Repo
 		workflow = r.Workflow
-		ctr      = r.RunnerOpts.Ctr
+		ctr      = r.Gale.Config.Ctr
 	)
 
 	svc := services.NewServices(dag)
@@ -79,7 +64,7 @@ func (r *Runner) Container(ctx context.Context, runID string) (*RunnerContainer,
 			}
 	*/
 	// configure docker-in-dagger service
-	if r.RunnerOpts.UseDind {
+	if r.Gale.Config.UseDinD {
 		ctr = ctr.With(dag.Docker().BindAsService)
 	}
 
@@ -117,21 +102,21 @@ func (r *Runner) Container(ctx context.Context, runID string) (*RunnerContainer,
 	ctr = ctr.WithEnvVariable("GHX_HOME", home)
 
 	// Configure GitHub token if provided
-	if r.SecretOpts.Token != nil {
-		ctr = ctr.WithSecretVariable("GITHUB_TOKEN", r.SecretOpts.Token)
+	if r.Gale.Config.Token != nil {
+		ctr = ctr.WithSecretVariable("GITHUB_TOKEN", r.Gale.Config.Token)
 	}
 
 	// Configure runner debug mode if enabled
-	if r.RunnerOpts.Debug {
+	if r.Gale.Config.Debug {
 		ctr = ctr.WithEnvVariable("RUNNER_DEBUG", "1")
 	}
 
 	// Configure event
 	eventPath := filepath.Join(home, "run", "event.json")
 
-	ctr = ctr.WithEnvVariable("GITHUB_EVENT_NAME", r.EventOpts.Name)
+	ctr = ctr.WithEnvVariable("GITHUB_EVENT_NAME", r.Gale.Config.Event)
 	ctr = ctr.WithEnvVariable("GITHUB_EVENT_PATH", eventPath)
-	ctr = ctr.WithMountedFile(eventPath, r.EventOpts.File)
+	ctr = ctr.WithMountedFile(eventPath, r.Gale.Config.EventFile)
 
 	// Configure workflow
 	ctr = ctr.WithEnvVariable("GITHUB_RUN_ID", runID)

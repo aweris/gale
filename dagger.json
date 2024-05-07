@@ -3,12 +3,12 @@
   "sdk": "go",
   "dependencies": [
     {
-      "name": "go",
-      "source": "github.com/sagikazarmark/daggerverse/go@d8b5409dc45cc2242792566059f18cb1e5488629"
-    },
-    {
       "name": "docker",
       "source": "github.com/aweris/daggerverse/docker@83c5efe92af2afacff2a1d3475480ac7f3710ed9"
+    },
+    {
+      "name": "go",
+      "source": "github.com/sagikazarmark/daggerverse/go@d8b5409dc45cc2242792566059f18cb1e5488629"
     }
   ],
   "source": "dagger/gale",
