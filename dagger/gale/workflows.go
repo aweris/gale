@@ -76,7 +76,7 @@ type Workflow struct {
 	Name string
 
 	// Environment variables used in the workflow. Format: KEY=VALUE.
-	Env []KV
+	Env KV
 
 	// Jobs in the workflow.
 	Jobs []Job
@@ -120,7 +120,7 @@ func (w *Workflows) loadWorkflow(ctx context.Context, path string, workflow *Fil
 		Ref:  ref,
 		SHA:  w.Repo.SHA,
 		Name: wm.Name,
-		Env:  ConvertMapToKVSlice(wm.Env),
+		Env:  NewKVFromMap(wm.Env),
 		Jobs: jobs,
 	}, nil
 }
@@ -144,7 +144,7 @@ type Job struct {
 	Needs []string
 
 	// Environment variables used in the job. Format: KEY=VALUE.
-	Env []KV
+	Env KV
 
 	// List of outputs of the job.
 	Outputs []string
@@ -174,7 +174,7 @@ func loadJob(id string, jm model.Job) Job {
 		Name:      name,
 		Condition: jm.If,
 		Needs:     jm.Needs,
-		Env:       ConvertMapToKVSlice(jm.Env),
+		Env:       NewKVFromMap(jm.Env),
 		Steps:     steps,
 	}
 }
@@ -193,10 +193,10 @@ type Step struct {
 	Uses string
 
 	// Environment variables used in the step. Format: KEY=VALUE.
-	Env []KV
+	Env KV
 
 	// Inputs used in the step. Format: KEY=VALUE.
-	With []KV
+	With KV
 
 	// Command to run for the step.
 	Run string
@@ -220,8 +220,8 @@ func loadStep(step model.Step) Step {
 		Condition:        step.If,
 		Name:             step.Name,
 		Uses:             step.Uses,
-		Env:              ConvertMapToKVSlice(step.Environment),
-		With:             ConvertMapToKVSlice(step.With),
+		Env:              NewKVFromMap(step.Environment),
+		With:             NewKVFromMap(step.With),
 		Run:              step.Run,
 		Shell:            step.Shell,
 		WorkingDirectory: step.WorkingDirectory,

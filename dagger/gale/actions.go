@@ -30,21 +30,11 @@ func (a *Actions) Action(
 	// +optional
 	with []string,
 ) (*Actions, error) {
-	envVal, err := ParseKeyValuePairs(env)
-	if err != nil {
-		return nil, err
-	}
-
-	withVal, err := ParseKeyValuePairs(with)
-	if err != nil {
-		return nil, err
-	}
-
 	step := Step{
 		StepID: stepID,
 		Uses:   uses,
-		Env:    envVal,
-		With:   withVal,
+		Env:    env,
+		With:   with,
 	}
 
 	a.Steps = append(a.Steps, step)
@@ -79,8 +69,8 @@ func (a *Actions) Run(
 		sm := model.Step{
 			ID:          step.StepID,
 			Uses:        step.Uses,
-			Environment: ConvertKVSliceToMap(step.Env),
-			With:        ConvertKVSliceToMap(step.With),
+			Environment: step.Env.ToMap(),
+			With:        step.With.ToMap(),
 		}
 
 		models = append(models, sm)

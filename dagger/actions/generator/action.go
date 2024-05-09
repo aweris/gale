@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/aweris/gale/libs/common/model"
+	"gopkg.in/yaml.v3"
 )
 
 func loadCustomAction(source string) (*CustomAction, error) {
@@ -76,7 +77,7 @@ func toCustomActionMeta(meta *model.CustomActionMeta) CustomActionMeta {
 		Outputs:     toCustomActionOutputs(meta.Outputs),
 		Runs: CustomActionRuns{
 			Using:          CustomActionRunsUsing(meta.Runs.Using),
-			Env:            ConvertMapToKVSlice(meta.Runs.Env),
+			Env:            NewKVFromMap(meta.Runs.Env),
 			Main:           meta.Runs.Main,
 			Pre:            meta.Runs.Pre,
 			PreIf:          meta.Runs.PreIf,
@@ -145,8 +146,8 @@ func toCustomActionSteps(steps []model.Step) []Step {
 		result = append(result, Step{
 			Name:            v.Name,
 			Uses:            v.Uses,
-			With:            ConvertMapToKVSlice(v.With),
-			Environment:     ConvertMapToKVSlice(v.Environment),
+			With:            NewKVFromMap(v.With),
+			Environment:     NewKVFromMap(v.Environment),
 			Run:             v.Run,
 			Shell:           v.Shell,
 			ContinueOnError: v.ContinueOnError,
@@ -195,7 +196,7 @@ type CustomActionOutput struct {
 // CustomActionRuns represents the definition of how a GitHub Action is run.
 type CustomActionRuns struct {
 	Using          CustomActionRunsUsing // Using is the method used to run the action.
-	Env            []KV                  // Env is the environment variables used to run the action.
+	Env            KV                    // Env is the environment variables used to run the action.
 	Main           string                // Main is the path to the main entrypoint for the action. This is only used by javascript actions.
 	Pre            string                // Pre is the path to the pre entrypoint for the action. This is only used by javascript actions.
 	PreIf          string                // PreIf is the condition for running the pre entrypoint. This is only used by javascript actions.
@@ -238,8 +239,8 @@ type Step struct {
 	If               string // If is the conditional expression to run the step.
 	Name             string // Name is the name of the step.
 	Uses             string // Uses is the action to run for the step.
-	Environment      []KV   // Environment maps environment variable names to their values.
-	With             []KV   // With maps input names to their values for the step.
+	Environment      KV     // Environment maps environment variable names to their values.
+	With             KV     // With maps input names to their values for the step.
 	Run              string // Run is the command to run for the step.
 	Shell            string // Shell is the shell to use for the step.
 	WorkingDirectory string // WorkingDirectory is the working directory for the step.

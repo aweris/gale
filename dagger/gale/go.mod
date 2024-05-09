@@ -7,6 +7,7 @@ require (
 	github.com/Khan/genqlient v0.7.0
 	github.com/aweris/gale/common v0.0.0-20240126235054-17143bd4877c
 	github.com/google/uuid v1.6.0
+	github.com/samber/lo v1.39.0
 	github.com/stretchr/testify v1.9.0
 	github.com/vektah/gqlparser/v2 v2.5.11
 	go.opentelemetry.io/otel v1.24.0
